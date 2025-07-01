@@ -14,7 +14,7 @@ import { ResourcesSection } from "../_components/ResourceSection"
 import { TaskAssignmentDialog } from "../_components/TaskAssignmentDialog"
 import { api } from "~/trpc/react"
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string | null) => {
     switch (status) {
         case "completed":
             return "bg-green-100 text-green-800"
@@ -29,7 +29,7 @@ const getStatusColor = (status: string) => {
     }
 }
 
-const getPriorityIcon = (priority: string) => {
+const getPriorityIcon = (priority: string | null) => {
     switch (priority) {
         case "high":
             return <AlertCircle className="h-4 w-4 text-red-500" />
@@ -122,7 +122,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                     <h3 className="font-semibold text-gray-800 mb-2">Deadline</h3>
                                     <div className="flex items-center gap-2">
                                         <Calendar className="h-4 w-4 text-gray-500" />
-                                        <span className="text-sm">{new Date(project.deadline).toLocaleDateString()}</span>
+                                        <span className="text-sm">{new Date(project.deadline!).toLocaleDateString()}</span>
                                     </div>
                                 </div>
 
@@ -130,9 +130,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                     <h3 className="font-semibold text-gray-800 mb-2">Team</h3>
                                     <div className="flex -space-x-2">
                                         {project.teamMembers.map((member) => (
-                                            <Avatar key={member.id} className="w-8 h-8 border-2 border-white">
+                                            <Avatar key={member?.id} className="w-8 h-8 border-2 border-white">
                                                 <AvatarFallback className="bg-orange-500 text-white text-xs">
-                                                    {member.avatar}
+                                                    {member?.avatar}
                                                 </AvatarFallback>
                                             </Avatar>
                                         ))}
@@ -204,7 +204,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
                                                         <div className="flex items-center gap-1 text-sm text-gray-500">
                                                             <Calendar className="h-4 w-4" />
-                                                            Due {new Date(task.deadline).toLocaleDateString()}
+                                                            Due {new Date(task.deadline!).toLocaleDateString()}{" "}
                                                         </div>
                                                     </div>
 

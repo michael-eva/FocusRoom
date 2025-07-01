@@ -9,7 +9,7 @@ import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 import { api } from "~/trpc/react"
 
-const getStatusColor = (status: string) => {
+const getStatusColor = (status: string | null) => {
     switch (status) {
         case "active":
             return "bg-green-100 text-green-800"
@@ -22,7 +22,7 @@ const getStatusColor = (status: string) => {
     }
 }
 
-const getPriorityColor = (priority: string) => {
+const getPriorityColor = (priority: string | null) => {
     switch (priority) {
         case "high":
             return "bg-red-100 text-red-800"
@@ -164,9 +164,9 @@ export default function ProjectsPage() {
                                                     <div
                                                         key={index}
                                                         className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white"
-                                                        title={member}
+                                                        title={member.teamMember?.name ?? ""}
                                                     >
-                                                        {member.charAt(0)}
+                                                        {member.teamMember?.name?.charAt(0)}
                                                     </div>
                                                 ))}
                                                 {project.teamMembers.length > 3 && (
@@ -181,7 +181,7 @@ export default function ProjectsPage() {
                                         <div className="flex justify-between items-center pt-2 border-t">
                                             <Badge className={getStatusColor(project.status)}>{project.status}</Badge>
                                             <span className="text-xs text-gray-500">
-                                                Due {new Date(project.deadline).toLocaleDateString()}
+                                                Due {new Date(project.deadline!).toLocaleDateString()}
                                             </span>
                                         </div>
                                     </CardContent>

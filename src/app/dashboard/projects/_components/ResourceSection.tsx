@@ -6,7 +6,7 @@ import { Badge } from "~/components/ui/badge"
 import { ExternalLink, FileText, Plus, LinkIcon } from "lucide-react"
 import { api } from "~/trpc/react";
 
-const getTypeColor = (type: string) => {
+const getTypeColor = (type: string | null) => {
     switch (type) {
         case "Google Docs":
             return "bg-blue-100 text-blue-800"
@@ -17,7 +17,7 @@ const getTypeColor = (type: string) => {
     }
 }
 
-const getTypeIcon = (type: string) => {
+const getTypeIcon = (type: string | null) => {
     switch (type) {
         case "Google Docs":
             return <FileText className="h-4 w-4" />
@@ -66,9 +66,9 @@ export function ResourcesSection() {
 
                             <div className="flex items-center justify-between">
                                 <span className="text-xs text-gray-500">
-                                    Updated {new Date(resource.lastUpdated).toLocaleDateString()}
+                                    Updated {new Date(resource.lastUpdated!).toLocaleDateString()}
                                 </span>
-                                <Button variant="outline" size="sm" onClick={() => window.open(resource.url, "_blank")}>
+                                <Button variant="outline" size="sm" onClick={() => window.open(resource.url!, "_blank")}>
                                     <ExternalLink className="h-4 w-4 mr-1" />
                                     Open
                                 </Button>
