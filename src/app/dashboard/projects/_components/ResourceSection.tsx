@@ -4,41 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { ExternalLink, FileText, Plus, LinkIcon } from "lucide-react"
-
-const resources = [
-    {
-        id: 1,
-        title: "Venue Contact List",
-        type: "Google Sheets",
-        url: "https://docs.google.com/spreadsheets/d/example",
-        description: "Master list of all venues with contact information and status",
-        lastUpdated: "2025-01-15",
-    },
-    {
-        id: 2,
-        title: "Outreach Email Templates",
-        type: "Google Docs",
-        url: "https://docs.google.com/document/d/example",
-        description: "Collection of email templates for different types of venues",
-        lastUpdated: "2025-01-12",
-    },
-    {
-        id: 3,
-        title: "Partnership Agreement Template",
-        type: "Google Docs",
-        url: "https://docs.google.com/document/d/example2",
-        description: "Legal template for venue partnership agreements",
-        lastUpdated: "2025-01-10",
-    },
-    {
-        id: 4,
-        title: "Venue Response Tracker",
-        type: "Google Sheets",
-        url: "https://docs.google.com/spreadsheets/d/example2",
-        description: "Track responses and follow-up actions for each venue",
-        lastUpdated: "2025-01-14",
-    },
-]
+import { api } from "~/trpc/react";
 
 const getTypeColor = (type: string) => {
     switch (type) {
@@ -63,6 +29,16 @@ const getTypeIcon = (type: string) => {
 }
 
 export function ResourcesSection() {
+    const { data: resources, isLoading } = api.project.getResources.useQuery();
+
+    if (isLoading) {
+        return <div>Loading...</div>
+    }
+
+    if (!resources) {
+        return <div>No resources found.</div>
+    }
+
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">

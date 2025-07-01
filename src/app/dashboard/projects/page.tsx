@@ -7,58 +7,7 @@ import { Bell, User, Plus, Users, Calendar, CheckCircle2, Clock } from "lucide-r
 import Link from "next/link"
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
-
-// Sample projects data
-const projects = [
-    {
-        id: "venue-outreach",
-        name: "Venue outreach campaign",
-        description: "Reach out to local venues for partnership opportunities",
-        status: "active",
-        progress: 65,
-        totalTasks: 12,
-        completedTasks: 8,
-        teamMembers: ["Alice", "Bob", "Charlie"],
-        deadline: "2025-02-15",
-        priority: "high",
-    },
-    {
-        id: "songwriters-showcase",
-        name: "Songwriters Showcase Event",
-        description: "Organize monthly showcase for local songwriters",
-        status: "active",
-        progress: 40,
-        totalTasks: 15,
-        completedTasks: 6,
-        teamMembers: ["Diana", "Eve", "Frank"],
-        deadline: "2025-01-30",
-        priority: "high",
-    },
-    {
-        id: "community-platform",
-        name: "Community Platform Updates",
-        description: "Improve user experience and add new features",
-        status: "planning",
-        progress: 20,
-        totalTasks: 8,
-        completedTasks: 2,
-        teamMembers: ["Grace", "Henry"],
-        deadline: "2025-03-01",
-        priority: "medium",
-    },
-    {
-        id: "marketing-campaign",
-        name: "Social Media Marketing",
-        description: "Increase online presence and engagement",
-        status: "active",
-        progress: 80,
-        totalTasks: 10,
-        completedTasks: 8,
-        teamMembers: ["Ivy", "Jack", "Kate", "Liam"],
-        deadline: "2025-01-20",
-        priority: "low",
-    },
-]
+import { api } from "~/trpc/react"
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -87,6 +36,16 @@ const getPriorityColor = (priority: string) => {
 }
 
 export default function ProjectsPage() {
+    const { data: projects, isLoading } = api.project.getProjects.useQuery();
+
+    if (isLoading) {
+        return <div>Loading...</div>
+    }
+
+    if (!projects) {
+        return <div>No projects found.</div>
+    }
+
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">

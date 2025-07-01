@@ -12,73 +12,7 @@ import { Bell, User, Plus, ArrowLeft, Calendar, Users, Mail, CheckCircle2, Clock
 import Link from "next/link"
 import { ResourcesSection } from "../_components/ResourceSection"
 import { TaskAssignmentDialog } from "../_components/TaskAssignmentDialog"
-
-// Sample project data
-const projectData = {
-    "venue-outreach": {
-        name: "Venue outreach campaign",
-        description:
-            "Reach out to local venues for partnership opportunities and establish relationships for future events",
-        status: "active",
-        progress: 65,
-        deadline: "2025-02-15",
-        priority: "high",
-        teamMembers: [
-            { id: 1, name: "Alice Johnson", email: "alice@packmusic.com", avatar: "AJ" },
-            { id: 2, name: "Bob Smith", email: "bob@packmusic.com", avatar: "BS" },
-            { id: 3, name: "Charlie Brown", email: "charlie@packmusic.com", avatar: "CB" },
-        ],
-        tasks: [
-            {
-                id: 1,
-                title: "Research local venues",
-                description: "Compile list of 50+ venues in the area",
-                status: "completed",
-                priority: "high",
-                assignee: { name: "Alice Johnson", avatar: "AJ" },
-                deadline: "2025-01-10",
-                completedAt: "2025-01-08",
-            },
-            {
-                id: 2,
-                title: "Create outreach email template",
-                description: "Draft professional email template for venue outreach",
-                status: "completed",
-                priority: "high",
-                assignee: { name: "Bob Smith", avatar: "BS" },
-                deadline: "2025-01-12",
-                completedAt: "2025-01-11",
-            },
-            {
-                id: 3,
-                title: "Contact first batch of venues (1-20)",
-                description: "Send initial outreach emails to venues 1-20 on the list",
-                status: "in-progress",
-                priority: "high",
-                assignee: { name: "Charlie Brown", avatar: "CB" },
-                deadline: "2025-01-20",
-            },
-            {
-                id: 4,
-                title: "Follow up with interested venues",
-                description: "Schedule calls with venues that responded positively",
-                status: "pending",
-                priority: "medium",
-                assignee: null,
-                deadline: "2025-01-25",
-            },
-            {
-                id: 5,
-                title: "Create venue partnership agreements",
-                description: "Draft legal agreements for venue partnerships",
-                status: "pending",
-                priority: "medium",
-                assignee: null,
-                deadline: "2025-02-01",
-            },
-        ],
-    },
-}
+import { api } from "~/trpc/react"
 
 const getStatusColor = (status: string) => {
     switch (status) {
@@ -117,7 +51,11 @@ export default function ProjectDetailPage({ params }: PageProps) {
     const [selectedTask, setSelectedTask] = useState<any>(null)
     const [isAssignDialogOpen, setIsAssignDialogOpen] = useState(false)
 
-    const project = projectData[id as keyof typeof projectData]
+    const { data: project, isLoading } = api.project.getProjectById.useQuery({ id });
+
+    if (isLoading) {
+        return <div>Loading...</div>
+    }
 
     if (!project) {
         return <div>Project not found</div>
