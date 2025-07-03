@@ -9,9 +9,9 @@ import { Badge } from "~/components/ui/badge"
 import { Textarea } from "~/components/ui/textarea"
 import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3, Users, Mail } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
-import { CreateEventDialog } from "./_components/CreateEventDialog"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { useCreatePoll } from "~/hooks/useCreatePoll";
+import { CreateEventDialog } from "./_components/CreateEventDialog"
 
 // Sample community feed data
 const feedPosts = [

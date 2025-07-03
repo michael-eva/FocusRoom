@@ -65,6 +65,25 @@ export const posts = sqliteTable("posts", {
   ),
 });
 
+export const events = sqliteTable("events", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  title: text("title").notNull(),
+  description: text("description"),
+  location: text("location"),
+  startDateTime: integer("start_date_time", { mode: "timestamp" }).notNull(),
+  endDateTime: integer("end_date_time", { mode: "timestamp" }).notNull(),
+  allDay: integer("all_day", { mode: "boolean" }).default(false),
+  rsvpLink: text("rsvp_link"),
+  createdById: integer("created_by_id").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  googleEventId: text("google_event_id"), // For syncing with Google Calendar
+});
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   teamMembers: many(projectTeamMembers),
   tasks: many(tasks),
@@ -110,11 +129,19 @@ export const resourcesRelations = relations(resources, ({ one }) => ({
 
 export const usersRelations = relations(users, ({ many }) => ({
   posts: many(posts),
+  events: many(events),
 }));
 
 export const postsRelations = relations(posts, ({ one }) => ({
   author: one(users, {
     fields: [posts.createdById],
+    references: [users.id],
+  }),
+}));
+
+export const eventsRelations = relations(events, ({ one }) => ({
+  author: one(users, {
+    fields: [events.createdById],
     references: [users.id],
   }),
 }));
