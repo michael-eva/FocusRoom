@@ -10,75 +10,10 @@ import { Textarea } from "~/components/ui/textarea"
 import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3, Users, Mail } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
-import { useCreatePoll } from "~/hooks/useCreatePoll";
 import { CreateEventDialog } from "./_components/CreateEventDialog"
 import { api } from "~/trpc/react"
 
-// Sample community feed data
-const feedPosts = [
-    {
-        id: 1,
-        type: "event",
-        author: {
-            name: "Pack Music Admin",
-            avatar: "PA",
-            role: "admin",
-        },
-        title: "Songwriters Showcase - February Edition",
-        content:
-            "Join us for our monthly songwriters showcase! This is a great opportunity to share your original music and connect with fellow musicians.",
-        eventDetails: {
-            date: "2025-02-15",
-            time: "7:00 PM",
-            location: "The Music Room, Melbourne",
-            rsvpLink: "https://example.com/rsvp",
-        },
-        createdAt: new Date("2025-01-10T10:00:00"),
-        likes: 24,
-        comments: 8,
-        rsvps: 45,
-        userHasLiked: false,
-        userHasRSVPd: false,
-    },
-    {
-        id: 2,
-        type: "poll",
-        author: {
-            name: "Sarah Johnson",
-            avatar: "SJ",
-            role: "member",
-        },
-        title: "Best venue for our next open mic night?",
-        content:
-            "Help us choose the perfect venue for our upcoming open mic night. We're looking for a place with good acoustics and a welcoming atmosphere.",
-        pollOptions: [
-            { id: 1, text: "The Corner Hotel", votes: 12 },
-            { id: 2, text: "Northcote Social Club", votes: 8 },
-            { id: 3, text: "The Tote", votes: 15 },
-            { id: 4, text: "Cherry Bar", votes: 6 },
-        ],
-        createdAt: new Date("2025-01-12T14:30:00"),
-        likes: 18,
-        comments: 12,
-        totalVotes: 41,
-        userHasVoted: false,
-    },
-    {
-        id: 3,
-        type: "announcement",
-        author: {
-            name: "Mike Chen",
-            avatar: "MC",
-            role: "moderator",
-        },
-        title: "New collaboration space available!",
-        content:
-            "We've secured a new rehearsal space in Fitzroy that's available for member bookings. It's equipped with a full PA system, drums, and amps. Contact us to book your session!",
-        createdAt: new Date("2025-01-14T09:15:00"),
-        likes: 31,
-        comments: 15,
-    },
-]
+// Sample comments data (keeping this for now)
 
 const sampleComments = [
     {
@@ -103,10 +38,9 @@ export default function CommunityPage() {
     const [activeCommentPost, setActiveCommentPost] = useState<number | null>(null)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
-    const [mockPosts, setMockPosts] = useState(feedPosts) // Keep mock polls/announcements
 
-    // Get real events from database
-    const { data: realEvents = [], refetch: refetchEvents } = api.events.getUpcoming.useQuery(
+    // Get feed data from database
+    const { data: feedPosts = [], refetch: refetchFeed } = api.feed.getFeed.useQuery(
         { limit: 20 },
         {
             staleTime: 5 * 60 * 1000, // 5 minutes
@@ -116,88 +50,33 @@ export default function CommunityPage() {
 
     // API mutations
     const createLocalEvent = api.events.create.useMutation();
-
-    // Transform real events to match the expected format
-    const transformedEvents = realEvents.map(event => ({
-        id: event.id,
-        type: "event" as const,
-        author: {
-            name: "Pack Music Admin",
-            avatar: "PA",
-            role: "admin" as const,
-        },
-        title: event.title,
-        content: event.description || "No description provided",
-        eventDetails: {
-            date: event.startDateTime.toISOString().split('T')[0],
-            time: event.startDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            location: event.location || "Location TBD",
-            rsvpLink: event.rsvpLink || "#",
-        },
-        createdAt: event.createdAt || event.startDateTime,
-        likes: 0, // Mock data for now
-        comments: 0, // Mock data for now
-        rsvps: 0, // Mock data for now
-        userHasLiked: false,
-        userHasRSVPd: false,
-        isRealEvent: true, // Flag to distinguish real events
-    }));
-
-    // Combine real events with mock posts (excluding mock events)
-    const allPosts = [
-        ...transformedEvents,
-        ...mockPosts.filter(post => post.type !== "event"), // Keep polls and announcements
-    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const createPoll = api.polls.create.useMutation();
+    const votePoll = api.polls.vote.useMutation();
 
     const handleLike = (postId: number) => {
-        // For real events, we would need to implement a proper like system
-        // For now, just update mock posts
-        setMockPosts(
-            mockPosts.map((post: any) =>
-                post.id === postId
-                    ? { ...post, likes: post.userHasLiked ? post.likes - 1 : post.likes + 1, userHasLiked: !post.userHasLiked }
-                    : post,
-            ),
-        )
+        // TODO: Implement like system
+        console.log("Like functionality to be implemented");
     }
 
     const handleRSVP = (postId: number) => {
-        // For real events, we would need to implement a proper RSVP system
-        // For now, just update mock posts
-        setMockPosts(
-            mockPosts.map((post: any) =>
-                post.id === postId && post.type === "event"
-                    ? { ...post, rsvps: post.userHasRSVPd ? post.rsvps - 1 : post.rsvps + 1, userHasRSVPd: !post.userHasRSVPd }
-                    : post,
-            ),
-        )
-
-        // Simulate email confirmation
-        const post = allPosts.find((p) => p.id === postId)
-        if (post && post.type === "event") {
-            alert(
-                `RSVP confirmation email sent! You're ${post.userHasRSVPd ? "no longer registered" : "registered"} for "${post.title}"`,
-            )
-        }
+        // TODO: Implement RSVP system
+        console.log("RSVP functionality to be implemented");
     }
 
-    const handleVote = (postId: number, optionId: number) => {
-        setMockPosts(
-            mockPosts.map((post: any) => {
-                if (post.id === postId && post.type === "poll" && !post.userHasVoted) {
-                    const updatedOptions = post.pollOptions.map((option: any) =>
-                        option.id === optionId ? { ...option, votes: option.votes + 1 } : option,
-                    )
-                    return {
-                        ...post,
-                        pollOptions: updatedOptions,
-                        totalVotes: post.totalVotes + 1,
-                        userHasVoted: true,
-                    }
-                }
-                return post
-            }),
-        )
+    const handleVote = async (postId: number, optionId: number) => {
+        try {
+            await votePoll.mutateAsync({
+                pollId: postId,
+                optionId: optionId,
+                userId: 1, // TODO: Replace with actual user ID from auth
+            });
+
+            // Refresh the feed to show updated vote counts
+            await refetchFeed();
+        } catch (error) {
+            console.error("Failed to vote:", error);
+            alert("You have already voted on this poll or there was an error.");
+        }
     }
 
     const handleComment = (postId: number) => {
@@ -210,7 +89,6 @@ export default function CommunityPage() {
                 createdAt: new Date(),
             }
             setComments([...comments, comment])
-            // Note: In a real app, you'd update the comment count in the database
             setNewComment("")
             setActiveCommentPost(null)
         }
@@ -233,8 +111,8 @@ export default function CommunityPage() {
                 createdById: 1, // Default user ID - replace with actual user ID from auth
             });
 
-            // Refresh the events list
-            await refetchEvents();
+            // Refresh the feed
+            await refetchFeed();
 
             // Show success message
             if (eventData.publishToCommunity) {
@@ -246,13 +124,25 @@ export default function CommunityPage() {
             console.error("Failed to create event:", error);
             alert("Failed to create event. Please try again.");
         }
-    }, [createLocalEvent, refetchEvents]);
+    }, [createLocalEvent, refetchFeed]);
 
-    const { createPoll } = useCreatePoll();
+    const handleCreatePoll = async (pollData: any) => {
+        try {
+            await createPoll.mutateAsync({
+                title: pollData.title,
+                content: pollData.description,
+                options: pollData.options,
+                createdById: 1, // Default user ID - replace with actual user ID from auth
+            });
 
-    const handleCreatePoll = (pollData: any) => {
-        const newPost = createPoll(pollData);
-        setMockPosts([newPost, ...mockPosts]);
+            // Refresh the feed
+            await refetchFeed();
+
+            alert("Poll created successfully!");
+        } catch (error) {
+            console.error("Failed to create poll:", error);
+            alert("Failed to create poll. Please try again.");
+        }
     }
 
     const getPostComments = (postId: number) => {
@@ -302,7 +192,7 @@ export default function CommunityPage() {
                         <Card>
                             <CardContent className="p-4 text-center">
                                 <Calendar className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                                <p className="text-2xl font-bold">{realEvents.length}</p>
+                                <p className="text-2xl font-bold">{feedPosts.filter(post => post.type === 'event').length}</p>
                                 <p className="text-sm text-gray-600">Events This Month</p>
                             </CardContent>
                         </Card>
@@ -324,21 +214,23 @@ export default function CommunityPage() {
 
                     {/* Feed Posts */}
                     <div className="space-y-6">
-                        {allPosts.map((post) => (
+                        {feedPosts.map((post) => (
                             <Card key={post.id} className="hover:shadow-md transition-shadow">
                                 <CardHeader className="pb-4">
                                     <div className="flex items-start gap-3">
                                         <Avatar>
-                                            <AvatarFallback className="bg-orange-500 text-white">{post.author.avatar}</AvatarFallback>
+                                            <AvatarFallback className="bg-orange-500 text-white">
+                                                {post.author?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                                            </AvatarFallback>
                                         </Avatar>
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-gray-800">{post.author.name}</h3>
-                                                <Badge variant={post.author.role === "admin" ? "default" : "secondary"}>
-                                                    {post.author.role}
+                                                <h3 className="font-semibold text-gray-800">{post.author?.name || 'Unknown User'}</h3>
+                                                <Badge variant="secondary">
+                                                    {post.author?.name === 'Pack Music Admin' ? 'admin' : 'member'}
                                                 </Badge>
                                                 <span className="text-sm text-gray-500">
-                                                    {formatDistanceToNow(post.createdAt, { addSuffix: true })}
+                                                    {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
                                                 </span>
                                             </div>
                                             <h2 className="text-lg font-semibold text-gray-800 mt-1">{post.title}</h2>
@@ -350,7 +242,7 @@ export default function CommunityPage() {
                                     <p className="text-gray-700">{post.content}</p>
 
                                     {/* Event Details */}
-                                    {post.type === "event" && post.eventDetails && (
+                                    {post.type === "event" && 'eventDetails' in post && post.eventDetails && (
                                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                                 <div className="flex items-center gap-2">
@@ -358,7 +250,7 @@ export default function CommunityPage() {
                                                     <div>
                                                         <p className="text-sm font-medium">Date & Time</p>
                                                         <p className="text-sm text-gray-600">
-                                                            {new Date(post.eventDetails.date).toLocaleDateString()} at {post.eventDetails.time}
+                                                            {post.eventDetails.date ? new Date(post.eventDetails.date).toLocaleDateString() : 'TBD'} at {post.eventDetails.time || 'TBD'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -370,7 +262,7 @@ export default function CommunityPage() {
                                                     <Users className="h-4 w-4 text-blue-600" />
                                                     <div>
                                                         <p className="text-sm font-medium">RSVPs</p>
-                                                        <p className="text-sm text-gray-600">{post.rsvps} attending</p>
+                                                        <p className="text-sm text-gray-600">{'rsvps' in post ? post.rsvps : 0} attending</p>
                                                     </div>
                                                 </div>
                                             </div>
@@ -378,24 +270,25 @@ export default function CommunityPage() {
                                     )}
 
                                     {/* Poll Options */}
-                                    {post.type === "poll" && post.pollOptions && (
+                                    {post.type === "poll" && 'pollOptions' in post && post.pollOptions && (
                                         <div className="space-y-3">
                                             {post.pollOptions.map((option) => {
-                                                const percentage = post.totalVotes > 0 ? (option.votes / post.totalVotes) * 100 : 0
+                                                const totalVotes = 'totalVotes' in post ? post.totalVotes : 0;
+                                                const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0
                                                 return (
                                                     <div key={option.id} className="space-y-2">
                                                         <div className="flex justify-between items-center">
                                                             <Button
-                                                                variant={post.userHasVoted ? "secondary" : "outline"}
+                                                                variant={'userHasVoted' in post && post.userHasVoted ? "secondary" : "outline"}
                                                                 className="flex-1 justify-start"
-                                                                onClick={() => !post.userHasVoted && handleVote(post.id, option.id)}
-                                                                disabled={post.userHasVoted}
+                                                                onClick={() => !('userHasVoted' in post && post.userHasVoted) && handleVote(post.id, option.id)}
+                                                                disabled={'userHasVoted' in post && post.userHasVoted}
                                                             >
                                                                 {option.text}
                                                             </Button>
                                                             <span className="text-sm text-gray-600 ml-2">{option.votes} votes</span>
                                                         </div>
-                                                        {post.userHasVoted && (
+                                                        {'userHasVoted' in post && post.userHasVoted && (
                                                             <div className="w-full bg-gray-200 rounded-full h-2">
                                                                 <div
                                                                     className="bg-orange-500 h-2 rounded-full transition-all duration-300"
@@ -406,7 +299,7 @@ export default function CommunityPage() {
                                                     </div>
                                                 )
                                             })}
-                                            <p className="text-sm text-gray-600 text-center">Total votes: {post.totalVotes}</p>
+                                            <p className="text-sm text-gray-600 text-center">Total votes: {'totalVotes' in post ? post.totalVotes : 0}</p>
                                         </div>
                                     )}
 
@@ -416,10 +309,10 @@ export default function CommunityPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleLike(post.id)}
-                                            className={post.userHasLiked ? "text-orange-600" : ""}
+                                            className={'userHasLiked' in post && post.userHasLiked ? "text-orange-600" : ""}
                                         >
                                             <ThumbsUp className="h-4 w-4 mr-1" />
-                                            {post.likes}
+                                            {'likes' in post ? post.likes : 0}
                                         </Button>
 
                                         <Button
@@ -428,18 +321,18 @@ export default function CommunityPage() {
                                             onClick={() => setActiveCommentPost(activeCommentPost === post.id ? null : post.id)}
                                         >
                                             <MessageSquare className="h-4 w-4 mr-1" />
-                                            {post.comments}
+                                            {'comments' in post ? post.comments : 0}
                                         </Button>
 
                                         {post.type === "event" && (
                                             <Button
-                                                variant={post.userHasRSVPd ? "default" : "outline"}
+                                                variant={'userHasRSVPd' in post && post.userHasRSVPd ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => handleRSVP(post.id)}
-                                                className={post.userHasRSVPd ? "bg-green-600 hover:bg-green-700" : ""}
+                                                className={'userHasRSVPd' in post && post.userHasRSVPd ? "bg-green-600 hover:bg-green-700" : ""}
                                             >
                                                 <Users className="h-4 w-4 mr-1" />
-                                                {post.userHasRSVPd ? "RSVP'd" : "RSVP"}
+                                                {'userHasRSVPd' in post && post.userHasRSVPd ? "RSVP'd" : "RSVP"}
                                             </Button>
                                         )}
 

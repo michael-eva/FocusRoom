@@ -1,26 +1,47 @@
-
 'use client'
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 
 import { Bell, User, Music, Guitar, Mic } from "lucide-react"
 import { CreatePollDialog } from "./community/_components/CreatePollDialog"
-import { useCreatePoll } from "~/hooks/useCreatePoll"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { useState } from "react"
 import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
+import { api } from "~/trpc/react"
 
 export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
-    const { createPoll } = useCreatePoll();
 
-    const handleCreatePoll = (pollData: any) => {
-        const newPost = createPoll(pollData);
-        // In a real app, you'd likely send this newPost to a backend/database
-        console.log("New poll created:", newPost);
-        setIsCreatePollOpen(false);
-    };
+    // API mutation for creating polls
+    const createPoll = api.polls.create.useMutation();
+
+    // Get recent polls from database
+    const { data: recentPolls = [], refetch: refetchPolls } = api.polls.getAll.useQuery(
+        undefined,
+        {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            gcTime: 15 * 60 * 1000, // 15 minutes
+        }
+    );
+
+    const handleCreatePoll = async (pollData: any) => {
+        console.log("Creating poll with data:", pollData);
+        try {
+            await createPoll.mutateAsync({
+                title: pollData.title,
+                content: pollData.description,
+                options: pollData.options,
+                createdById: 1, // Default user ID - replace with actual user ID from auth
+            });
+
+            alert("Poll created successfully!");
+        } catch (error) {
+            console.error("Failed to create poll:", error);
+            alert("Failed to create poll. Please try again.");
+        }
+    }
+
     const recentActivities = [
         { id: 1, text: "Ellie posted in Community Feed" },
         { id: 2, text: "Setlist Swap created a new event" },
@@ -107,6 +128,46 @@ export default function Dashboard() {
                             ))}
                         </CardContent>
                     </Card>
+
+                    {/* Recent Polls */}
+                    {recentPolls.length > 0 && (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg font-semibold text-gray-800">Recent Polls</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {recentPolls.slice(0, 3).map((poll) => (
+                                    <div key={poll.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <h4 className="font-medium text-gray-800 mb-1">{poll.title}</h4>
+                                                {poll.content && (
+                                                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{poll.content}</p>
+                                                )}
+                                                <div className="flex items-center gap-4 text-xs text-gray-500">
+                                                    <span>By {poll.author?.name || 'Unknown'}</span>
+                                                    <span>{poll.options?.length || 0} options</span>
+                                                    <span>{poll.options?.reduce((sum, opt) => sum + (opt.votes || 0), 0) || 0} total votes</span>
+                                                </div>
+                                            </div>
+                                            <div className="ml-4">
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <a href="/dashboard/community">View</a>
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {recentPolls.length > 3 && (
+                                    <div className="text-center pt-2">
+                                        <Button variant="ghost" size="sm" asChild>
+                                            <a href="/dashboard/community">View All Polls</a>
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
                 {/* Spotlight Dialog */}
                 <SpotlightDialog isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} isAdmin={true} />

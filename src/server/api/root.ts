@@ -3,6 +3,8 @@ import { projectRouter } from "~/server/api/routers/project";
 import { spotlightRouter } from "~/server/api/routers/spotlight";
 import { googleCalendarRouter } from "~/server/api/routers/googleCalendar";
 import { eventsRouter } from "~/server/api/routers/events";
+import { pollsRouter } from "~/server/api/routers/polls";
+import { feedRouter } from "~/server/api/routers/feed";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -16,6 +18,8 @@ export const appRouter = createTRPCRouter({
   spotlight: spotlightRouter,
   googleCalendar: googleCalendarRouter,
   events: eventsRouter,
+  polls: pollsRouter,
+  feed: feedRouter,
 });
 
 // export type definition of API

@@ -15,6 +15,13 @@
       "when": 1751525679213,
       "tag": "0001_rich_triton",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1751531222842,
+      "tag": "0002_left_slyde",
+      "breakpoints": true
     }
   ]
 }
