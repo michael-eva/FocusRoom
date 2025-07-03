@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent, CardHeader } from "~/components/ui/card"
@@ -12,6 +12,7 @@ import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { useCreatePoll } from "~/hooks/useCreatePoll";
 import { CreateEventDialog } from "./_components/CreateEventDialog"
+import { api } from "~/trpc/react"
 
 // Sample community feed data
 const feedPosts = [
@@ -97,16 +98,62 @@ const sampleComments = [
 ]
 
 export default function CommunityPage() {
-    const [posts, setPosts] = useState(feedPosts)
     const [comments, setComments] = useState(sampleComments)
     const [newComment, setNewComment] = useState("")
     const [activeCommentPost, setActiveCommentPost] = useState<number | null>(null)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
+    const [mockPosts, setMockPosts] = useState(feedPosts) // Keep mock polls/announcements
+
+    // Get real events from database
+    const { data: realEvents = [], refetch: refetchEvents } = api.events.getUpcoming.useQuery(
+        { limit: 20 },
+        {
+            staleTime: 5 * 60 * 1000, // 5 minutes
+            gcTime: 15 * 60 * 1000, // 15 minutes
+        }
+    );
+
+    // API mutations
+    const createLocalEvent = api.events.create.useMutation();
+
+    // Transform real events to match the expected format
+    const transformedEvents = realEvents.map(event => ({
+        id: event.id,
+        type: "event" as const,
+        author: {
+            name: "Pack Music Admin",
+            avatar: "PA",
+            role: "admin" as const,
+        },
+        title: event.title,
+        content: event.description || "No description provided",
+        eventDetails: {
+            date: event.startDateTime.toISOString().split('T')[0],
+            time: event.startDateTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            location: event.location || "Location TBD",
+            rsvpLink: event.rsvpLink || "#",
+        },
+        createdAt: event.createdAt || event.startDateTime,
+        likes: 0, // Mock data for now
+        comments: 0, // Mock data for now
+        rsvps: 0, // Mock data for now
+        userHasLiked: false,
+        userHasRSVPd: false,
+        isRealEvent: true, // Flag to distinguish real events
+    }));
+
+    // Combine real events with mock posts (excluding mock events)
+    const allPosts = [
+        ...transformedEvents,
+        ...mockPosts.filter(post => post.type !== "event"), // Keep polls and announcements
+    ].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
     const handleLike = (postId: number) => {
-        setPosts(
-            posts.map((post: any) =>
+        // For real events, we would need to implement a proper like system
+        // For now, just update mock posts
+        setMockPosts(
+            mockPosts.map((post: any) =>
                 post.id === postId
                     ? { ...post, likes: post.userHasLiked ? post.likes - 1 : post.likes + 1, userHasLiked: !post.userHasLiked }
                     : post,
@@ -115,8 +162,10 @@ export default function CommunityPage() {
     }
 
     const handleRSVP = (postId: number) => {
-        setPosts(
-            posts.map((post: any) =>
+        // For real events, we would need to implement a proper RSVP system
+        // For now, just update mock posts
+        setMockPosts(
+            mockPosts.map((post: any) =>
                 post.id === postId && post.type === "event"
                     ? { ...post, rsvps: post.userHasRSVPd ? post.rsvps - 1 : post.rsvps + 1, userHasRSVPd: !post.userHasRSVPd }
                     : post,
@@ -124,7 +173,7 @@ export default function CommunityPage() {
         )
 
         // Simulate email confirmation
-        const post = posts.find((p) => p.id === postId)
+        const post = allPosts.find((p) => p.id === postId)
         if (post && post.type === "event") {
             alert(
                 `RSVP confirmation email sent! You're ${post.userHasRSVPd ? "no longer registered" : "registered"} for "${post.title}"`,
@@ -133,8 +182,8 @@ export default function CommunityPage() {
     }
 
     const handleVote = (postId: number, optionId: number) => {
-        setPosts(
-            posts.map((post: any) => {
+        setMockPosts(
+            mockPosts.map((post: any) => {
                 if (post.id === postId && post.type === "poll" && !post.userHasVoted) {
                     const updatedOptions = post.pollOptions.map((option: any) =>
                         option.id === optionId ? { ...option, votes: option.votes + 1 } : option,
@@ -161,47 +210,49 @@ export default function CommunityPage() {
                 createdAt: new Date(),
             }
             setComments([...comments, comment])
-            setPosts(posts.map((post) => (post.id === postId ? { ...post, comments: post.comments + 1 } : post)))
+            // Note: In a real app, you'd update the comment count in the database
             setNewComment("")
             setActiveCommentPost(null)
         }
     }
 
-    const handleCreateEvent = (eventData: any) => {
-        const newPost = {
-            id: posts.length + 1,
-            type: "event" as const,
-            author: {
-                name: "Pack Music Admin",
-                avatar: "PA",
-                role: "admin" as const,
-            },
-            title: eventData.title,
-            content: eventData.description,
-            eventDetails: {
-                date: eventData.date,
-                time: eventData.time,
-                location: eventData.location,
-                rsvpLink: eventData.rsvpLink || "#",
-            },
-            createdAt: new Date(),
-            likes: 0,
-            comments: 0,
-            rsvps: 0,
-            userHasLiked: false,
-            userHasRSVPd: false,
-        }
-        setPosts([newPost, ...posts])
+    const handleCreateEvent = useCallback(async (eventData: any) => {
+        try {
+            const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
+            const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
 
-        // Simulate email notification to community
-        alert("Event announcement published! Email notifications sent to all community members.")
-    }
+            // Create the event in the database
+            await createLocalEvent.mutateAsync({
+                title: eventData.title,
+                description: eventData.description,
+                location: eventData.location,
+                startDateTime,
+                endDateTime,
+                allDay: false,
+                rsvpLink: eventData.rsvpLink,
+                createdById: 1, // Default user ID - replace with actual user ID from auth
+            });
+
+            // Refresh the events list
+            await refetchEvents();
+
+            // Show success message
+            if (eventData.publishToCommunity) {
+                alert("Event created and published to community! Email notifications sent to all members.");
+            } else {
+                alert("Event created successfully!");
+            }
+        } catch (error) {
+            console.error("Failed to create event:", error);
+            alert("Failed to create event. Please try again.");
+        }
+    }, [createLocalEvent, refetchEvents]);
 
     const { createPoll } = useCreatePoll();
 
     const handleCreatePoll = (pollData: any) => {
         const newPost = createPoll(pollData);
-        setPosts([newPost, ...posts]);
+        setMockPosts([newPost, ...mockPosts]);
     }
 
     const getPostComments = (postId: number) => {
@@ -251,7 +302,7 @@ export default function CommunityPage() {
                         <Card>
                             <CardContent className="p-4 text-center">
                                 <Calendar className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                                <p className="text-2xl font-bold">12</p>
+                                <p className="text-2xl font-bold">{realEvents.length}</p>
                                 <p className="text-sm text-gray-600">Events This Month</p>
                             </CardContent>
                         </Card>
@@ -273,7 +324,7 @@ export default function CommunityPage() {
 
                     {/* Feed Posts */}
                     <div className="space-y-6">
-                        {posts.map((post) => (
+                        {allPosts.map((post) => (
                             <Card key={post.id} className="hover:shadow-md transition-shadow">
                                 <CardHeader className="pb-4">
                                     <div className="flex items-start gap-3">
@@ -459,6 +510,7 @@ export default function CommunityPage() {
                 isOpen={isCreateEventOpen}
                 onClose={() => setIsCreateEventOpen(false)}
                 onCreateEvent={handleCreateEvent}
+                showCommunityFeatures={true}
             />
 
             <CreatePollDialog
