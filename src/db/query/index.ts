@@ -1,5 +1,5 @@
 import { db } from "~/index";
-import { resources, projects, projectTeamMembers } from "../schema";
+import { resources, projects } from "../schema";
 import { eq } from "drizzle-orm";
 
 export async function getResources() {

@@ -2,11 +2,11 @@
 
 import { useState } from "react"
 
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "~/components/ui/sidebar"
+import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { ChevronLeft, ChevronRight, Plus, Bell, User } from "lucide-react"
-import { AppSidebar } from "~/app/_components/app-sidebar"
+
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const MONTHS = [

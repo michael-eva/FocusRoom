@@ -1,16 +1,10 @@
 
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "~/components/ui/sidebar"
+import { SidebarProvider, SidebarInset } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
-
-import { Bell, User } from "lucide-react"
 import { AppSidebar } from "../_components/app-sidebar"
 
 export default function layout({ children }: { children: React.ReactNode }) {
-    const recentActivities = [
-        { id: 1, text: "Ellie posted in Community Feed" },
-        { id: 2, text: "Setlist Swap created a new event" },
-        { id: 3, text: "Johnny added a task to Project X" },
-    ]
+    
 
     return (
         <SidebarProvider>

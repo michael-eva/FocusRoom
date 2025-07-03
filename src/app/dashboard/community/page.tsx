@@ -11,6 +11,7 @@ import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3,
 import { formatDistanceToNow } from "date-fns"
 import { CreateEventDialog } from "./_components/CreateEventDialog"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
+import { useCreatePoll } from "~/hooks/useCreatePoll";
 
 // Sample community feed data
 const feedPosts = [
@@ -196,29 +197,11 @@ export default function CommunityPage() {
         alert("Event announcement published! Email notifications sent to all community members.")
     }
 
+    const { createPoll } = useCreatePoll();
+
     const handleCreatePoll = (pollData: any) => {
-        const newPost = {
-            id: posts.length + 1,
-            type: "poll" as const,
-            author: {
-                name: "You",
-                avatar: "YU",
-                role: "member" as const,
-            },
-            title: pollData.title,
-            content: pollData.description,
-            pollOptions: pollData.options.map((option: string, index: number) => ({
-                id: index + 1,
-                text: option,
-                votes: 0,
-            })),
-            createdAt: new Date(),
-            likes: 0,
-            comments: 0,
-            totalVotes: 0,
-            userHasVoted: false,
-        }
-        setPosts([newPost, ...posts])
+        const newPost = createPoll(pollData);
+        setPosts([newPost, ...posts]);
     }
 
     const getPostComments = (postId: number) => {

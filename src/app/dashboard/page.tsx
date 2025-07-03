@@ -1,11 +1,26 @@
 
+'use client'
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 
 import { Bell, User, Music, Guitar, Mic } from "lucide-react"
+import { CreatePollDialog } from "./community/_components/CreatePollDialog"
+import { useCreatePoll } from "~/hooks/useCreatePoll"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { useState } from "react"
+import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 
 export default function Dashboard() {
+    const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
+    const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
+    const { createPoll } = useCreatePoll();
+
+    const handleCreatePoll = (pollData: any) => {
+        const newPost = createPoll(pollData);
+        // In a real app, you'd likely send this newPost to a backend/database
+        console.log("New poll created:", newPost);
+        setIsCreatePollOpen(false);
+    };
     const recentActivities = [
         { id: 1, text: "Ellie posted in Community Feed" },
         { id: 2, text: "Setlist Swap created a new event" },
@@ -56,13 +71,19 @@ export default function Dashboard() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-blue-100 border-blue-200 hover:shadow-md transition-shadow cursor-pointer">
+                        <Card
+                            className="bg-blue-100 border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => setIsCreatePollOpen(true)}
+                        >
                             <CardContent className="p-6 text-center">
                                 <h3 className="font-semibold text-gray-800">Poll</h3>
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-gray-100 border-gray-200 hover:shadow-md transition-shadow cursor-pointer">
+                        <Card
+                            className="bg-gray-100 border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => setIsSpotlightOpen(true)}
+                        >
                             <CardContent className="p-6 text-center">
                                 <div className="flex flex-col items-center gap-2">
                                     <h3 className="font-semibold text-gray-800">Spotlight</h3>
@@ -87,6 +108,13 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
                 </div>
+                {/* Spotlight Dialog */}
+                <SpotlightDialog isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} isAdmin={true} />
+                <CreatePollDialog
+                    isOpen={isCreatePollOpen}
+                    onClose={() => setIsCreatePollOpen(false)}
+                    onCreatePoll={handleCreatePoll}
+                />
             </main>
         </>
     )
