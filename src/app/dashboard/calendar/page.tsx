@@ -322,7 +322,7 @@ export default function CalendarPage() {
                 isOpen={isCreateEventOpen}
                 onClose={() => setIsCreateEventOpen(false)}
                 onCreateEvent={handleCreateEvent}
-                showCommunityFeatures={true}
+                showCommunityFeatures={false}
             />
 
             <EventDetailsDialog

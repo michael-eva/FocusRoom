@@ -5,17 +5,19 @@ import { Button } from "~/components/ui/button"
 import { Bell, User, Music, Guitar, Mic } from "lucide-react"
 import { CreatePollDialog } from "./community/_components/CreatePollDialog"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import { useState } from "react"
+import { useCallback, useState } from "react"
 import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 import { api } from "~/trpc/react"
+import { CreateEventDialog } from "./community/_components/CreateEventDialog"
 
 export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
+    const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
 
     // API mutation for creating polls
     const createPoll = api.polls.create.useMutation();
-
+    const createLocalEvent = api.events.create.useMutation();
     // Get recent polls from database
     const { data: recentPolls = [], refetch: refetchPolls } = api.polls.getAll.useQuery(
         undefined,
@@ -24,7 +26,35 @@ export default function Dashboard() {
             gcTime: 15 * 60 * 1000, // 15 minutes
         }
     );
+    const handleCreateEvent = useCallback(async (eventData: any) => {
+        console.log("Creating event with data:", eventData);
+        try {
+            const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
+            const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
 
+            // Create the event in the database
+            await createLocalEvent.mutateAsync({
+                title: eventData.title,
+                description: eventData.description,
+                location: eventData.location,
+                startDateTime,
+                endDateTime,
+                allDay: false,
+                rsvpLink: eventData.rsvpLink,
+                createdById: 1, // Default user ID - replace with actual user ID from auth
+            });
+
+            // Show success message
+            if (eventData.publishToCommunity) {
+                alert("Event created and published to community! Email notifications sent to all members.");
+            } else {
+                alert("Event created successfully!");
+            }
+        } catch (error) {
+            console.error("Failed to create event:", error);
+            alert("Failed to create event. Please try again.");
+        }
+    }, [createLocalEvent]);
     const handleCreatePoll = async (pollData: any) => {
         console.log("Creating poll with data:", pollData);
         try {
@@ -86,7 +116,8 @@ export default function Dashboard() {
 
                     {/* Action Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="bg-orange-100 border-orange-200 hover:shadow-md transition-shadow cursor-pointer">
+                        <Card className="bg-orange-100 border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => setIsCreateEventOpen(true)}>
                             <CardContent className="p-6 text-center">
                                 <h3 className="font-semibold text-gray-800">Create Event</h3>
                             </CardContent>
@@ -175,6 +206,12 @@ export default function Dashboard() {
                     isOpen={isCreatePollOpen}
                     onClose={() => setIsCreatePollOpen(false)}
                     onCreatePoll={handleCreatePoll}
+                />
+                <CreateEventDialog
+                    isOpen={isCreateEventOpen}
+                    onClose={() => setIsCreateEventOpen(false)}
+                    onCreateEvent={handleCreateEvent}
+                    showCommunityFeatures={false}
                 />
             </main>
         </>

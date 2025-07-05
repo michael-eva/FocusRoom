@@ -403,7 +403,7 @@ export default function CommunityPage() {
                 isOpen={isCreateEventOpen}
                 onClose={() => setIsCreateEventOpen(false)}
                 onCreateEvent={handleCreateEvent}
-                showCommunityFeatures={true}
+                showCommunityFeatures={false}
             />
 
             <CreatePollDialog
