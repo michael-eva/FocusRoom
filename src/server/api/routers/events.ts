@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
-import { events } from "~/db/schema";
+import { events, activityLog } from "~/db/schema";
 import { eq, gte, lte, and, desc } from "drizzle-orm";
 
 export const eventsRouter = createTRPCRouter({
@@ -34,6 +34,17 @@ export const eventsRouter = createTRPCRouter({
           googleEventId: input.googleEventId,
         })
         .returning();
+
+      // Log the activity
+      if (input.createdById) {
+        await db.insert(activityLog).values({
+          userId: input.createdById,
+          activityType: "event_created",
+          targetId: newEvent[0]!.id,
+          targetType: "event",
+          description: `Created event: ${input.title}`,
+        });
+      }
 
       return newEvent[0];
     }),
@@ -129,7 +140,7 @@ export const eventsRouter = createTRPCRouter({
         })
         .where(eq(events.id, id))
         .returning();
-      
+
       return updatedEvent[0];
     }),
 

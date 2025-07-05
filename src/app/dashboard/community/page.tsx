@@ -11,6 +11,7 @@ import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3,
 import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { CreateEventDialog } from "./_components/CreateEventDialog"
+import { RSVPDialog } from "./_components/RSVPDialog"
 import { api } from "~/trpc/react"
 
 // Sample comments data (keeping this for now)
@@ -38,10 +39,16 @@ export default function CommunityPage() {
     const [activeCommentPost, setActiveCommentPost] = useState<number | null>(null)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
+    const [isRSVPDialogOpen, setIsRSVPDialogOpen] = useState(false)
+    const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
+    const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
 
     // Get feed data from database
     const { data: feedPosts = [], refetch: refetchFeed } = api.feed.getFeed.useQuery(
-        { limit: 20 },
+        {
+            limit: 20,
+            userId: 1, // TODO: Replace with actual user ID from auth
+        },
         {
             staleTime: 5 * 60 * 1000, // 5 minutes
             gcTime: 15 * 60 * 1000, // 15 minutes
@@ -52,15 +59,39 @@ export default function CommunityPage() {
     const createLocalEvent = api.events.create.useMutation();
     const createPoll = api.polls.create.useMutation();
     const votePoll = api.polls.vote.useMutation();
+    const createRSVP = api.rsvp.create.useMutation();
 
     const handleLike = (postId: number) => {
         // TODO: Implement like system
         console.log("Like functionality to be implemented");
     }
 
-    const handleRSVP = (postId: number) => {
-        // TODO: Implement RSVP system
-        console.log("RSVP functionality to be implemented");
+    const handleRSVP = async (postId: number) => {
+        // Find the event in the feed to get its title and current RSVP status
+        const event = feedPosts.find(post => post.id === postId && post.type === "event")
+        if (event) {
+            setSelectedEventId(postId)
+            setSelectedEventTitle(event.title)
+            setIsRSVPDialogOpen(true)
+        }
+    }
+
+    const handleRSVPSubmit = async (status: "attending" | "maybe" | "declined") => {
+        if (!selectedEventId) return
+
+        try {
+            await createRSVP.mutateAsync({
+                eventId: selectedEventId,
+                userId: 1, // TODO: Replace with actual user ID from auth
+                status,
+            });
+
+            // Refresh the feed to show updated RSVP status
+            await refetchFeed();
+        } catch (error) {
+            console.error("Failed to RSVP:", error);
+            alert("Failed to RSVP. Please try again.");
+        }
     }
 
     const handleVote = async (postId: number, optionId: number) => {
@@ -266,6 +297,38 @@ export default function CommunityPage() {
                                                     </div>
                                                 </div>
                                             </div>
+
+                                            {/* RSVP Status Indicator */}
+                                            {'userHasRSVPd' in post && post.userHasRSVPd && (
+                                                <div className="mt-3 pt-3 border-t border-blue-200">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-medium text-gray-700">Your RSVP:</span>
+                                                        <Badge
+                                                            variant={
+                                                                (post as any).userRSVPStatus === "attending"
+                                                                    ? "default"
+                                                                    : (post as any).userRSVPStatus === "maybe"
+                                                                        ? "secondary"
+                                                                        : "destructive"
+                                                            }
+                                                            className={
+                                                                (post as any).userRSVPStatus === "attending"
+                                                                    ? "bg-green-100 text-green-800"
+                                                                    : (post as any).userRSVPStatus === "maybe"
+                                                                        ? "bg-yellow-100 text-yellow-800"
+                                                                        : "bg-red-100 text-red-800"
+                                                            }
+                                                        >
+                                                            {(post as any).userRSVPStatus === "attending"
+                                                                ? "Attending"
+                                                                : (post as any).userRSVPStatus === "maybe"
+                                                                    ? "Maybe"
+                                                                    : "Not Attending"
+                                                            }
+                                                        </Badge>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 
@@ -274,17 +337,30 @@ export default function CommunityPage() {
                                         <div className="space-y-3">
                                             {post.pollOptions.map((option) => {
                                                 const totalVotes = 'totalVotes' in post ? post.totalVotes : 0;
-                                                const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0
+                                                const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+                                                const userVotedForThis = 'userVotedOptionId' in post && post.userVotedOptionId === option.id;
                                                 return (
                                                     <div key={option.id} className="space-y-2">
                                                         <div className="flex justify-between items-center">
                                                             <Button
-                                                                variant={'userHasVoted' in post && post.userHasVoted ? "secondary" : "outline"}
-                                                                className="flex-1 justify-start"
+                                                                variant={
+                                                                    'userHasVoted' in post && post.userHasVoted
+                                                                        ? userVotedForThis
+                                                                            ? "default"
+                                                                            : "secondary"
+                                                                        : "outline"
+                                                                }
+                                                                className={`flex-1 justify-start ${userVotedForThis ? "bg-orange-500 hover:bg-orange-600" : ""
+                                                                    }`}
                                                                 onClick={() => !('userHasVoted' in post && post.userHasVoted) && handleVote(post.id, option.id)}
                                                                 disabled={'userHasVoted' in post && post.userHasVoted}
                                                             >
                                                                 {option.text}
+                                                                {userVotedForThis && (
+                                                                    <Badge className="ml-2 bg-white text-orange-600 text-xs">
+                                                                        Your Vote
+                                                                    </Badge>
+                                                                )}
                                                             </Button>
                                                             <span className="text-sm text-gray-600 ml-2">{option.votes} votes</span>
                                                         </div>
@@ -329,10 +405,25 @@ export default function CommunityPage() {
                                                 variant={'userHasRSVPd' in post && post.userHasRSVPd ? "default" : "outline"}
                                                 size="sm"
                                                 onClick={() => handleRSVP(post.id)}
-                                                className={'userHasRSVPd' in post && post.userHasRSVPd ? "bg-green-600 hover:bg-green-700" : ""}
+                                                className={
+                                                    'userHasRSVPd' in post && post.userHasRSVPd
+                                                        ? post.userRSVPStatus === "attending"
+                                                            ? "bg-green-600 hover:bg-green-700"
+                                                            : post.userRSVPStatus === "maybe"
+                                                                ? "bg-yellow-600 hover:bg-yellow-700"
+                                                                : "bg-red-600 hover:bg-red-700"
+                                                        : ""
+                                                }
                                             >
                                                 <Users className="h-4 w-4 mr-1" />
-                                                {'userHasRSVPd' in post && post.userHasRSVPd ? "RSVP'd" : "RSVP"}
+                                                {'userHasRSVPd' in post && post.userHasRSVPd
+                                                    ? post.userRSVPStatus === "attending"
+                                                        ? "Attending"
+                                                        : post.userRSVPStatus === "maybe"
+                                                            ? "Maybe"
+                                                            : "Not Attending"
+                                                    : "RSVP"
+                                                }
                                             </Button>
                                         )}
 
@@ -410,6 +501,18 @@ export default function CommunityPage() {
                 isOpen={isCreatePollOpen}
                 onClose={() => setIsCreatePollOpen(false)}
                 onCreatePoll={handleCreatePoll}
+            />
+
+            <RSVPDialog
+                isOpen={isRSVPDialogOpen}
+                onClose={() => setIsRSVPDialogOpen(false)}
+                onRSVP={handleRSVPSubmit}
+                eventTitle={selectedEventTitle}
+                currentStatus={
+                    selectedEventId
+                        ? (feedPosts.find(post => post.id === selectedEventId && post.type === "event") as any)?.userRSVPStatus || null
+                        : null
+                }
             />
         </>
     )

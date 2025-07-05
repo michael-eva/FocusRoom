@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
-import { polls, pollOptions, pollVotes, users } from "~/db/schema";
+import { polls, pollOptions, pollVotes, users, activityLog } from "~/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 export const pollsRouter = createTRPCRouter({
@@ -60,6 +60,15 @@ export const pollsRouter = createTRPCRouter({
 
         console.log("Creating poll options:", pollOptionsData);
         await db.insert(pollOptions).values(pollOptionsData);
+
+        // Log the activity
+        await db.insert(activityLog).values({
+          userId,
+          activityType: "poll_created",
+          targetId: pollId,
+          targetType: "poll",
+          description: `Created poll: ${input.title}`,
+        });
 
         console.log("Poll creation completed successfully");
         return newPoll[0];
@@ -190,6 +199,15 @@ export const pollsRouter = createTRPCRouter({
         .update(pollOptions)
         .set({ votes: sql`${pollOptions.votes} + 1` })
         .where(eq(pollOptions.id, input.optionId));
+
+      // Log the activity
+      await db.insert(activityLog).values({
+        userId: input.userId,
+        activityType: "poll_voted",
+        targetId: input.pollId,
+        targetType: "poll",
+        description: "Voted on a poll",
+      });
 
       return { success: true };
     }),

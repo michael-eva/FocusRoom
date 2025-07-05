@@ -26,6 +26,15 @@ export default function Dashboard() {
             gcTime: 15 * 60 * 1000, // 15 minutes
         }
     );
+
+    // Get recent activity from database
+    const { data: activityData = [] } = api.activity.getRecentActivity.useQuery(
+        { limit: 5 },
+        {
+            staleTime: 2 * 60 * 1000, // 2 minutes
+            gcTime: 10 * 60 * 1000, // 10 minutes
+        }
+    );
     const handleCreateEvent = useCallback(async (eventData: any) => {
         console.log("Creating event with data:", eventData);
         try {
@@ -72,11 +81,23 @@ export default function Dashboard() {
         }
     }
 
-    const recentActivities = [
-        { id: 1, text: "Ellie posted in Community Feed" },
-        { id: 2, text: "Setlist Swap created a new event" },
-        { id: 3, text: "Johnny added a task to Project X" },
-    ]
+    // Helper function to format activity text
+    const formatActivityText = (activity: any) => {
+        const userName = activity.user?.name || 'Someone';
+
+        switch (activity.activityType) {
+            case 'poll_created':
+                return `${userName} created a poll`;
+            case 'poll_voted':
+                return `${userName} voted on a poll`;
+            case 'event_created':
+                return `${userName} created an event`;
+            case 'event_rsvp':
+                return `${userName} RSVP'd to an event`;
+            default:
+                return `${userName} performed an action`;
+        }
+    };
 
     return (
         <>
@@ -151,10 +172,10 @@ export default function Dashboard() {
                             <CardTitle className="text-lg font-semibold text-gray-800">Recent Activity</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {recentActivities.map((activity) => (
+                            {activityData.map((activity) => (
                                 <div key={activity.id} className="flex items-center gap-3">
                                     <div className="w-3 h-3 rounded-full border-2 border-gray-300 bg-white"></div>
-                                    <p className="text-gray-600">{activity.text}</p>
+                                    <p className="text-gray-600">{formatActivityText(activity)}</p>
                                 </div>
                             ))}
                         </CardContent>

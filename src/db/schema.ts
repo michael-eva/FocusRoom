@@ -114,6 +114,31 @@ export const pollVotes = sqliteTable("poll_votes", {
   ),
 });
 
+export const eventRSVPs = sqliteTable("event_rsvps", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  eventId: integer("event_id").references(() => events.id),
+  userId: integer("user_id").references(() => users.id),
+  status: text("status").notNull(), // "attending", "maybe", "declined"
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
+export const activityLog = sqliteTable("activity_log", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id),
+  activityType: text("activity_type").notNull(), // "poll_created", "poll_voted", "event_created", "event_rsvp"
+  targetId: integer("target_id"), // ID of the poll, event, etc.
+  targetType: text("target_type"), // "poll", "event"
+  description: text("description"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   teamMembers: many(projectTeamMembers),
   tasks: many(tasks),
@@ -162,6 +187,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   events: many(events),
   polls: many(polls),
   pollVotes: many(pollVotes),
+  eventRSVPs: many(eventRSVPs),
+  activities: many(activityLog),
 }));
 
 export const postsRelations = relations(posts, ({ one }) => ({
@@ -171,11 +198,12 @@ export const postsRelations = relations(posts, ({ one }) => ({
   }),
 }));
 
-export const eventsRelations = relations(events, ({ one }) => ({
+export const eventsRelations = relations(events, ({ one, many }) => ({
   author: one(users, {
     fields: [events.createdById],
     references: [users.id],
   }),
+  rsvps: many(eventRSVPs),
 }));
 
 export const pollsRelations = relations(polls, ({ one, many }) => ({
@@ -206,6 +234,24 @@ export const pollVotesRelations = relations(pollVotes, ({ one }) => ({
   }),
   user: one(users, {
     fields: [pollVotes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const eventRSVPsRelations = relations(eventRSVPs, ({ one }) => ({
+  event: one(events, {
+    fields: [eventRSVPs.eventId],
+    references: [events.id],
+  }),
+  user: one(users, {
+    fields: [eventRSVPs.userId],
+    references: [users.id],
+  }),
+}));
+
+export const activityLogRelations = relations(activityLog, ({ one }) => ({
+  user: one(users, {
+    fields: [activityLog.userId],
     references: [users.id],
   }),
 }));
