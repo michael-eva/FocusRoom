@@ -2,7 +2,7 @@
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 
-import { Bell, User, Music, Guitar, Mic } from "lucide-react"
+import { Bell, User, Music, Guitar, Mic, Calendar, BarChart3 } from "lucide-react"
 import { CreatePollDialog } from "./community/_components/CreatePollDialog"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { useCallback, useState } from "react"
@@ -18,23 +18,16 @@ export default function Dashboard() {
     // API mutation for creating polls
     const createPoll = api.polls.create.useMutation();
     const createLocalEvent = api.events.create.useMutation();
-    // Get recent polls from database
-    const { data: recentPolls = [], refetch: refetchPolls } = api.polls.getAll.useQuery(
-        undefined,
-        {
-            staleTime: 5 * 60 * 1000, // 5 minutes
-            gcTime: 15 * 60 * 1000, // 15 minutes
-        }
-    );
 
-    // Get recent activity from database
+    // Get recent activity from database (includes polls and events)
     const { data: activityData = [] } = api.activity.getRecentActivity.useQuery(
-        { limit: 5 },
+        { limit: 10 },
         {
             staleTime: 2 * 60 * 1000, // 2 minutes
             gcTime: 10 * 60 * 1000, // 10 minutes
         }
     );
+
     const handleCreateEvent = useCallback(async (eventData: any) => {
         console.log("Creating event with data:", eventData);
         try {
@@ -64,6 +57,7 @@ export default function Dashboard() {
             alert("Failed to create event. Please try again.");
         }
     }, [createLocalEvent]);
+
     const handleCreatePoll = async (pollData: any) => {
         console.log("Creating poll with data:", pollData);
         try {
@@ -81,22 +75,70 @@ export default function Dashboard() {
         }
     }
 
-    // Helper function to format activity text
-    const formatActivityText = (activity: any) => {
+    // Helper function to format activity text and get icon
+    const getActivityDisplay = (activity: any) => {
         const userName = activity.user?.name || 'Someone';
+        const createdAt = activity.createdAt ? new Date(activity.createdAt) : new Date();
+        const timeAgo = getTimeAgo(createdAt);
 
         switch (activity.activityType) {
             case 'poll_created':
-                return `${userName} created a poll`;
+                return {
+                    text: `${userName} created a poll`,
+                    title: activity.poll?.title || 'Untitled Poll',
+                    content: activity.poll?.content,
+                    icon: <BarChart3 className="h-4 w-4 text-blue-500" />,
+                    timeAgo,
+                    type: 'poll'
+                };
             case 'poll_voted':
-                return `${userName} voted on a poll`;
+                return {
+                    text: `${userName} voted on a poll`,
+                    title: activity.poll?.title || 'Untitled Poll',
+                    content: activity.poll?.content,
+                    icon: <BarChart3 className="h-4 w-4 text-green-500" />,
+                    timeAgo,
+                    type: 'poll'
+                };
             case 'event_created':
-                return `${userName} created an event`;
+                return {
+                    text: `${userName} created an event`,
+                    title: activity.event?.title || 'Untitled Event',
+                    content: activity.event?.description,
+                    icon: <Calendar className="h-4 w-4 text-orange-500" />,
+                    timeAgo,
+                    type: 'event'
+                };
             case 'event_rsvp':
-                return `${userName} RSVP'd to an event`;
+                return {
+                    text: `${userName} RSVP'd to an event`,
+                    title: activity.event?.title || 'Untitled Event',
+                    content: activity.event?.description,
+                    icon: <Calendar className="h-4 w-4 text-purple-500" />,
+                    timeAgo,
+                    type: 'event'
+                };
             default:
-                return `${userName} performed an action`;
+                return {
+                    text: `${userName} performed an action`,
+                    title: '',
+                    content: '',
+                    icon: <div className="h-4 w-4 rounded-full bg-gray-300" />,
+                    timeAgo,
+                    type: 'other'
+                };
         }
+    };
+
+    // Helper function to format time ago
+    const getTimeAgo = (date: Date) => {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        if (diffInSeconds < 60) return 'just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return `${Math.floor(diffInSeconds / 86400)}d ago`;
     };
 
     return (
@@ -137,30 +179,51 @@ export default function Dashboard() {
 
                     {/* Action Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="bg-orange-100 border-orange-200 hover:shadow-md transition-shadow cursor-pointer"
+                        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group"
                             onClick={() => setIsCreateEventOpen(true)}>
                             <CardContent className="p-6 text-center">
-                                <h3 className="font-semibold text-gray-800">Create Event</h3>
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                                        <Calendar className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-800 text-lg mb-1">Create Event</h3>
+                                        <p className="text-sm text-gray-600">Schedule a new event or meeting</p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
 
                         <Card
-                            className="bg-blue-100 border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
+                            className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group"
                             onClick={() => setIsCreatePollOpen(true)}
                         >
                             <CardContent className="p-6 text-center">
-                                <h3 className="font-semibold text-gray-800">Poll</h3>
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                                        <BarChart3 className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-800 text-lg mb-1">Create Poll</h3>
+                                        <p className="text-sm text-gray-600">Get feedback from the community</p>
+                                    </div>
+                                </div>
                             </CardContent>
                         </Card>
 
                         <Card
-                            className="bg-gray-100 border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+                            className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group"
                             onClick={() => setIsSpotlightOpen(true)}
                         >
                             <CardContent className="p-6 text-center">
-                                <div className="flex flex-col items-center gap-2">
-                                    <h3 className="font-semibold text-gray-800">Spotlight</h3>
-                                    <Mic className="h-8 w-8 text-gray-400" />
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-12 h-12 bg-gray-500 rounded-full flex items-center justify-center group-hover:bg-gray-600 transition-colors">
+                                        <Mic className="h-6 w-6 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-800 text-lg mb-1">Spotlight</h3>
+                                        <p className="text-sm text-gray-600">Share your music or story</p>
+                                    </div>
                                 </div>
                             </CardContent>
                         </Card>
@@ -172,54 +235,46 @@ export default function Dashboard() {
                             <CardTitle className="text-lg font-semibold text-gray-800">Recent Activity</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            {activityData.map((activity) => (
-                                <div key={activity.id} className="flex items-center gap-3">
-                                    <div className="w-3 h-3 rounded-full border-2 border-gray-300 bg-white"></div>
-                                    <p className="text-gray-600">{formatActivityText(activity)}</p>
-                                </div>
-                            ))}
-                        </CardContent>
-                    </Card>
-
-                    {/* Recent Polls */}
-                    {recentPolls.length > 0 && (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="text-lg font-semibold text-gray-800">Recent Polls</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {recentPolls.slice(0, 3).map((poll) => (
-                                    <div key={poll.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex-1">
-                                                <h4 className="font-medium text-gray-800 mb-1">{poll.title}</h4>
-                                                {poll.content && (
-                                                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{poll.content}</p>
-                                                )}
-                                                <div className="flex items-center gap-4 text-xs text-gray-500">
-                                                    <span>By {poll.author?.name || 'Unknown'}</span>
-                                                    <span>{poll.options?.length || 0} options</span>
-                                                    <span>{poll.options?.reduce((sum, opt) => sum + (opt.votes || 0), 0) || 0} total votes</span>
+                            {activityData.length > 0 ? (
+                                activityData.map((activity) => {
+                                    const display = getActivityDisplay(activity);
+                                    return (
+                                        <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                                            <div className="flex-shrink-0 mt-1">
+                                                {display.icon}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-start justify-between">
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium text-gray-800">{display.text}</p>
+                                                        {display.title && (
+                                                            <p className="text-sm text-gray-600 mt-1 font-medium">{display.title}</p>
+                                                        )}
+                                                        {display.content && (
+                                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{display.content}</p>
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{display.timeAgo}</span>
                                                 </div>
                                             </div>
-                                            <div className="ml-4">
-                                                <Button variant="outline" size="sm" asChild>
-                                                    <a href="/dashboard/community">View</a>
-                                                </Button>
-                                            </div>
                                         </div>
-                                    </div>
-                                ))}
-                                {recentPolls.length > 3 && (
-                                    <div className="text-center pt-2">
-                                        <Button variant="ghost" size="sm" asChild>
-                                            <a href="/dashboard/community">View All Polls</a>
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
+                                    );
+                                })
+                            ) : (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p>No recent activity</p>
+                                </div>
+                            )}
+
+                            {activityData.length > 0 && (
+                                <div className="text-center pt-2">
+                                    <Button variant="ghost" size="sm" asChild>
+                                        <a href="/dashboard/community">View All Activity</a>
+                                    </Button>
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
                 </div>
                 {/* Spotlight Dialog */}
                 <SpotlightDialog isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} isAdmin={true} />
