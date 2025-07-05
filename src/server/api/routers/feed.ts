@@ -8,8 +8,10 @@ import {
   users,
   eventRSVPs,
   pollVotes,
+  likes,
+  comments,
 } from "~/db/schema";
-import { eq, desc, sql, and } from "drizzle-orm";
+import { eq, desc, sql, and, inArray } from "drizzle-orm";
 
 export const feedRouter = createTRPCRouter({
   getFeed: publicProcedure
@@ -143,55 +145,180 @@ export const feedRouter = createTRPCRouter({
         return acc;
       }, [] as any[]);
 
+      // Get like and comment counts for events
+      const eventIds = eventsWithRSVPs.map((e) => e.id);
+      const eventLikes =
+        eventIds.length > 0
+          ? await db
+              .select({
+                targetId: likes.targetId,
+                count: sql<number>`count(*)`.as("count"),
+              })
+              .from(likes)
+              .where(
+                and(
+                  eq(likes.targetType, "event"),
+                  inArray(likes.targetId, eventIds),
+                ),
+              )
+              .groupBy(likes.targetId)
+          : [];
+
+      const eventComments =
+        eventIds.length > 0
+          ? await db
+              .select({
+                targetId: comments.targetId,
+                count: sql<number>`count(*)`.as("count"),
+              })
+              .from(comments)
+              .where(
+                and(
+                  eq(comments.targetType, "event"),
+                  inArray(comments.targetId, eventIds),
+                ),
+              )
+              .groupBy(comments.targetId)
+          : [];
+
+      // Get user likes for events
+      const userEventLikes =
+        input.userId && eventIds.length > 0
+          ? await db
+              .select({
+                targetId: likes.targetId,
+              })
+              .from(likes)
+              .where(
+                and(
+                  eq(likes.targetType, "event"),
+                  eq(likes.userId, input.userId),
+                  inArray(likes.targetId, eventIds),
+                ),
+              )
+          : [];
+
       // Transform events to match feed format
-      const transformedEvents = eventsWithRSVPs.map((event) => ({
-        id: event.id,
-        type: event.type,
-        title: event.title,
-        content: event.content,
-        eventDetails: {
-          date: event.startDateTime.toISOString().split("T")[0],
-          time: event.startDateTime.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          location: event.location || "Location TBD",
-          rsvpLink: event.rsvpLink || "#",
-        },
-        createdAt: event.createdAt,
-        updatedAt: event.updatedAt,
-        author: event.author,
-        likes: 0, // Mock data for now
-        comments: 0, // Mock data for now
-        rsvps: 0, // Mock data for now
-        userHasLiked: false,
-        userHasRSVPd: !!event.userRSVP,
-        userRSVPStatus: event.userRSVP?.status || null,
-      }));
+      const transformedEvents = eventsWithRSVPs.map((event) => {
+        const likeCount =
+          eventLikes.find((l) => l.targetId === event.id)?.count || 0;
+        const commentCount =
+          eventComments.find((c) => c.targetId === event.id)?.count || 0;
+        const userHasLiked = userEventLikes.some(
+          (l) => l.targetId === event.id,
+        );
+
+        return {
+          id: event.id,
+          type: event.type,
+          title: event.title,
+          content: event.content,
+          eventDetails: {
+            date: event.startDateTime.toISOString().split("T")[0],
+            time: event.startDateTime.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
+            location: event.location || "Location TBD",
+            rsvpLink: event.rsvpLink || "#",
+          },
+          createdAt: event.createdAt,
+          updatedAt: event.updatedAt,
+          author: event.author,
+          likes: likeCount,
+          comments: commentCount,
+          rsvps: 0, // Mock data for now
+          userHasLiked,
+          userHasRSVPd: !!event.userRSVP,
+          userRSVPStatus: event.userRSVP?.status || null,
+        };
+      });
+
+      // Get like and comment counts for polls
+      const pollIds = pollsWithOptions.map((p) => p.id);
+      const pollLikes =
+        pollIds.length > 0
+          ? await db
+              .select({
+                targetId: likes.targetId,
+                count: sql<number>`count(*)`.as("count"),
+              })
+              .from(likes)
+              .where(
+                and(
+                  eq(likes.targetType, "poll"),
+                  inArray(likes.targetId, pollIds),
+                ),
+              )
+              .groupBy(likes.targetId)
+          : [];
+
+      const pollComments =
+        pollIds.length > 0
+          ? await db
+              .select({
+                targetId: comments.targetId,
+                count: sql<number>`count(*)`.as("count"),
+              })
+              .from(comments)
+              .where(
+                and(
+                  eq(comments.targetType, "poll"),
+                  inArray(comments.targetId, pollIds),
+                ),
+              )
+              .groupBy(comments.targetId)
+          : [];
+
+      // Get user likes for polls
+      const userPollLikes =
+        input.userId && pollIds.length > 0
+          ? await db
+              .select({
+                targetId: likes.targetId,
+              })
+              .from(likes)
+              .where(
+                and(
+                  eq(likes.targetType, "poll"),
+                  eq(likes.userId, input.userId),
+                  inArray(likes.targetId, pollIds),
+                ),
+              )
+          : [];
 
       // Transform polls to match feed format
-      const transformedPolls = pollsWithOptions.map((poll) => ({
-        id: poll.id,
-        type: poll.type,
-        title: poll.title,
-        content: poll.content,
-        pollOptions: poll.options.map((option: any) => ({
-          id: option.id,
-          text: option.text,
-          votes: option.votes,
-        })),
-        createdAt: poll.createdAt,
-        updatedAt: poll.updatedAt,
-        author: poll.author,
-        likes: 0, // Mock data for now
-        comments: 0, // Mock data for now
-        totalVotes: poll.options.reduce(
-          (sum: number, option: any) => sum + option.votes,
-          0,
-        ),
-        userHasVoted: !!poll.userVote,
-        userVotedOptionId: poll.userVote?.optionId || null,
-      }));
+      const transformedPolls = pollsWithOptions.map((poll) => {
+        const likeCount =
+          pollLikes.find((l) => l.targetId === poll.id)?.count || 0;
+        const commentCount =
+          pollComments.find((c) => c.targetId === poll.id)?.count || 0;
+        const userHasLiked = userPollLikes.some((l) => l.targetId === poll.id);
+
+        return {
+          id: poll.id,
+          type: poll.type,
+          title: poll.title,
+          content: poll.content,
+          pollOptions: poll.options.map((option: any) => ({
+            id: option.id,
+            text: option.text,
+            votes: option.votes,
+          })),
+          createdAt: poll.createdAt,
+          updatedAt: poll.updatedAt,
+          author: poll.author,
+          likes: likeCount,
+          comments: commentCount,
+          totalVotes: poll.options.reduce(
+            (sum: number, option: any) => sum + option.votes,
+            0,
+          ),
+          userHasVoted: !!poll.userVote,
+          userVotedOptionId: poll.userVote?.optionId || null,
+          userHasLiked,
+        };
+      });
 
       // Combine and sort by creation date
       const combinedFeed = [...transformedEvents, ...transformedPolls].sort(

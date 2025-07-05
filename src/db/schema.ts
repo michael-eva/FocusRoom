@@ -139,6 +139,30 @@ export const activityLog = sqliteTable("activity_log", {
   ),
 });
 
+export const likes = sqliteTable("likes", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id),
+  targetId: integer("target_id").notNull(), // ID of the post, event, poll, etc.
+  targetType: text("target_type").notNull(), // "event", "poll", "spotlight"
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
+export const comments = sqliteTable("comments", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  userId: integer("user_id").references(() => users.id),
+  targetId: integer("target_id").notNull(), // ID of the post, event, poll, etc.
+  targetType: text("target_type").notNull(), // "event", "poll", "spotlight"
+  content: text("content").notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   teamMembers: many(projectTeamMembers),
   tasks: many(tasks),
@@ -189,6 +213,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   pollVotes: many(pollVotes),
   eventRSVPs: many(eventRSVPs),
   activities: many(activityLog),
+  likes: many(likes),
+  comments: many(comments),
 }));
 
 export const postsRelations = relations(posts, ({ one }) => ({
@@ -252,6 +278,20 @@ export const eventRSVPsRelations = relations(eventRSVPs, ({ one }) => ({
 export const activityLogRelations = relations(activityLog, ({ one }) => ({
   user: one(users, {
     fields: [activityLog.userId],
+    references: [users.id],
+  }),
+}));
+
+export const likesRelations = relations(likes, ({ one }) => ({
+  user: one(users, {
+    fields: [likes.userId],
+    references: [users.id],
+  }),
+}));
+
+export const commentsRelations = relations(comments, ({ one }) => ({
+  user: one(users, {
+    fields: [comments.userId],
     references: [users.id],
   }),
 }));

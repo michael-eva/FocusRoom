@@ -14,6 +14,8 @@ export const activityRouter = createTRPCRouter({
           "poll_voted",
           "event_created",
           "event_rsvp",
+          "post_liked",
+          "comment_created",
         ]),
         targetId: z.number().optional(),
         targetType: z.enum(["poll", "event"]).optional(),

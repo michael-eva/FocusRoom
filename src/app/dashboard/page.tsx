@@ -2,7 +2,7 @@
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 
-import { Bell, User, Music, Guitar, Mic, Calendar, BarChart3 } from "lucide-react"
+import { Bell, User, Music, Guitar, Mic, Calendar, BarChart3, Heart, MessageSquare } from "lucide-react"
 import { CreatePollDialog } from "./community/_components/CreatePollDialog"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { useCallback, useState } from "react"
@@ -117,6 +117,24 @@ export default function Dashboard() {
                     icon: <Calendar className="h-4 w-4 text-purple-500" />,
                     timeAgo,
                     type: 'event'
+                };
+            case 'post_liked':
+                return {
+                    text: `${userName} liked a ${activity.targetType || 'post'}`,
+                    title: '',
+                    content: activity.description,
+                    icon: <Heart className="h-4 w-4 text-red-500" />,
+                    timeAgo,
+                    type: 'like'
+                };
+            case 'comment_created':
+                return {
+                    text: `${userName} commented on a ${activity.targetType || 'post'}`,
+                    title: '',
+                    content: activity.description,
+                    icon: <MessageSquare className="h-4 w-4 text-blue-500" />,
+                    timeAgo,
+                    type: 'comment'
                 };
             default:
                 return {

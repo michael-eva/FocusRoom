@@ -7,6 +7,8 @@ import { pollsRouter } from "~/server/api/routers/polls";
 import { feedRouter } from "~/server/api/routers/feed";
 import { rsvpRouter } from "~/server/api/routers/rsvp";
 import { activityRouter } from "~/server/api/routers/activity";
+import { likesRouter } from "~/server/api/routers/likes";
+import { commentsRouter } from "~/server/api/routers/comments";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -24,6 +26,8 @@ export const appRouter = createTRPCRouter({
   feed: feedRouter,
   rsvp: rsvpRouter,
   activity: activityRouter,
+  likes: likesRouter,
+  comments: commentsRouter,
 });
 
 // export type definition of API

@@ -14,27 +14,9 @@ import { CreateEventDialog } from "./_components/CreateEventDialog"
 import { RSVPDialog } from "./_components/RSVPDialog"
 import { api } from "~/trpc/react"
 
-// Sample comments data (keeping this for now)
 
-const sampleComments = [
-    {
-        id: 1,
-        postId: 1,
-        author: { name: "Emma Wilson", avatar: "EW" },
-        content: "Can't wait for this! Will there be an open mic portion?",
-        createdAt: new Date("2025-01-10T11:30:00"),
-    },
-    {
-        id: 2,
-        postId: 1,
-        author: { name: "David Lee", avatar: "DL" },
-        content: "Already RSVP'd! See you all there 🎵",
-        createdAt: new Date("2025-01-10T15:45:00"),
-    },
-]
 
 export default function CommunityPage() {
-    const [comments, setComments] = useState(sampleComments)
     const [newComment, setNewComment] = useState("")
     const [activeCommentPost, setActiveCommentPost] = useState<number | null>(null)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
@@ -55,15 +37,54 @@ export default function CommunityPage() {
         }
     );
 
+    // Debug: Log feed posts to see like/comment data
+    console.log("Feed posts:", feedPosts.map(post => ({
+        id: post.id,
+        type: post.type,
+        title: post.title,
+        likes: post.likes,
+        comments: post.comments,
+        userHasLiked: post.userHasLiked
+    })));
+
+    // Get comments for the active post
+    const { data: postComments = [] } = api.comments.getComments.useQuery(
+        {
+            targetId: activeCommentPost || 0,
+            targetType: activeCommentPost ? (feedPosts.find(p => p.id === activeCommentPost)?.type as "event" | "poll") || "event" : "event",
+            limit: 50,
+        },
+        {
+            enabled: !!activeCommentPost,
+            staleTime: 2 * 60 * 1000, // 2 minutes
+        }
+    );
+
     // API mutations
     const createLocalEvent = api.events.create.useMutation();
     const createPoll = api.polls.create.useMutation();
     const votePoll = api.polls.vote.useMutation();
     const createRSVP = api.rsvp.create.useMutation();
+    const toggleLike = api.likes.toggleLike.useMutation();
+    const createComment = api.comments.createComment.useMutation();
 
-    const handleLike = (postId: number) => {
-        // TODO: Implement like system
-        console.log("Like functionality to be implemented");
+    const handleLike = async (postId: number, targetType: "event" | "poll") => {
+        try {
+            console.log("Toggling like for:", { postId, targetType });
+            const result = await toggleLike.mutateAsync({
+                userId: 1, // TODO: Replace with actual user ID from auth
+                targetId: postId,
+                targetType,
+            });
+            console.log("Like result:", result);
+
+            // Invalidate and refetch the feed to show updated like status
+            await refetchFeed();
+            console.log("Feed refreshed");
+        } catch (error) {
+            console.error("Failed to toggle like:", error);
+            alert("Failed to update like. Please try again.");
+        }
     }
 
     const handleRSVP = async (postId: number) => {
@@ -110,18 +131,24 @@ export default function CommunityPage() {
         }
     }
 
-    const handleComment = (postId: number) => {
+    const handleComment = async (postId: number, targetType: "event" | "poll") => {
         if (newComment.trim()) {
-            const comment = {
-                id: comments.length + 1,
-                postId,
-                author: { name: "You", avatar: "YU" },
-                content: newComment,
-                createdAt: new Date(),
+            try {
+                await createComment.mutateAsync({
+                    userId: 1, // TODO: Replace with actual user ID from auth
+                    targetId: postId,
+                    targetType,
+                    content: newComment,
+                });
+
+                // Refresh the feed to show updated comment count
+                await refetchFeed();
+                setNewComment("")
+                setActiveCommentPost(null)
+            } catch (error) {
+                console.error("Failed to create comment:", error);
+                alert("Failed to create comment. Please try again.");
             }
-            setComments([...comments, comment])
-            setNewComment("")
-            setActiveCommentPost(null)
         }
     }
 
@@ -176,9 +203,7 @@ export default function CommunityPage() {
         }
     }
 
-    const getPostComments = (postId: number) => {
-        return comments.filter((comment) => comment.postId === postId)
-    }
+
 
     return (
         <>
@@ -384,11 +409,18 @@ export default function CommunityPage() {
                                         <Button
                                             variant="ghost"
                                             size="sm"
-                                            onClick={() => handleLike(post.id)}
+                                            onClick={() => handleLike(post.id, post.type as "event" | "poll")}
                                             className={'userHasLiked' in post && post.userHasLiked ? "text-orange-600" : ""}
                                         >
                                             <ThumbsUp className="h-4 w-4 mr-1" />
-                                            {'likes' in post ? post.likes : 0}
+                                            {(() => {
+                                                console.log(`Post ${post.id} like data:`, {
+                                                    likes: post.likes,
+                                                    userHasLiked: post.userHasLiked,
+                                                    hasLikesProperty: 'likes' in post
+                                                });
+                                                return 'likes' in post ? post.likes : 0;
+                                            })()}
                                         </Button>
 
                                         <Button
@@ -397,7 +429,13 @@ export default function CommunityPage() {
                                             onClick={() => setActiveCommentPost(activeCommentPost === post.id ? null : post.id)}
                                         >
                                             <MessageSquare className="h-4 w-4 mr-1" />
-                                            {'comments' in post ? post.comments : 0}
+                                            {(() => {
+                                                console.log(`Post ${post.id} comment data:`, {
+                                                    comments: post.comments,
+                                                    hasCommentsProperty: 'comments' in post
+                                                });
+                                                return 'comments' in post ? post.comments : 0;
+                                            })()}
                                         </Button>
 
                                         {post.type === "event" && (
@@ -436,19 +474,19 @@ export default function CommunityPage() {
                                     {/* Comments Section */}
                                     {activeCommentPost === post.id && (
                                         <div className="space-y-4 pt-4 border-t">
-                                            {getPostComments(post.id).map((comment) => (
+                                            {postComments.map((comment) => (
                                                 <div key={comment.id} className="flex gap-3">
                                                     <Avatar className="w-8 h-8">
                                                         <AvatarFallback className="bg-gray-500 text-white text-xs">
-                                                            {comment.author.avatar}
+                                                            {comment.user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex-1">
                                                         <div className="bg-gray-100 rounded-lg p-3">
                                                             <div className="flex items-center gap-2 mb-1">
-                                                                <span className="font-medium text-sm">{comment.author.name}</span>
+                                                                <span className="font-medium text-sm">{comment.user?.name || 'Unknown User'}</span>
                                                                 <span className="text-xs text-gray-500">
-                                                                    {formatDistanceToNow(comment.createdAt, { addSuffix: true })}
+                                                                    {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'just now'}
                                                                 </span>
                                                             </div>
                                                             <p className="text-sm text-gray-700">{comment.content}</p>
@@ -472,7 +510,7 @@ export default function CommunityPage() {
                                                     <div className="flex justify-end">
                                                         <Button
                                                             size="sm"
-                                                            onClick={() => handleComment(post.id)}
+                                                            onClick={() => handleComment(post.id, post.type as "event" | "poll")}
                                                             disabled={!newComment.trim()}
                                                             className="bg-orange-500 hover:bg-orange-600"
                                                         >
