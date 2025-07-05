@@ -3,26 +3,27 @@ import { Button } from "~/components/ui/button";
 import { Badge } from "~/components/ui/badge";
 import { Calendar, Clock, MapPin, Users, ExternalLink, Edit, Trash2 } from "lucide-react";
 
-interface CombinedEvent {
-  id: string;
+interface LocalEvent {
+  id: number;
   title: string;
-  description?: string;
-  location?: string;
+  description: string | null;
+  location: string | null;
   startDateTime: Date;
   endDateTime: Date;
-  allDay: boolean;
-  rsvpLink?: string;
-  googleEventId?: string;
-  isGoogleEvent: boolean;
-  htmlLink?: string;
+  allDay: boolean | null;
+  rsvpLink: string | null;
+  createdById: number | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  googleEventId: string | null;
 }
 
 interface EventDetailsDialogProps {
-  event: CombinedEvent | null;
+  event: LocalEvent | null;
   isOpen: boolean;
   onClose: () => void;
-  onEdit?: (event: CombinedEvent) => void;
-  onDelete?: (eventId: string) => void;
+  onEdit?: (event: LocalEvent) => void;
+  onDelete?: (eventId: number) => void;
   canEdit?: boolean;
   canDelete?: boolean;
 }
@@ -57,7 +58,7 @@ export function EventDetailsDialog({
         month: 'long',
         day: 'numeric',
       });
-      
+
       // Check if it's a single day or multi-day event
       if (event.startDateTime.toDateString() === event.endDateTime.toDateString()) {
         return `${startDate} (All day)`;
@@ -79,12 +80,12 @@ export function EventDetailsDialog({
         hour: '2-digit',
         minute: '2-digit',
       });
-      
+
       const endTime = event.endDateTime.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       });
-      
+
       // Check if it's the same day
       if (event.startDateTime.toDateString() === event.endDateTime.toDateString()) {
         return `${startDateTime} - ${endTime}`;
@@ -106,12 +107,12 @@ export function EventDetailsDialog({
     const durationMs = event.endDateTime.getTime() - event.startDateTime.getTime();
     const hours = Math.floor(durationMs / (1000 * 60 * 60));
     const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (event.allDay) {
       const days = Math.ceil(durationMs / (1000 * 60 * 60 * 24));
       return days === 1 ? "All day" : `${days} days`;
     }
-    
+
     if (hours === 0) {
       return `${minutes} minutes`;
     } else if (minutes === 0) {
@@ -151,19 +152,9 @@ export function EventDetailsDialog({
               <Badge variant={event.allDay ? "secondary" : "default"}>
                 {event.allDay ? "All Day" : "Scheduled"}
               </Badge>
-              {event.isGoogleEvent ? (
-                <Badge variant="outline" className="text-blue-600 border-blue-600">
-                  Google Calendar Only
-                </Badge>
-              ) : event.googleEventId ? (
-                <Badge variant="outline" className="text-purple-600 border-purple-600">
-                  Synced with Google
-                </Badge>
-              ) : (
-                <Badge variant="outline" className="text-green-600 border-green-600">
-                  Local Event
-                </Badge>
-              )}
+              <Badge variant="outline" className="text-green-600 border-green-600">
+                Local Event
+              </Badge>
             </div>
           </div>
 
@@ -201,24 +192,7 @@ export function EventDetailsDialog({
             </div>
           )}
 
-          {/* Google Calendar Link */}
-          {event.isGoogleEvent && event.htmlLink && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 text-gray-600">
-                <Calendar className="h-4 w-4" />
-                <span className="font-medium">Google Calendar</span>
-              </div>
-              <a
-                href={event.htmlLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="ml-6 text-blue-600 hover:text-blue-800 flex items-center gap-1"
-              >
-                <span>View in Google Calendar</span>
-                <ExternalLink className="h-4 w-4" />
-              </a>
-            </div>
-          )}
+
 
           {/* RSVP Link */}
           {event.rsvpLink && (

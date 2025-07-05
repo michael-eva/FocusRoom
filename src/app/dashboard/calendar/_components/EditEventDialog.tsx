@@ -6,26 +6,26 @@ import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
 import { Calendar, Clock, MapPin, Link, Mail, CalendarPlus, Edit } from "lucide-react"
 
-interface CombinedEvent {
-    id: string;
+interface LocalEvent {
+    id: number;
     title: string;
-    description?: string;
-    location?: string;
+    description: string | null;
+    location: string | null;
     startDateTime: Date;
     endDateTime: Date;
-    allDay: boolean;
-    rsvpLink?: string;
-    googleEventId?: string;
-    isGoogleEvent: boolean;
-    htmlLink?: string;
+    allDay: boolean | null;
+    rsvpLink: string | null;
+    createdById: number | null;
+    createdAt: Date | null;
+    updatedAt: Date | null;
+    googleEventId: string | null;
 }
 
 interface EditEventDialogProps {
-    event: CombinedEvent | null;
+    event: LocalEvent | null;
     isOpen: boolean;
     onClose: () => void;
     onUpdateEvent: (eventData: any) => void;
-    isGoogleCalendarConnected: boolean;
 }
 
 export function EditEventDialog({
@@ -33,7 +33,6 @@ export function EditEventDialog({
     isOpen,
     onClose,
     onUpdateEvent,
-    isGoogleCalendarConnected,
 }: EditEventDialogProps) {
     const [formData, setFormData] = useState({
         title: "",
@@ -48,13 +47,13 @@ export function EditEventDialog({
     useEffect(() => {
         if (event) {
             // Format date for HTML input (YYYY-MM-DD)
-            const eventDate = event.startDateTime.toISOString().split('T')[0];
-            
+            const eventDate = event.startDateTime.toISOString().split('T')[0] || '';
+
             // Format time for HTML input (HH:mm)
-            const eventTime = event.startDateTime.toTimeString().split(' ')[0].slice(0, 5);
+            const eventTime = event.startDateTime.toTimeString().split(' ')[0]?.slice(0, 5) || '00:00';
 
             setFormData({
-                title: event.title || "",
+                title: event.title,
                 description: event.description || "",
                 date: eventDate,
                 time: eventTime,
@@ -181,21 +180,11 @@ export function EditEventDialog({
                             <CalendarPlus className="h-5 w-5 text-gray-600" />
                             <h3 className="font-medium text-gray-800">Event Status</h3>
                         </div>
-                        
+
                         <div className="space-y-2">
-                            {event.isGoogleEvent ? (
-                                <div className="text-sm text-blue-700 bg-blue-100 p-2 rounded">
-                                    📅 This is a Google Calendar event. Changes will only be saved locally in FocusRoom.
-                                </div>
-                            ) : event.googleEventId ? (
-                                <div className="text-sm text-purple-700 bg-purple-100 p-2 rounded">
-                                    🔗 This event is synced with Google Calendar.
-                                </div>
-                            ) : (
-                                <div className="text-sm text-green-700 bg-green-100 p-2 rounded">
-                                    📋 This is a local FocusRoom event.
-                                </div>
-                            )}
+                            <div className="text-sm text-green-700 bg-green-100 p-2 rounded">
+                                📋 This is a local FocusRoom event.
+                            </div>
                         </div>
                     </div>
 

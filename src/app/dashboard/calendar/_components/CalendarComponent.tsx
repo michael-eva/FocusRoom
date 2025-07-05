@@ -10,12 +10,16 @@ import { api } from '~/trpc/react';
 interface Event {
   id: number;
   title: string;
-  description?: string;
-  location?: string;
+  description: string | null;
+  location: string | null;
   startDateTime: Date;
   endDateTime: Date;
-  allDay: boolean;
-  rsvpLink?: string;
+  allDay: boolean | null;
+  rsvpLink: string | null;
+  createdById: number | null;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  googleEventId: string | null;
 }
 
 interface CalendarComponentProps {
@@ -25,8 +29,8 @@ interface CalendarComponentProps {
   height?: string;
 }
 
-export default function CalendarComponent({ 
-  viewType = 'month', 
+export default function CalendarComponent({
+  viewType = 'month',
   onEventClick,
   showCreateButton = true,
   height = 'h-full'
@@ -65,10 +69,10 @@ export default function CalendarComponent({
   };
 
   const formatDate = (date: Date): string => {
-    return date.toLocaleDateString([], { 
-      weekday: 'short', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -94,26 +98,26 @@ export default function CalendarComponent({
     const lastDay = new Date(year, month + 1, 0);
     const firstDayOfWeek = firstDay.getDay();
     const daysInMonth = lastDay.getDate();
-    
-    const days = [];
-    
+
+    const days: Date[] = [];
+
     // Previous month's days
     const prevMonth = new Date(year, month - 1, 0);
     for (let i = firstDayOfWeek - 1; i >= 0; i--) {
       days.push(new Date(year, month - 1, prevMonth.getDate() - i));
     }
-    
+
     // Current month's days
     for (let day = 1; day <= daysInMonth; day++) {
       days.push(new Date(year, month, day));
     }
-    
+
     // Next month's days
     const remainingDays = 42 - days.length; // 6 weeks * 7 days
     for (let day = 1; day <= remainingDays; day++) {
       days.push(new Date(year, month + 1, day));
     }
-    
+
     return days;
   };
 
@@ -130,7 +134,7 @@ export default function CalendarComponent({
 
   if (viewType === 'month') {
     const calendarDays = generateCalendarDays();
-    
+
     return (
       <Card className={`${height} flex flex-col`}>
         <CardHeader className="pb-3">
@@ -139,23 +143,23 @@ export default function CalendarComponent({
               {currentDate.toLocaleDateString([], { month: 'long', year: 'numeric' })}
             </CardTitle>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => navigateMonth('prev')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setCurrentDate(new Date())}
               >
                 Today
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => navigateMonth('next')}
               >
                 <ChevronRight className="h-4 w-4" />
@@ -163,7 +167,7 @@ export default function CalendarComponent({
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="flex-1 p-0">
           <div className="grid grid-cols-7 gap-0 h-full">
             {/* Day headers */}
@@ -172,31 +176,29 @@ export default function CalendarComponent({
                 {day}
               </div>
             ))}
-            
+
             {/* Calendar days */}
             {calendarDays.map((date, index) => {
               const dayEvents = getEventsForDate(date);
               const isCurrentMonth = isSameMonth(date);
               const isTodayDate = isToday(date);
-              
+
               return (
                 <div
                   key={index}
-                  className={`min-h-[100px] p-2 border-b border-r cursor-pointer transition-colors ${
-                    isCurrentMonth 
-                      ? 'bg-white hover:bg-gray-50' 
-                      : 'bg-gray-50 text-gray-400'
-                  } ${isTodayDate ? 'bg-orange-50' : ''}`}
+                  className={`min-h-[100px] p-2 border-b border-r cursor-pointer transition-colors ${isCurrentMonth
+                    ? 'bg-white hover:bg-gray-50'
+                    : 'bg-gray-50 text-gray-400'
+                    } ${isTodayDate ? 'bg-orange-50' : ''}`}
                   onClick={() => setSelectedDate(date)}
                 >
-                  <div className={`text-sm font-medium mb-1 ${
-                    isTodayDate 
-                      ? 'bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center' 
-                      : ''
-                  }`}>
+                  <div className={`text-sm font-medium mb-1 ${isTodayDate
+                    ? 'bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center'
+                    : ''
+                    }`}>
                     {date.getDate()}
                   </div>
-                  
+
                   <div className="space-y-1">
                     {dayEvents.slice(0, 3).map(event => (
                       <div
@@ -258,7 +260,7 @@ export default function CalendarComponent({
                         {event.description}
                       </p>
                     )}
-                    
+
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
@@ -270,7 +272,7 @@ export default function CalendarComponent({
                           </span>
                         )}
                       </div>
-                      
+
                       {event.location && (
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
@@ -279,12 +281,12 @@ export default function CalendarComponent({
                       )}
                     </div>
                   </div>
-                  
+
                   <div className="flex flex-col items-end gap-2">
                     <Badge variant="secondary" className="text-xs">
                       {event.allDay ? 'All Day' : 'Scheduled'}
                     </Badge>
-                    
+
                     {event.rsvpLink && (
                       <a
                         href={event.rsvpLink}

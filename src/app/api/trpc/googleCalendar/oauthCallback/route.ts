@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { createCaller } from "~/server/api/root";
 
 export async function GET(req: NextRequest) {

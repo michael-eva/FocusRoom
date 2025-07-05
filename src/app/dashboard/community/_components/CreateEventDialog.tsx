@@ -1,18 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
-import { Calendar, Clock, MapPin, Link, Mail, CalendarPlus, Users } from "lucide-react"
+import { Calendar, Clock, MapPin, Link, Mail, Users } from "lucide-react"
 
 interface CreateEventDialogProps {
     isOpen: boolean
     onClose: () => void
     onCreateEvent: (eventData: any) => void
-    isGoogleCalendarConnected?: boolean;
-    handleConnectGoogleCalendar?: () => void;
-    handleDisconnectGoogleCalendar?: () => void;
     showCommunityFeatures?: boolean; // New prop to show community-specific features
 }
 
@@ -20,9 +17,6 @@ export function CreateEventDialog({
     isOpen,
     onClose,
     onCreateEvent,
-    isGoogleCalendarConnected = false,
-    handleConnectGoogleCalendar,
-    handleDisconnectGoogleCalendar,
     showCommunityFeatures = false,
 }: CreateEventDialogProps) {
     const [formData, setFormData] = useState({
@@ -33,25 +27,16 @@ export function CreateEventDialog({
         location: "",
         rsvpLink: "",
     });
-    const [addToGoogleCalendar, setAddToGoogleCalendar] = useState(false);
     const [publishToCommunity, setPublishToCommunity] = useState(showCommunityFeatures);
-
-    // Auto-check Google Calendar sync if connected
-    useEffect(() => {
-        if (isGoogleCalendarConnected) {
-            setAddToGoogleCalendar(true);
-        }
-    }, [isGoogleCalendarConnected]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (formData.title && formData.description && formData.date && formData.time) {
             onCreateEvent({
                 ...formData,
-                addToGoogleCalendar: addToGoogleCalendar && isGoogleCalendarConnected,
                 publishToCommunity: publishToCommunity,
             });
-            
+
             // Reset form
             setFormData({
                 title: "",
@@ -61,7 +46,6 @@ export function CreateEventDialog({
                 location: "",
                 rsvpLink: "",
             });
-            setAddToGoogleCalendar(false);
             setPublishToCommunity(showCommunityFeatures);
             onClose();
         }
@@ -176,7 +160,7 @@ export function CreateEventDialog({
                                 <Users className="h-5 w-5 text-blue-600" />
                                 <h3 className="font-medium text-blue-800">Community Sharing</h3>
                             </div>
-                            
+
                             <div className="flex items-center space-x-2 p-2 bg-white rounded border">
                                 <input
                                     type="checkbox"
@@ -194,91 +178,10 @@ export function CreateEventDialog({
                                     </span>
                                 )}
                             </div>
-                            
+
                             {publishToCommunity && (
                                 <div className="text-xs text-blue-700 bg-blue-100 p-2 rounded">
                                     ✨ Event will be posted to the community feed and email notifications sent to all members
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Google Calendar Integration */}
-                    {(isGoogleCalendarConnected || handleConnectGoogleCalendar) && (
-                        <div className={`space-y-3 p-4 rounded-lg border-2 ${
-                            isGoogleCalendarConnected 
-                                ? 'bg-green-50 border-green-200' 
-                                : 'bg-orange-50 border-orange-200'
-                        }`}>
-                            <div className="flex items-center gap-2">
-                                <CalendarPlus className={`h-5 w-5 ${
-                                    isGoogleCalendarConnected ? 'text-green-600' : 'text-orange-600'
-                                }`} />
-                                <h3 className={`font-medium ${
-                                    isGoogleCalendarConnected ? 'text-green-800' : 'text-orange-800'
-                                }`}>Google Calendar Sync</h3>
-                            </div>
-                            
-                            {!isGoogleCalendarConnected && handleConnectGoogleCalendar ? (
-                                <div className="space-y-2">
-                                    <p className="text-sm text-orange-700 font-medium">
-                                        ⚠️ Connect Google Calendar to sync your events automatically
-                                    </p>
-                                    <Button
-                                        type="button"
-                                        variant="outline"
-                                        onClick={handleConnectGoogleCalendar}
-                                        className="w-full border-orange-300 text-orange-700 hover:bg-orange-100"
-                                    >
-                                        <CalendarPlus className="h-4 w-4 mr-2" />
-                                        Connect Google Calendar Now
-                                    </Button>
-                                </div>
-                            ) : isGoogleCalendarConnected && (
-                                <div className="space-y-3">
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse"></div>
-                                            <span className="text-sm text-green-700 font-medium">
-                                                ✅ Google Calendar Connected
-                                            </span>
-                                        </div>
-                                        {handleDisconnectGoogleCalendar && (
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={handleDisconnectGoogleCalendar}
-                                                className="text-red-500 hover:text-red-600"
-                                            >
-                                                Disconnect
-                                            </Button>
-                                        )}
-                                    </div>
-                                    
-                                    <div className="flex items-center space-x-2 p-2 bg-white rounded border">
-                                        <input
-                                            type="checkbox"
-                                            id="addToGoogleCalendar"
-                                            checked={addToGoogleCalendar}
-                                            onChange={(e) => setAddToGoogleCalendar(e.target.checked)}
-                                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                                        />
-                                        <Label htmlFor="addToGoogleCalendar" className="text-sm font-medium text-gray-700 cursor-pointer flex-1">
-                                            📅 Also add to Google Calendar
-                                        </Label>
-                                        {addToGoogleCalendar && (
-                                            <span className="text-xs text-green-600 font-medium px-2 py-1 bg-green-100 rounded">
-                                                Will sync!
-                                            </span>
-                                        )}
-                                    </div>
-                                    
-                                    {addToGoogleCalendar && (
-                                        <div className="text-xs text-green-700 bg-green-100 p-2 rounded">
-                                            ✨ This event will appear in both your FocusRoom calendar and Google Calendar
-                                        </div>
-                                    )}
                                 </div>
                             )}
                         </div>
