@@ -9,6 +9,7 @@ import { rsvpRouter } from "~/server/api/routers/rsvp";
 import { activityRouter } from "~/server/api/routers/activity";
 import { likesRouter } from "~/server/api/routers/likes";
 import { commentsRouter } from "~/server/api/routers/comments";
+import { usersRouter } from "~/server/api/routers/users";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -28,6 +29,7 @@ export const appRouter = createTRPCRouter({
   activity: activityRouter,
   likes: likesRouter,
   comments: commentsRouter,
+  users: usersRouter,
 });
 
 // export type definition of API

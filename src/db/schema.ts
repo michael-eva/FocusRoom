@@ -18,11 +18,17 @@ export const teamMembers = sqliteTable("team_members", {
   name: text("name"),
   email: text("email"),
   avatar: text("avatar"),
+  userId: integer("user_id").references(() => users.id),
 });
 
 export const projectTeamMembers = sqliteTable("project_team_members", {
   projectId: integer("project_id").references(() => projects.id),
   teamMemberId: integer("team_member_id").references(() => teamMembers.id),
+  role: text("role").default("member"), // "admin", "member", "moderator"
+  joinedAt: integer("joined_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  invitedBy: integer("invited_by").references(() => teamMembers.id),
 });
 
 export const tasks = sqliteTable("tasks", {
@@ -51,6 +57,10 @@ export const users = sqliteTable("users", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   name: text("name"),
   email: text("email"),
+  role: text("role").default("member"), // "admin", "member", "moderator"
+  invitedAt: integer("invited_at", { mode: "timestamp" }),
+  invitedBy: integer("invited_by").references(() => users.id),
+  acceptedAt: integer("accepted_at", { mode: "timestamp" }),
 });
 
 export const posts = sqliteTable("posts", {

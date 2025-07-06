@@ -50,7 +50,15 @@ export async function getProjectById(id: number) {
     ...projectWithData,
     teamMembers: projectWithData.teamMembers.map((tm) => tm.teamMember),
     tasks: projectWithData.tasks.map((task) => ({
-      ...task,
+      id: task.id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      deadline: task.deadline,
+      completedAt: task.completedAt,
+      projectId: task.projectId,
+      assigneeId: task.assigneeId,
       assignee: task.assignee
         ? {
             name: task.assignee.name,
