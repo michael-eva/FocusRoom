@@ -149,6 +149,19 @@ export const activityLog = sqliteTable("activity_log", {
   ),
 });
 
+export const projectActivities = sqliteTable("project_activities", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  projectId: integer("project_id").references(() => projects.id),
+  type: text("type").notNull(), // "task_created", "task_completed", "task_assigned", "task_status_changed", "resource_added", "project_updated"
+  description: text("description").notNull(),
+  taskId: integer("task_id").references(() => tasks.id),
+  resourceId: integer("resource_id").references(() => resources.id),
+  userId: integer("user_id").references(() => users.id),
+  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
 export const likes = sqliteTable("likes", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   userId: integer("user_id").references(() => users.id),
@@ -177,6 +190,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   teamMembers: many(projectTeamMembers),
   tasks: many(tasks),
   resources: many(resources),
+  activities: many(projectActivities),
 }));
 
 export const teamMembersRelations = relations(teamMembers, ({ many }) => ({
@@ -194,6 +208,28 @@ export const projectTeamMembersRelations = relations(
     teamMember: one(teamMembers, {
       fields: [projectTeamMembers.teamMemberId],
       references: [teamMembers.id],
+    }),
+  }),
+);
+
+export const projectActivitiesRelations = relations(
+  projectActivities,
+  ({ one }) => ({
+    project: one(projects, {
+      fields: [projectActivities.projectId],
+      references: [projects.id],
+    }),
+    task: one(tasks, {
+      fields: [projectActivities.taskId],
+      references: [tasks.id],
+    }),
+    resource: one(resources, {
+      fields: [projectActivities.resourceId],
+      references: [resources.id],
+    }),
+    user: one(users, {
+      fields: [projectActivities.userId],
+      references: [users.id],
     }),
   }),
 );

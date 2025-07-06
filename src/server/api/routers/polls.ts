@@ -1,7 +1,15 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
-import { polls, pollOptions, pollVotes, users, activityLog } from "~/db/schema";
+import {
+  polls,
+  pollOptions,
+  pollVotes,
+  users,
+  activityLog,
+  likes,
+  comments,
+} from "~/db/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
 export const pollsRouter = createTRPCRouter({
@@ -213,17 +221,89 @@ export const pollsRouter = createTRPCRouter({
     }),
 
   delete: publicProcedure
-    .input(z.object({ id: z.number() }))
+    .input(
+      z.object({
+        id: z.number(),
+        userId: z.number().optional(), // Add userId for ownership validation
+      }),
+    )
     .mutation(async ({ input }) => {
-      // Delete poll votes first
-      await db.delete(pollVotes).where(eq(pollVotes.pollId, input.id));
+      try {
+        // Check if poll exists and get its creator
+        const poll = await db
+          .select({ createdById: polls.createdById })
+          .from(polls)
+          .where(eq(polls.id, input.id))
+          .limit(1);
 
-      // Delete poll options
-      await db.delete(pollOptions).where(eq(pollOptions.pollId, input.id));
+        if (poll.length === 0) {
+          throw new Error("Poll not found");
+        }
 
-      // Delete the poll
-      await db.delete(polls).where(eq(polls.id, input.id));
+        // Check ownership and admin status
+        if (input.userId) {
+          // Get the current user's role
+          const currentUser = await db
+            .select({ role: users.role })
+            .from(users)
+            .where(eq(users.id, input.userId))
+            .limit(1);
 
-      return { success: true };
+          if (currentUser.length === 0) {
+            throw new Error("User not found");
+          }
+
+          const isAdmin = currentUser[0]!.role === "admin";
+          const isOwner = poll[0]!.createdById === input.userId;
+
+          // Allow deletion if user is admin OR if user is the owner
+          if (!isAdmin && !isOwner) {
+            throw new Error(
+              "You can only delete polls that you created, unless you are an admin",
+            );
+          }
+        }
+
+        // Delete poll votes first (they reference poll options)
+        await db.delete(pollVotes).where(eq(pollVotes.pollId, input.id));
+
+        // Delete poll options
+        await db.delete(pollOptions).where(eq(pollOptions.pollId, input.id));
+
+        // Delete activity log entries that reference this poll
+        await db
+          .delete(activityLog)
+          .where(
+            and(
+              eq(activityLog.targetId, input.id),
+              eq(activityLog.targetType, "poll"),
+            ),
+          );
+
+        // Delete likes that reference this poll
+        await db
+          .delete(likes)
+          .where(
+            and(eq(likes.targetId, input.id), eq(likes.targetType, "poll")),
+          );
+
+        // Delete comments that reference this poll
+        await db
+          .delete(comments)
+          .where(
+            and(
+              eq(comments.targetId, input.id),
+              eq(comments.targetType, "poll"),
+            ),
+          );
+
+        // Finally delete the poll
+        await db.delete(polls).where(eq(polls.id, input.id));
+
+        return { success: true };
+      } catch (error) {
+        console.error("Error deleting poll:", error);
+        throw error;
+      }
     }),
 });

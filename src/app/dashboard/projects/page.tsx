@@ -54,10 +54,12 @@ export default function ProjectsPage() {
                     <h1 className="text-xl font-semibold text-gray-800">Projects & Tasks</h1>
                 </div>
                 <div className="flex items-center gap-3">
-                    <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Project
-                    </Button>
+                    <Link href="/dashboard/projects/new">
+                        <Button className="bg-orange-500 hover:bg-orange-600 text-white">
+                            <Plus className="h-4 w-4 mr-2" />
+                            New Project
+                        </Button>
+                    </Link>
                     <Button variant="ghost" size="icon">
                         <Bell className="h-5 w-5" />
                     </Button>

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from "~/components/ui/card"
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Textarea } from "~/components/ui/textarea"
-import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3, Users, Mail } from "lucide-react"
+import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3, Users, Mail, Trash2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { CreateEventDialog } from "./_components/CreateEventDialog"
@@ -25,11 +25,17 @@ export default function CommunityPage() {
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
     const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
 
+    // Get current user info (for now hardcoded to user ID 1)
+    const { data: currentUser } = api.users.getAll.useQuery();
+    const currentUserId = 1; // TODO: Replace with actual user ID from auth
+    const currentUserData = currentUser?.find(user => user.id === currentUserId);
+    const isAdmin = currentUserData?.role === "admin";
+
     // Get feed data from database
     const { data: feedPosts = [], refetch: refetchFeed } = api.feed.getFeed.useQuery(
         {
             limit: 20,
-            userId: 1, // TODO: Replace with actual user ID from auth
+            userId: currentUserId,
         },
         {
             staleTime: 5 * 60 * 1000, // 5 minutes
@@ -63,6 +69,7 @@ export default function CommunityPage() {
     // API mutations
     const createLocalEvent = api.events.create.useMutation();
     const createPoll = api.polls.create.useMutation();
+    const deletePoll = api.polls.delete.useMutation();
     const votePoll = api.polls.vote.useMutation();
     const createRSVP = api.rsvp.create.useMutation();
     const toggleLike = api.likes.toggleLike.useMutation();
@@ -72,7 +79,7 @@ export default function CommunityPage() {
         try {
             console.log("Toggling like for:", { postId, targetType });
             const result = await toggleLike.mutateAsync({
-                userId: 1, // TODO: Replace with actual user ID from auth
+                userId: currentUserId,
                 targetId: postId,
                 targetType,
             });
@@ -103,7 +110,7 @@ export default function CommunityPage() {
         try {
             await createRSVP.mutateAsync({
                 eventId: selectedEventId,
-                userId: 1, // TODO: Replace with actual user ID from auth
+                userId: currentUserId,
                 status,
             });
 
@@ -120,7 +127,7 @@ export default function CommunityPage() {
             await votePoll.mutateAsync({
                 pollId: postId,
                 optionId: optionId,
-                userId: 1, // TODO: Replace with actual user ID from auth
+                userId: currentUserId,
             });
 
             // Refresh the feed to show updated vote counts
@@ -135,7 +142,7 @@ export default function CommunityPage() {
         if (newComment.trim()) {
             try {
                 await createComment.mutateAsync({
-                    userId: 1, // TODO: Replace with actual user ID from auth
+                    userId: currentUserId,
                     targetId: postId,
                     targetType,
                     content: newComment,
@@ -166,7 +173,7 @@ export default function CommunityPage() {
                 endDateTime,
                 allDay: false,
                 rsvpLink: eventData.rsvpLink,
-                createdById: 1, // Default user ID - replace with actual user ID from auth
+                createdById: currentUserId,
             });
 
             // Refresh the feed
@@ -190,7 +197,7 @@ export default function CommunityPage() {
                 title: pollData.title,
                 content: pollData.description,
                 options: pollData.options,
-                createdById: 1, // Default user ID - replace with actual user ID from auth
+                createdById: currentUserId,
             });
 
             // Refresh the feed
@@ -203,7 +210,26 @@ export default function CommunityPage() {
         }
     }
 
+    const handleDeletePoll = async (pollId: number) => {
+        if (!confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
+            return;
+        }
 
+        try {
+            await deletePoll.mutateAsync({
+                id: pollId,
+                userId: currentUserId
+            });
+
+            // Refresh the feed to show updated data
+            await refetchFeed();
+
+            alert("Poll deleted successfully!");
+        } catch (error) {
+            console.error("Failed to delete poll:", error);
+            alert("Failed to delete poll. Please try again.");
+        }
+    }
 
     return (
         <>
@@ -291,6 +317,17 @@ export default function CommunityPage() {
                                             </div>
                                             <h2 className="text-lg font-semibold text-gray-800 mt-1">{post.title}</h2>
                                         </div>
+                                        {/* Delete button in header for polls - show for owner or admin */}
+                                        {post.type === "poll" && (post.author?.id === currentUserId || isAdmin) && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDeletePoll(post.id)}
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                        )}
                                     </div>
                                 </CardHeader>
 
@@ -462,6 +499,19 @@ export default function CommunityPage() {
                                                             : "Not Attending"
                                                     : "RSVP"
                                                 }
+                                            </Button>
+                                        )}
+
+                                        {/* Delete button for polls - show for owner or admin */}
+                                        {post.type === "poll" && (post.author?.id === currentUserId || isAdmin) && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => handleDeletePoll(post.id)}
+                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="h-4 w-4 mr-1" />
+                                                Delete
                                             </Button>
                                         )}
 
