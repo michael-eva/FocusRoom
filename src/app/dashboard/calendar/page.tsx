@@ -49,6 +49,10 @@ export default function CalendarPage() {
     const updateLocalEvent = api.events.update.useMutation();
     const deleteLocalEvent = api.events.delete.useMutation();
 
+    // Get current user info (for now using first available user)
+    const { data: currentUser } = api.users.getAll.useQuery();
+    const currentUserId = currentUser?.[0]?.id || 67; // Use first available user or fallback to 67
+
     // Get local events for the current month
     const { data: localEvents = [], refetch: refetchLocalEvents, isFetching: localEventsFetching } = api.events.getByMonth.useQuery({
         year,
@@ -86,7 +90,7 @@ export default function CalendarPage() {
                 endDateTime,
                 allDay: false,
                 rsvpLink: eventData.rsvpLink,
-                createdById: 1, // Default user ID - replace with actual user ID from auth
+                createdById: currentUserId,
             });
 
             // Refresh local events

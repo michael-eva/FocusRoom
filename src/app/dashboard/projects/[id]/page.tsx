@@ -448,7 +448,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
                                 <div className="space-y-3">
                                     <h3 className="font-semibold text-gray-900 text-lg">Status</h3>
-                                    <Badge className={`${getStatusColor(project.status)} px-3 py-1 text-sm font-medium`}>
+                                    <Badge className={`${getStatusColor(project.status ?? null)} px-3 py-1 text-sm font-medium`}>
                                         {project.status}
                                     </Badge>
                                 </div>
@@ -528,7 +528,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                     </Badge>
                                                                 )}
                                                                 <Select
-                                                                    value={task.status}
+                                                                    value={task.status ?? undefined}
                                                                     onValueChange={(value: "pending" | "in-progress" | "completed" | "overdue") =>
                                                                         updateTaskStatusMutation.mutate({
                                                                             taskId: task.id,

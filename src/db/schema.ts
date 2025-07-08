@@ -1,193 +1,170 @@
 import { relations } from "drizzle-orm";
-import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { 
+  serial, 
+  text, 
+  timestamp, 
+  integer, 
+  boolean, 
+  pgTable 
+} from "drizzle-orm/pg-core";
 
-export const projects = sqliteTable("projects", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
   name: text("name"),
   description: text("description"),
   status: text("status"),
   progress: integer("progress"),
   totalTasks: integer("totalTasks"),
   completedTasks: integer("completedTasks"),
-  deadline: integer("deadline", { mode: "timestamp" }),
+  deadline: timestamp("deadline"),
   priority: text("priority"),
 });
 
-export const teamMembers = sqliteTable("team_members", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const teamMembers = pgTable("team_members", {
+  id: serial("id").primaryKey(),
   name: text("name"),
   email: text("email"),
   avatar: text("avatar"),
   userId: integer("user_id").references(() => users.id),
 });
 
-export const projectTeamMembers = sqliteTable("project_team_members", {
+export const projectTeamMembers = pgTable("project_team_members", {
   projectId: integer("project_id").references(() => projects.id),
   teamMemberId: integer("team_member_id").references(() => teamMembers.id),
   role: text("role").default("member"), // "admin", "member", "moderator"
-  joinedAt: integer("joined_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  joinedAt: timestamp("joined_at").defaultNow(),
   invitedBy: integer("invited_by").references(() => teamMembers.id),
 });
 
-export const tasks = sqliteTable("tasks", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
   title: text("title"),
   description: text("description"),
   status: text("status"),
   priority: text("priority"),
-  deadline: integer("deadline", { mode: "timestamp" }),
-  completedAt: integer("completed_at", { mode: "timestamp" }),
+  deadline: timestamp("deadline"),
+  completedAt: timestamp("completed_at"),
   projectId: integer("project_id").references(() => projects.id),
   assigneeId: integer("assignee_id").references(() => teamMembers.id),
 });
 
-export const resources = sqliteTable("resources", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const resources = pgTable("resources", {
+  id: serial("id").primaryKey(),
   title: text("title"),
   type: text("type"),
   url: text("url"),
   description: text("description"),
-  lastUpdated: integer("last_updated", { mode: "timestamp" }),
+  lastUpdated: timestamp("last_updated"),
   projectId: integer("project_id").references(() => projects.id),
 });
 
-export const users = sqliteTable("users", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
   name: text("name"),
   email: text("email"),
   role: text("role").default("member"), // "admin", "member", "moderator"
-  invitedAt: integer("invited_at", { mode: "timestamp" }),
+  invitedAt: timestamp("invited_at"),
   invitedBy: integer("invited_by").references(() => users.id),
-  acceptedAt: integer("accepted_at", { mode: "timestamp" }),
+  acceptedAt: timestamp("accepted_at"),
 });
 
-export const posts = sqliteTable("posts", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
   name: text("name"),
   createdById: integer("created_by_id").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const events = sqliteTable("events", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   description: text("description"),
   location: text("location"),
-  startDateTime: integer("start_date_time", { mode: "timestamp" }).notNull(),
-  endDateTime: integer("end_date_time", { mode: "timestamp" }).notNull(),
-  allDay: integer("all_day", { mode: "boolean" }).default(false),
+  startDateTime: timestamp("start_date_time").notNull(),
+  endDateTime: timestamp("end_date_time").notNull(),
+  allDay: boolean("all_day").default(false),
   rsvpLink: text("rsvp_link"),
   createdById: integer("created_by_id").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
   googleEventId: text("google_event_id"), // For syncing with Google Calendar
 });
 
-export const polls = sqliteTable("polls", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const polls = pgTable("polls", {
+  id: serial("id").primaryKey(),
   title: text("title").notNull(),
   content: text("content"),
   createdById: integer("created_by_id").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const pollOptions = sqliteTable("poll_options", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const pollOptions = pgTable("poll_options", {
+  id: serial("id").primaryKey(),
   pollId: integer("poll_id").references(() => polls.id),
   text: text("text").notNull(),
   votes: integer("votes").default(0),
 });
 
-export const pollVotes = sqliteTable("poll_votes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const pollVotes = pgTable("poll_votes", {
+  id: serial("id").primaryKey(),
   pollId: integer("poll_id").references(() => polls.id),
   optionId: integer("option_id").references(() => pollOptions.id),
   userId: integer("user_id").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const eventRSVPs = sqliteTable("event_rsvps", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const eventRSVPs = pgTable("event_rsvps", {
+  id: serial("id").primaryKey(),
   eventId: integer("event_id").references(() => events.id),
   userId: integer("user_id").references(() => users.id),
   status: text("status").notNull(), // "attending", "maybe", "declined"
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const activityLog = sqliteTable("activity_log", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const activityLog = pgTable("activity_log", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   activityType: text("activity_type").notNull(), // "poll_created", "poll_voted", "event_created", "event_rsvp"
   targetId: integer("target_id"), // ID of the poll, event, etc.
   targetType: text("target_type"), // "poll", "event"
   description: text("description"),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const projectActivities = sqliteTable("project_activities", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const projectActivities = pgTable("project_activities", {
+  id: serial("id").primaryKey(),
   projectId: integer("project_id").references(() => projects.id),
   type: text("type").notNull(), // "task_created", "task_completed", "task_assigned", "task_status_changed", "resource_added", "project_updated"
   description: text("description").notNull(),
   taskId: integer("task_id").references(() => tasks.id),
   resourceId: integer("resource_id").references(() => resources.id),
   userId: integer("user_id").references(() => users.id),
-  timestamp: integer("timestamp", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  timestamp: timestamp("timestamp").defaultNow(),
 });
 
-export const likes = sqliteTable("likes", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const likes = pgTable("likes", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   targetId: integer("target_id").notNull(), // ID of the post, event, poll, etc.
   targetType: text("target_type").notNull(), // "event", "poll", "spotlight"
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
-export const comments = sqliteTable("comments", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id),
   targetId: integer("target_id").notNull(), // ID of the post, event, poll, etc.
   targetType: text("target_type").notNull(), // "event", "poll", "spotlight"
   content: text("content").notNull(),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const spotlights = sqliteTable("spotlights", {
-  id: integer("id").primaryKey({ autoIncrement: true }),
+export const spotlights = pgTable("spotlights", {
+  id: serial("id").primaryKey(),
   type: text("type").notNull(), // "musician", "venue"
   name: text("name").notNull(),
   title: text("title").notNull(),
@@ -198,19 +175,14 @@ export const spotlights = sqliteTable("spotlights", {
   established: text("established"),
   links: text("links"), // JSON string of links array
   stats: text("stats"), // JSON string of stats object
-  featuredSince: integer("featured_since", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
-  isCurrent: integer("is_current", { mode: "boolean" }).default(false),
+  featuredSince: timestamp("featured_since").defaultNow(),
+  isCurrent: boolean("is_current").default(false),
   createdById: integer("created_by_id").references(() => users.id),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
-    () => new Date(),
-  ),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Relations remain exactly the same
 export const projectsRelations = relations(projects, ({ many }) => ({
   teamMembers: many(projectTeamMembers),
   tasks: many(tasks),

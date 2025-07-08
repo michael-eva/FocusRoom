@@ -1,8 +1,42 @@
-import { spotlights, likes, comments } from "~/db/schema";
-import { db } from "~/index";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
+import { spotlights, likes, comments, users } from "~/db/schema";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 async function seedSpotlight() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error("DATABASE_URL environment variable is required");
+  }
+
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: true,
+  });
+
+  const db = drizzle(pool);
+
   try {
+    console.log("🌱 Seeding spotlight data...");
+
+    // First check if we have users
+    const existingUsers = await db.select().from(users).limit(1);
+
+    if (existingUsers.length === 0) {
+      // Create a default user first
+      const newUser = await db
+        .insert(users)
+        .values({
+          name: "Default User",
+          email: "user@example.com",
+          role: "admin",
+        })
+        .returning();
+      console.log("✅ Created default user:", newUser[0]);
+    }
+
     // Create a sample spotlight
     const sampleSpotlight = await db
       .insert(spotlights)
@@ -92,11 +126,6 @@ async function seedSpotlight() {
             targetId: sampleSpotlight[0].id,
             targetType: "spotlight",
           },
-          {
-            userId: 2,
-            targetId: sampleSpotlight[0].id,
-            targetType: "spotlight",
-          },
         ])
         .returning();
 
@@ -113,28 +142,17 @@ async function seedSpotlight() {
             content:
               "Amazing artist! Love the folk vibes. Can't wait to see them live!",
           },
-          {
-            userId: 2,
-            targetId: sampleSpotlight[0].id,
-            targetType: "spotlight",
-            content:
-              "The new EP is incredible. Such beautiful lyrics and melodies.",
-          },
-          {
-            userId: 3,
-            targetId: sampleSpotlight[0].id,
-            targetType: "spotlight",
-            content:
-              "Definitely checking out their Spotify now. Thanks for the recommendation!",
-          },
         ])
         .returning();
 
       console.log("✅ Sample comments created:", sampleComments.length);
     }
+
+    console.log("🎉 Spotlight seeding completed successfully!");
   } catch (error) {
     console.error("❌ Error seeding spotlight:", error);
   } finally {
+    await pool.end();
     process.exit(0);
   }
 }

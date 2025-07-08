@@ -10,7 +10,7 @@ import {
   likes,
   comments,
 } from "~/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc, and, sql, inArray } from "drizzle-orm";
 
 export const pollsRouter = createTRPCRouter({
   create: publicProcedure
@@ -24,16 +24,24 @@ export const pollsRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       try {
+        console.log("=== POLL CREATION START ===");
         console.log("Creating poll with input:", input);
 
         // Ensure we have a valid user ID
         let userId = input.createdById;
+        console.log("Initial userId:", userId);
+
         if (!userId) {
+          console.log("No userId provided, checking for existing users...");
           // Check if there are any users in the database
           const existingUsers = await db.select().from(users).limit(1);
+          console.log("Existing users found:", existingUsers.length);
+
           if (existingUsers.length > 0) {
             userId = existingUsers[0]!.id;
+            console.log("Using existing user ID:", userId);
           } else {
+            console.log("No users found, creating default user...");
             // Create a default user if none exists
             const defaultUser = await db
               .insert(users)
@@ -43,10 +51,14 @@ export const pollsRouter = createTRPCRouter({
               })
               .returning();
             userId = defaultUser[0]!.id;
+            console.log("Created default user with ID:", userId);
           }
         }
 
+        console.log("Final userId for poll creation:", userId);
+
         // Create the poll
+        console.log("Inserting poll into database...");
         const newPoll = await db
           .insert(polls)
           .values({
@@ -56,8 +68,9 @@ export const pollsRouter = createTRPCRouter({
           })
           .returning();
 
-        console.log("Poll created:", newPoll);
+        console.log("Poll created successfully:", newPoll);
         const pollId = newPoll[0]!.id;
+        console.log("Poll ID:", pollId);
 
         // Create poll options
         const pollOptionsData = input.options.map((text) => ({
@@ -67,21 +80,35 @@ export const pollsRouter = createTRPCRouter({
         }));
 
         console.log("Creating poll options:", pollOptionsData);
-        await db.insert(pollOptions).values(pollOptionsData);
+        const insertedOptions = await db
+          .insert(pollOptions)
+          .values(pollOptionsData)
+          .returning();
+        console.log("Poll options created:", insertedOptions);
 
         // Log the activity
-        await db.insert(activityLog).values({
-          userId,
-          activityType: "poll_created",
-          targetId: pollId,
-          targetType: "poll",
-          description: `Created poll: ${input.title}`,
-        });
+        console.log("Logging activity...");
+        const activityLogResult = await db
+          .insert(activityLog)
+          .values({
+            userId,
+            activityType: "poll_created",
+            targetId: pollId,
+            targetType: "poll",
+            description: `Created poll: ${input.title}`,
+          })
+          .returning();
+        console.log("Activity logged:", activityLogResult);
 
-        console.log("Poll creation completed successfully");
+        console.log("=== POLL CREATION COMPLETED SUCCESSFULLY ===");
         return newPoll[0];
       } catch (error) {
+        console.error("=== POLL CREATION ERROR ===");
         console.error("Error creating poll:", error);
+        console.error("Error details:", {
+          message: error instanceof Error ? error.message : "Unknown error",
+          stack: error instanceof Error ? error.stack : undefined,
+        });
         throw error;
       }
     }),
@@ -264,13 +291,27 @@ export const pollsRouter = createTRPCRouter({
           }
         }
 
-        // Delete poll votes first (they reference poll options)
+        // --- Robust deletion: ---
+        // 1. Get all poll option IDs for this poll
+        const optionRows = await db
+          .select({ id: pollOptions.id })
+          .from(pollOptions)
+          .where(eq(pollOptions.pollId, input.id));
+        const optionIds = optionRows.map((row) => row.id);
+
+        // 2. Delete all votes for these option IDs
+        if (optionIds.length > 0) {
+          await db
+            .delete(pollVotes)
+            .where(inArray(pollVotes.optionId, optionIds));
+        }
+        // 2b. Delete all votes for this poll (in case any remain)
         await db.delete(pollVotes).where(eq(pollVotes.pollId, input.id));
 
-        // Delete poll options
+        // 3. Delete poll options
         await db.delete(pollOptions).where(eq(pollOptions.pollId, input.id));
 
-        // Delete activity log entries that reference this poll
+        // 4. Delete activity log entries that reference this poll
         await db
           .delete(activityLog)
           .where(
@@ -280,14 +321,14 @@ export const pollsRouter = createTRPCRouter({
             ),
           );
 
-        // Delete likes that reference this poll
+        // 5. Delete likes that reference this poll
         await db
           .delete(likes)
           .where(
             and(eq(likes.targetId, input.id), eq(likes.targetType, "poll")),
           );
 
-        // Delete comments that reference this poll
+        // 6. Delete comments that reference this poll
         await db
           .delete(comments)
           .where(
@@ -297,7 +338,7 @@ export const pollsRouter = createTRPCRouter({
             ),
           );
 
-        // Finally delete the poll
+        // 7. Finally delete the poll
         await db.delete(polls).where(eq(polls.id, input.id));
 
         return { success: true };

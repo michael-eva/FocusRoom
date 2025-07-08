@@ -14,10 +14,31 @@ export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
+    const utils = api.useUtils();
 
     // API mutation for creating polls
-    const createPoll = api.polls.create.useMutation();
-    const createLocalEvent = api.events.create.useMutation();
+    const createPoll = api.polls.create.useMutation({
+        onSuccess: async () => {
+            alert("Poll created successfully!");
+            await utils.activity.getRecentActivity.invalidate();
+        },
+        onError: () => {
+            alert("Failed to create poll. Please try again.");
+        }
+    });
+    const createLocalEvent = api.events.create.useMutation({
+        onSuccess: async () => {
+            alert("Event created successfully!");
+            await utils.activity.getRecentActivity.invalidate();
+        },
+        onError: () => {
+            alert("Failed to create event. Please try again.");
+        }
+    });
+
+    // Get current user info (for now using first available user)
+    const { data: currentUser } = api.users.getAll.useQuery();
+    const currentUserId = currentUser?.[0]?.id || 67; // Use first available user or fallback to 67
 
     // Get recent activity from database (includes polls and events)
     const { data: activityData = [] } = api.activity.getRecentActivity.useQuery(
@@ -30,49 +51,31 @@ export default function Dashboard() {
 
     const handleCreateEvent = useCallback(async (eventData: any) => {
         console.log("Creating event with data:", eventData);
-        try {
-            const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
-            const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
+        const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
+        const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
 
-            // Create the event in the database
-            await createLocalEvent.mutateAsync({
-                title: eventData.title,
-                description: eventData.description,
-                location: eventData.location,
-                startDateTime,
-                endDateTime,
-                allDay: false,
-                rsvpLink: eventData.rsvpLink,
-                createdById: 1, // Default user ID - replace with actual user ID from auth
-            });
-
-            // Show success message
-            if (eventData.publishToCommunity) {
-                alert("Event created and published to community! Email notifications sent to all members.");
-            } else {
-                alert("Event created successfully!");
-            }
-        } catch (error) {
-            console.error("Failed to create event:", error);
-            alert("Failed to create event. Please try again.");
-        }
+        // Create the event in the database
+        await createLocalEvent.mutateAsync({
+            title: eventData.title,
+            description: eventData.description,
+            location: eventData.location,
+            startDateTime,
+            endDateTime,
+            allDay: false,
+            rsvpLink: eventData.rsvpLink,
+            createdById: currentUserId,
+        });
     }, [createLocalEvent]);
 
     const handleCreatePoll = async (pollData: any) => {
         console.log("Creating poll with data:", pollData);
-        try {
-            await createPoll.mutateAsync({
-                title: pollData.title,
-                content: pollData.description,
-                options: pollData.options,
-                createdById: 1, // Default user ID - replace with actual user ID from auth
-            });
+        await createPoll.mutateAsync({
+            title: pollData.title,
+            content: pollData.description,
+            options: pollData.options,
+            createdById: currentUserId,
+        });
 
-            alert("Poll created successfully!");
-        } catch (error) {
-            console.error("Failed to create poll:", error);
-            alert("Failed to create poll. Please try again.");
-        }
     }
 
     // Helper function to format activity text and get icon

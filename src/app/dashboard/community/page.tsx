@@ -25,12 +25,11 @@ export default function CommunityPage() {
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
     const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
 
-    // Get current user info (for now hardcoded to user ID 1)
     const { data: currentUser } = api.users.getAll.useQuery();
-    const currentUserId = 1; // TODO: Replace with actual user ID from auth
+    const currentUserId = currentUser?.[0]?.id
     const currentUserData = currentUser?.find(user => user.id === currentUserId);
     const isAdmin = currentUserData?.role === "admin";
-
+    console.log("Current user:", currentUserData);
     // Get feed data from database
     const { data: feedPosts = [], refetch: refetchFeed } = api.feed.getFeed.useQuery(
         {
