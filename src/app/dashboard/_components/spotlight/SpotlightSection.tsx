@@ -161,7 +161,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                             <div>
                                 <h3 className="text-xl font-semibold text-gray-800 mb-2">No Current Spotlight</h3>
                                 <p className="text-gray-600 mb-4">
-                                    There's no featured artist or venue at the moment.
+                                    There&apos;s no featured artist or venue at the moment.
                                 </p>
                                 {isAdmin && (
                                     <Button
