@@ -104,7 +104,7 @@ export function SpotlightManagementDialog({
     }
 
     const linkTypes = [
-        { value: "spotify", label: "Spotify" },
+        { value: "thePack", label: "The Pack" },
         { value: "youtube", label: "YouTube" },
         { value: "instagram", label: "Instagram" },
         { value: "facebook", label: "Facebook" },
@@ -116,7 +116,7 @@ export function SpotlightManagementDialog({
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
-                    <DialogTitle>Manage Spotlight Feature</DialogTitle>
+                    <DialogTitle>Create New Spotlight Feature</DialogTitle>
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -316,7 +316,7 @@ export function SpotlightManagementDialog({
                     <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-lg">
                         <Music className="h-4 w-4 text-orange-600" />
                         <p className="text-sm text-orange-800">
-                            This spotlight will be featured on the dashboard and community feed to drive engagement.
+                            Creating a new spotlight will replace the current featured spotlight. The current spotlight will be moved to the previous spotlights section.
                         </p>
                     </div>
 
@@ -329,7 +329,7 @@ export function SpotlightManagementDialog({
                             className="bg-orange-500 hover:bg-orange-600"
                             disabled={!formData.name || !formData.title || !formData.description}
                         >
-                            Update Spotlight
+                            Create Spotlight
                         </Button>
                     </div>
                 </form>

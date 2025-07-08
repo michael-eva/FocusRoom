@@ -186,6 +186,31 @@ export const comments = sqliteTable("comments", {
   ),
 });
 
+export const spotlights = sqliteTable("spotlights", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  type: text("type").notNull(), // "musician", "venue"
+  name: text("name").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  image: text("image"),
+  location: text("location"),
+  genre: text("genre"),
+  established: text("established"),
+  links: text("links"), // JSON string of links array
+  stats: text("stats"), // JSON string of stats object
+  featuredSince: integer("featured_since", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  isCurrent: integer("is_current", { mode: "boolean" }).default(false),
+  createdById: integer("created_by_id").references(() => users.id),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(
+    () => new Date(),
+  ),
+});
+
 export const projectsRelations = relations(projects, ({ many }) => ({
   teamMembers: many(projectTeamMembers),
   tasks: many(tasks),
@@ -261,6 +286,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   activities: many(activityLog),
   likes: many(likes),
   comments: many(comments),
+  spotlights: many(spotlights),
 }));
 
 export const postsRelations = relations(posts, ({ one }) => ({
@@ -338,6 +364,13 @@ export const likesRelations = relations(likes, ({ one }) => ({
 export const commentsRelations = relations(comments, ({ one }) => ({
   user: one(users, {
     fields: [comments.userId],
+    references: [users.id],
+  }),
+}));
+
+export const spotlightsRelations = relations(spotlights, ({ one }) => ({
+  author: one(users, {
+    fields: [spotlights.createdById],
     references: [users.id],
   }),
 }));

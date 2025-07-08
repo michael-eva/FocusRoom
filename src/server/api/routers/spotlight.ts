@@ -1,59 +1,273 @@
+import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
-
-const currentSpotlight = {
-    id: 1,
-    type: "musician",
-    name: "Sarah Chen",
-    title: "Indie Folk Singer-Songwriter",
-    description:
-        "Sarah's ethereal voice and introspective lyrics have been captivating Melbourne audiences for over 5 years. Her latest EP 'Midnight Reflections' showcases her evolution as an artist, blending traditional folk with modern indie sensibilities.",
-    image: "/placeholder.svg?height=300&width=300",
-    location: "Melbourne, VIC",
-    genre: "Indie Folk",
-    established: "2019",
-    links: [
-        { type: "spotify", url: "https://open.spotify.com/artist/example", label: "Listen on Spotify" },
-        { type: "youtube", url: "https://youtube.com/c/sarahchenmusic", label: "YouTube Channel" },
-        { type: "instagram", url: "https://instagram.com/sarahchenmusic", label: "@sarahchenmusic" },
-        { type: "website", url: "https://sarahchenmusic.com", label: "Official Website" },
-    ],
-    stats: {
-        monthlyListeners: "12.5K",
-        followers: "8.2K",
-        upcomingShows: 3,
-    },
-    featuredSince: "2025-01-15",
-    likes: 47,
-    comments: 12,
-    userHasLiked: false,
-};
-
-const previousSpotlights = [
-    {
-        id: 2,
-        type: "venue",
-        name: "The Corner Hotel",
-        title: "Iconic Live Music Venue",
-        image: "/placeholder.svg?height=200&width=200",
-        description: "Richmond's legendary music venue...",
-        featuredDate: "2024-12-15",
-    },
-    {
-        id: 3,
-        type: "musician",
-        name: "The Midnight Collective",
-        title: "Electronic Duo",
-        image: "/placeholder.svg?height=200&width=200",
-        description: "Experimental electronic music...",
-        featuredDate: "2024-11-15",
-    },
-];
+import { db } from "~/db";
+import { spotlights, likes, comments } from "~/db/schema";
+import { eq, and, desc, count } from "drizzle-orm";
 
 export const spotlightRouter = createTRPCRouter({
-  getCurrent: publicProcedure.query(() => {
-    return currentSpotlight;
+  getCurrent: publicProcedure.query(async () => {
+    const currentSpotlight = await db
+      .select()
+      .from(spotlights)
+      .where(eq(spotlights.isCurrent, true))
+      .limit(1);
+
+    if (currentSpotlight.length === 0) {
+      return null;
+    }
+
+    const spotlight = currentSpotlight[0]!;
+
+    // Parse JSON fields
+    const links = spotlight.links ? JSON.parse(spotlight.links) : [];
+    const stats = spotlight.stats ? JSON.parse(spotlight.stats) : null;
+
+    // Get likes count
+    const likesResult = await db
+      .select({ count: count() })
+      .from(likes)
+      .where(
+        and(
+          eq(likes.targetId, spotlight.id),
+          eq(likes.targetType, "spotlight"),
+        ),
+      );
+
+    // Get comments count
+    const commentsResult = await db
+      .select({ count: count() })
+      .from(comments)
+      .where(
+        and(
+          eq(comments.targetId, spotlight.id),
+          eq(comments.targetType, "spotlight"),
+        ),
+      );
+
+    return {
+      id: spotlight.id,
+      type: spotlight.type,
+      name: spotlight.name,
+      title: spotlight.title,
+      description: spotlight.description,
+      image: spotlight.image,
+      location: spotlight.location,
+      genre: spotlight.genre,
+      established: spotlight.established,
+      links,
+      stats,
+      featuredSince: spotlight.featuredSince,
+      likes: likesResult[0]?.count || 0,
+      comments: commentsResult[0]?.count || 0,
+      userHasLiked: false, // This will be checked separately by the frontend
+    };
   }),
-  getPrevious: publicProcedure.query(() => {
-    return previousSpotlights;
+
+  getPrevious: publicProcedure.query(async () => {
+    const previousSpotlights = await db
+      .select()
+      .from(spotlights)
+      .where(eq(spotlights.isCurrent, false))
+      .orderBy(desc(spotlights.updatedAt))
+      .limit(10);
+
+    return previousSpotlights.map((spotlight) => ({
+      id: spotlight.id,
+      type: spotlight.type,
+      name: spotlight.name,
+      title: spotlight.title,
+      image: spotlight.image,
+      description: spotlight.description,
+      featuredDate: spotlight.updatedAt || spotlight.featuredSince,
+    }));
   }),
+
+  getById: publicProcedure
+    .input(z.object({ id: z.number() }))
+    .query(async ({ input }) => {
+      const spotlight = await db
+        .select()
+        .from(spotlights)
+        .where(eq(spotlights.id, input.id))
+        .limit(1);
+
+      if (spotlight.length === 0) {
+        return null;
+      }
+
+      const spotlightData = spotlight[0]!;
+
+      // Parse JSON fields
+      const links = spotlightData.links ? JSON.parse(spotlightData.links) : [];
+      const stats = spotlightData.stats
+        ? JSON.parse(spotlightData.stats)
+        : null;
+
+      // Get likes count
+      const likesResult = await db
+        .select({ count: count() })
+        .from(likes)
+        .where(
+          and(
+            eq(likes.targetId, spotlightData.id),
+            eq(likes.targetType, "spotlight"),
+          ),
+        );
+
+      // Get comments count
+      const commentsResult = await db
+        .select({ count: count() })
+        .from(comments)
+        .where(
+          and(
+            eq(comments.targetId, spotlightData.id),
+            eq(comments.targetType, "spotlight"),
+          ),
+        );
+
+      return {
+        id: spotlightData.id,
+        type: spotlightData.type,
+        name: spotlightData.name,
+        title: spotlightData.title,
+        description: spotlightData.description,
+        image: spotlightData.image,
+        location: spotlightData.location,
+        genre: spotlightData.genre,
+        established: spotlightData.established,
+        links,
+        stats,
+        featuredSince: spotlightData.featuredSince,
+        updatedAt: spotlightData.updatedAt,
+        isCurrent: spotlightData.isCurrent,
+        likes: likesResult[0]?.count || 0,
+        comments: commentsResult[0]?.count || 0,
+        userHasLiked: false, // This will be checked separately by the frontend
+      };
+    }),
+
+  create: publicProcedure
+    .input(
+      z.object({
+        type: z.enum(["musician", "venue"]),
+        name: z.string().min(1),
+        title: z.string().min(1),
+        description: z.string().min(1),
+        image: z.string().optional(),
+        location: z.string().optional(),
+        genre: z.string().optional(),
+        established: z.string().optional(),
+        links: z
+          .array(
+            z.object({
+              type: z.string(),
+              url: z.string(),
+              label: z.string(),
+            }),
+          )
+          .optional(),
+        stats: z
+          .object({
+            monthlyListeners: z.string().optional(),
+            followers: z.string().optional(),
+            upcomingShows: z.string().optional(),
+          })
+          .optional(),
+        createdById: z.number().optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      // Get the current spotlight before creating a new one
+      const currentSpotlight = await db
+        .select()
+        .from(spotlights)
+        .where(eq(spotlights.isCurrent, true))
+        .limit(1);
+
+      // If there's a current spotlight, move it to previous spotlights
+      if (currentSpotlight.length > 0) {
+        await db
+          .update(spotlights)
+          .set({
+            isCurrent: false,
+            updatedAt: new Date(),
+          })
+          .where(eq(spotlights.isCurrent, true));
+      }
+
+      const newSpotlight = await db
+        .insert(spotlights)
+        .values({
+          type: input.type,
+          name: input.name,
+          title: input.title,
+          description: input.description,
+          image: input.image || "/placeholder.svg?height=300&width=300",
+          location: input.location,
+          genre: input.genre,
+          established: input.established,
+          links: input.links ? JSON.stringify(input.links) : null,
+          stats: input.stats ? JSON.stringify(input.stats) : null,
+          isCurrent: true,
+          createdById: input.createdById,
+        })
+        .returning();
+
+      return newSpotlight[0];
+    }),
+
+  update: publicProcedure
+    .input(
+      z.object({
+        id: z.number(),
+        type: z.enum(["musician", "venue"]).optional(),
+        name: z.string().min(1).optional(),
+        title: z.string().min(1).optional(),
+        description: z.string().min(1).optional(),
+        image: z.string().optional(),
+        location: z.string().optional(),
+        genre: z.string().optional(),
+        established: z.string().optional(),
+        links: z
+          .array(
+            z.object({
+              type: z.string(),
+              url: z.string(),
+              label: z.string(),
+            }),
+          )
+          .optional(),
+        stats: z
+          .object({
+            monthlyListeners: z.string().optional(),
+            followers: z.string().optional(),
+            upcomingShows: z.string().optional(),
+          })
+          .optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const { id, ...updateData } = input;
+
+      const updateValues: any = {
+        ...updateData,
+        updatedAt: new Date(),
+      };
+
+      // Handle JSON fields
+      if (updateData.links) {
+        updateValues.links = JSON.stringify(updateData.links);
+      }
+      if (updateData.stats) {
+        updateValues.stats = JSON.stringify(updateData.stats);
+      }
+
+      const updatedSpotlight = await db
+        .update(spotlights)
+        .set(updateValues)
+        .where(eq(spotlights.id, id))
+        .returning();
+
+      return updatedSpotlight[0];
+    }),
 });

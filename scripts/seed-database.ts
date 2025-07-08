@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/libsql";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { sql } from "drizzle-orm";
+import { createClient } from "@libsql/client";
 
 // Import your schema
 import {
@@ -19,6 +20,7 @@ import {
   activityLog,
   likes,
   comments,
+  spotlights,
 } from "../src/db/schema.js";
 
 // Sample data
@@ -896,6 +898,104 @@ const samplePollOptions = [
   { pollId: 3, text: "Fully remote", votes: 2 },
 ];
 
+const sampleSpotlights = [
+  {
+    type: "musician",
+    name: "Sarah Chen",
+    title: "Indie Folk Singer-Songwriter",
+    description:
+      "Sarah's ethereal voice and introspective lyrics have been captivating Melbourne audiences for over 5 years. Her latest EP 'Midnight Reflections' showcases her evolution as an artist, blending traditional folk with modern indie sensibilities.",
+    image: "/placeholder.svg?height=300&width=300",
+    location: "Melbourne, VIC",
+    genre: "Indie Folk",
+    established: "2019",
+    links: JSON.stringify([
+      {
+        type: "spotify",
+        url: "https://open.spotify.com/artist/example",
+        label: "Listen on Spotify",
+      },
+      {
+        type: "youtube",
+        url: "https://youtube.com/c/sarahchenmusic",
+        label: "YouTube Channel",
+      },
+      {
+        type: "instagram",
+        url: "https://instagram.com/sarahchenmusic",
+        label: "@sarahchenmusic",
+      },
+      {
+        type: "website",
+        url: "https://sarahchenmusic.com",
+        label: "Official Website",
+      },
+    ]),
+    stats: JSON.stringify({
+      monthlyListeners: "12.5K",
+      followers: "8.2K",
+      upcomingShows: "3",
+    }),
+    isCurrent: true,
+    createdById: 1,
+  },
+  {
+    type: "venue",
+    name: "The Corner Hotel",
+    title: "Iconic Live Music Venue",
+    description:
+      "Richmond's legendary music venue, The Corner Hotel has been a cornerstone of Melbourne's live music scene for decades. Known for its intimate atmosphere and stellar sound system, it's the go-to venue for both emerging artists and established acts.",
+    image: "/placeholder.svg?height=200&width=200",
+    location: "Richmond, VIC",
+    genre: "Live Music Venue",
+    established: "1996",
+    links: JSON.stringify([
+      {
+        type: "website",
+        url: "https://cornerhotel.com",
+        label: "Official Website",
+      },
+      {
+        type: "instagram",
+        url: "https://instagram.com/cornerhotel",
+        label: "@cornerhotel",
+      },
+    ]),
+    isCurrent: false,
+    createdById: 1,
+  },
+  {
+    type: "musician",
+    name: "The Midnight Collective",
+    title: "Electronic Duo",
+    description:
+      "Experimental electronic music duo pushing the boundaries of sound and rhythm. Their latest album 'Neon Dreams' explores the intersection of ambient and dance music.",
+    image: "/placeholder.svg?height=200&width=200",
+    location: "Sydney, NSW",
+    genre: "Electronic",
+    established: "2020",
+    links: JSON.stringify([
+      {
+        type: "spotify",
+        url: "https://open.spotify.com/artist/midnightcollective",
+        label: "Listen on Spotify",
+      },
+      {
+        type: "bandcamp",
+        url: "https://midnightcollective.bandcamp.com",
+        label: "Bandcamp",
+      },
+    ]),
+    stats: JSON.stringify({
+      monthlyListeners: "8.7K",
+      followers: "5.3K",
+      upcomingShows: "1",
+    }),
+    isCurrent: false,
+    createdById: 2,
+  },
+];
+
 async function seedDatabase(db) {
   console.log("🌱 Starting database seeding...");
 
@@ -911,6 +1011,7 @@ async function seedDatabase(db) {
     await db.delete(activityLog);
     await db.delete(likes);
     await db.delete(comments);
+    await db.delete(spotlights);
     await db.delete(projectTeamMembers);
     await db.delete(tasks);
     await db.delete(resources);
@@ -1007,6 +1108,14 @@ async function seedDatabase(db) {
       .returning();
     console.log(`✅ Inserted ${insertedPollOptions.length} poll options`);
 
+    // Insert spotlights
+    console.log("⭐ Inserting spotlights...");
+    const insertedSpotlights = await db
+      .insert(spotlights)
+      .values(sampleSpotlights)
+      .returning();
+    console.log(`✅ Inserted ${insertedSpotlights.length} spotlights`);
+
     // Insert some poll votes
     console.log("🗳️ Adding poll votes...");
     const pollVotesData: any[] = [];
@@ -1019,6 +1128,48 @@ async function seedDatabase(db) {
     }
     await db.insert(pollVotes).values(pollVotesData);
     console.log(`✅ Added poll votes`);
+
+    // Add some sample likes and comments for spotlights
+    console.log("❤️ Adding spotlight likes and comments...");
+    const currentSpotlight = insertedSpotlights.find((s) => s.isCurrent);
+    if (currentSpotlight) {
+      // Add likes for current spotlight
+      const spotlightLikes = [
+        { userId: 1, targetId: currentSpotlight.id, targetType: "spotlight" },
+        { userId: 2, targetId: currentSpotlight.id, targetType: "spotlight" },
+        { userId: 3, targetId: currentSpotlight.id, targetType: "spotlight" },
+        { userId: 4, targetId: currentSpotlight.id, targetType: "spotlight" },
+        { userId: 5, targetId: currentSpotlight.id, targetType: "spotlight" },
+      ];
+      await db.insert(likes).values(spotlightLikes);
+
+      // Add comments for current spotlight
+      const spotlightComments = [
+        {
+          userId: 1,
+          targetId: currentSpotlight.id,
+          targetType: "spotlight",
+          content:
+            "Amazing artist! Love the folk vibes. Can't wait to see them live!",
+        },
+        {
+          userId: 2,
+          targetId: currentSpotlight.id,
+          targetType: "spotlight",
+          content:
+            "The new EP is incredible. Such beautiful lyrics and melodies.",
+        },
+        {
+          userId: 3,
+          targetId: currentSpotlight.id,
+          targetType: "spotlight",
+          content:
+            "Definitely checking out their Spotify now. Thanks for the recommendation!",
+        },
+      ];
+      await db.insert(comments).values(spotlightComments);
+    }
+    console.log(`✅ Added spotlight likes and comments`);
 
     // Insert project activities
     console.log("📈 Creating project activities...");
@@ -1112,6 +1263,7 @@ async function seedDatabase(db) {
     console.log(`- ${insertedEvents.length} events`);
     console.log(`- ${insertedPolls.length} polls`);
     console.log(`- ${insertedPollOptions.length} poll options`);
+    console.log(`- ${insertedSpotlights.length} spotlights`);
     console.log(`- ${activitiesData.length} project activities`);
   } catch (error) {
     console.error("❌ Error seeding database:", error);
@@ -1120,3 +1272,26 @@ async function seedDatabase(db) {
 }
 
 export { seedDatabase };
+
+// Main execution
+async function main() {
+  const db = drizzle(
+    createClient({
+      url: process.env.DATABASE_URL || "file:./sqlite.db",
+      authToken: process.env.DATABASE_AUTH_TOKEN,
+    }),
+  );
+
+  try {
+    console.log("🌱 Starting database seeding...");
+    await seedDatabase(db);
+    console.log("✅ Seeding completed successfully!");
+    process.exit(0);
+  } catch (error) {
+    console.error("❌ Seeding failed:", error);
+    process.exit(1);
+  }
+}
+
+// Run the main function
+main().catch(console.error);

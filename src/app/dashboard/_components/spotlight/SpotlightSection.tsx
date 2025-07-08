@@ -6,6 +6,7 @@ import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { Heart, MessageSquare, ExternalLink, Music, MapPin, Calendar, Users, Play } from "lucide-react"
 import { SpotlightManagementDialog } from "./SpotlightManagementDialog"
+import { SpotlightViewDialog } from "./SpotlightViewDialog"
 import { api } from "~/trpc/react"
 
 interface SpotlightSectionProps {
@@ -14,21 +15,94 @@ interface SpotlightSectionProps {
 
 export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
     const [isManagementOpen, setIsManagementOpen] = useState(false)
+    const [isViewOpen, setIsViewOpen] = useState(false)
+    const [selectedSpotlightId, setSelectedSpotlightId] = useState<number | null>(null)
+    const [commentContent, setCommentContent] = useState("")
 
     const { data: spotlight, refetch: refetchCurrent } = api.spotlight.getCurrent.useQuery()
     const { data: previousSpotlights, refetch: refetchPrevious } = api.spotlight.getPrevious.useQuery()
 
+    // Mutations
+    const createSpotlight = api.spotlight.create.useMutation({
+        onSuccess: () => {
+            // When creating a new spotlight, we need to refetch everything
+            // because the current spotlight will be moved to previous
+            void refetchCurrent()
+            void refetchPrevious()
+        },
+    })
+
+
+
+    const toggleLike = api.likes.toggleLike.useMutation({
+        onSuccess: () => {
+            // Refetch current spotlight to get updated like count
+            void refetchCurrent()
+        },
+    })
+
+    // Comments - only fetch when we have a spotlight
+    const { data: comments = [] } = api.comments.getComments.useQuery(
+        {
+            targetId: spotlight?.id || 0,
+            targetType: "spotlight",
+            limit: 10,
+        },
+        {
+            enabled: !!spotlight?.id,
+            refetchOnWindowFocus: false,
+        }
+    )
+
+    const createComment = api.comments.createComment.useMutation({
+        onSuccess: () => {
+            // Refetch comments for the current spotlight
+            void refetchCurrent()
+        },
+    })
+
+    // Check if current user has liked - only fetch when we have a spotlight
+    const { data: userHasLiked = false } = api.likes.checkUserLiked.useQuery(
+        {
+            userId: 1, // TODO: Get actual user ID from auth context
+            targetId: spotlight?.id || 0,
+            targetType: "spotlight",
+        },
+        {
+            enabled: !!spotlight?.id,
+            refetchOnWindowFocus: false,
+        }
+    )
+
     const handleLike = () => {
-        // This would be a mutation in a real app
-        console.log("Liking spotlight")
+        if (spotlight) {
+            // TODO: Get actual user ID from auth context
+            const userId = 1 // Placeholder
+            toggleLike.mutate({
+                userId,
+                targetId: spotlight.id,
+                targetType: "spotlight",
+            })
+        }
     }
 
     const handleUpdateSpotlight = (newSpotlight: any) => {
-        // This would be a mutation in a real app
-        console.log("Updating spotlight with:", newSpotlight)
+        // Always create a new spotlight - this will automatically move the current one to previous
+        createSpotlight.mutate({
+            ...newSpotlight,
+            createdById: 1, // TODO: Get actual user ID from auth context
+        })
         setIsManagementOpen(false)
-        void refetchCurrent()
-        void refetchPrevious()
+    }
+
+    const handleViewSpotlight = (spotlightId: number) => {
+        setSelectedSpotlightId(spotlightId)
+        setIsViewOpen(true)
+    }
+
+    const handleCloseView = () => {
+        setIsViewOpen(false)
+        setSelectedSpotlightId(null)
     }
 
     const getLinkIcon = (type: string) => {
@@ -57,12 +131,102 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
         }
     }
 
-    if (!spotlight || !previousSpotlights) {
+    if (!spotlight && !previousSpotlights) {
         return <div>Loading...</div>
     }
 
+    if (!spotlight) {
+        return (
+            <div className="space-y-6">
+                <Card className="overflow-hidden">
+                    <CardHeader className="pb-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                                <CardTitle className="text-lg">Featured Spotlight</CardTitle>
+                                <Badge variant="secondary">Spotlight</Badge>
+                            </div>
+                            {isAdmin && (
+                                <Button variant="outline" size="sm" onClick={() => setIsManagementOpen(true)}>
+                                    Create Spotlight
+                                </Button>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="text-center py-12">
+                        <div className="space-y-4">
+                            <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                                <Music className="h-12 w-12 text-gray-400" />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-semibold text-gray-800 mb-2">No Current Spotlight</h3>
+                                <p className="text-gray-600 mb-4">
+                                    There's no featured artist or venue at the moment.
+                                </p>
+                                {isAdmin && (
+                                    <Button
+                                        onClick={() => setIsManagementOpen(true)}
+                                        className="bg-orange-500 hover:bg-orange-600"
+                                    >
+                                        Create New Spotlight
+                                    </Button>
+                                )}
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                {previousSpotlights && previousSpotlights.length > 0 && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Previous Spotlights</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {previousSpotlights?.map((item) => (
+                                    <div
+                                        key={item.id}
+                                        className="group cursor-pointer"
+                                        onClick={() => handleViewSpotlight(item.id)}
+                                    >
+                                        <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-3">
+                                            <img
+                                                src={item.image || "/placeholder.svg"}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                            />
+                                        </div>
+                                        <h4 className="font-semibold text-gray-800 group-hover:text-orange-600 transition-colors">
+                                            {item.name}
+                                        </h4>
+                                        <p className="text-sm text-gray-600">{item.title}</p>
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Featured {item.featuredDate ? new Date(item.featuredDate).toLocaleDateString() : "Recently"}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                <SpotlightManagementDialog
+                    isOpen={isManagementOpen}
+                    onClose={() => setIsManagementOpen(false)}
+                    onUpdateSpotlight={handleUpdateSpotlight}
+                />
+
+                <SpotlightViewDialog
+                    isOpen={isViewOpen}
+                    onClose={handleCloseView}
+                    spotlightId={selectedSpotlightId}
+                />
+            </div>
+        )
+    }
+
     return (
-        <div className="space-y-6">
+        <div key={spotlight?.id || 'no-spotlight'} className="space-y-6">
             {/* Current Spotlight */}
             <Card className="overflow-hidden">
                 <CardHeader className="pb-4">
@@ -74,7 +238,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                         </div>
                         {isAdmin && (
                             <Button variant="outline" size="sm" onClick={() => setIsManagementOpen(true)}>
-                                Manage Spotlight
+                                Create New Spotlight
                             </Button>
                         )}
                     </div>
@@ -161,19 +325,85 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                     variant="ghost"
                                     size="sm"
                                     onClick={handleLike}
-                                    className={spotlight.userHasLiked ? "text-red-600" : ""}
+                                    className={userHasLiked ? "text-red-600" : ""}
                                 >
-                                    <Heart className={`h-4 w-4 mr-1 ${spotlight.userHasLiked ? "fill-current" : ""}`} />
+                                    <Heart className={`h-4 w-4 mr-1 ${userHasLiked ? "fill-current" : ""}`} />
                                     {spotlight.likes}
                                 </Button>
 
                                 <Button variant="ghost" size="sm">
                                     <MessageSquare className="h-4 w-4 mr-1" />
-                                    {spotlight.comments}
+                                    {comments?.length || 0}
                                 </Button>
 
                                 <div className="ml-auto text-sm text-gray-500">
-                                    Featured since {new Date(spotlight.featuredSince).toLocaleDateString()}
+                                    Featured since {spotlight.featuredSince ? new Date(spotlight.featuredSince).toLocaleDateString() : "Recently"}
+                                </div>
+                            </div>
+
+                            {/* Comments Section */}
+                            <div className="space-y-4 pt-4 border-t">
+                                <h4 className="font-semibold text-gray-800">Comments</h4>
+
+                                {/* Comment Form */}
+                                <div className="space-y-2">
+                                    <textarea
+                                        placeholder="Share your thoughts..."
+                                        className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                                        rows={3}
+                                        value={commentContent}
+                                        onChange={(e) => setCommentContent(e.target.value)}
+                                    />
+                                    <div className="flex justify-end">
+                                        <Button
+                                            size="sm"
+                                            onClick={() => {
+                                                if (commentContent.trim() && spotlight) {
+                                                    createComment.mutate({
+                                                        userId: 1, // TODO: Get actual user ID from auth context
+                                                        targetId: spotlight.id,
+                                                        targetType: "spotlight",
+                                                        content: commentContent.trim(),
+                                                    })
+                                                    setCommentContent('')
+                                                }
+                                            }}
+                                            disabled={!commentContent.trim()}
+                                            className="bg-orange-500 hover:bg-orange-600"
+                                        >
+                                            Post Comment
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Comments List */}
+                                <div className="space-y-3">
+                                    {comments?.map((comment) => (
+                                        <div key={comment.id} className="p-3 bg-gray-50 rounded-lg">
+                                            <div className="flex items-start gap-3">
+                                                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                    {comment.user?.name?.charAt(0) || 'U'}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className="font-medium text-gray-800">
+                                                            {comment.user?.name || 'Anonymous'}
+                                                        </span>
+                                                        <span className="text-xs text-gray-500">
+                                                            {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : "Recently"}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-gray-700 text-sm">{comment.content}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    {(!comments || comments.length === 0) && (
+                                        <p className="text-gray-500 text-center py-4">
+                                            No comments yet. Be the first to share your thoughts!
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -187,26 +417,40 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                     <CardTitle className="text-lg">Previous Spotlights</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        {previousSpotlights.map((item) => (
-                            <div key={item.id} className="group cursor-pointer">
-                                <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-3">
-                                    <img
-                                        src={item.image || "/placeholder.svg"}
-                                        alt={item.name}
-                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                    />
+                    {previousSpotlights && previousSpotlights.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            {previousSpotlights.map((item) => (
+                                <div
+                                    key={item.id}
+                                    className="group cursor-pointer"
+                                    onClick={() => handleViewSpotlight(item.id)}
+                                >
+                                    <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-3">
+                                        <img
+                                            src={item.image || "/placeholder.svg"}
+                                            alt={item.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                                        />
+                                    </div>
+                                    <h4 className="font-semibold text-gray-800 group-hover:text-orange-600 transition-colors">
+                                        {item.name}
+                                    </h4>
+                                    <p className="text-sm text-gray-600">{item.title}</p>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Featured {item.featuredDate ? new Date(item.featuredDate).toLocaleDateString() : "Recently"}
+                                    </p>
                                 </div>
-                                <h4 className="font-semibold text-gray-800 group-hover:text-orange-600 transition-colors">
-                                    {item.name}
-                                </h4>
-                                <p className="text-sm text-gray-600">{item.title}</p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    Featured {new Date(item.featuredDate).toLocaleDateString()}
-                                </p>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8">
+                            <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                                <Music className="h-8 w-8 text-gray-400" />
                             </div>
-                        ))}
-                    </div>
+                            <p className="text-gray-500">No previous spotlights yet.</p>
+                            <p className="text-sm text-gray-400 mt-1">Previous featured artists and venues will appear here.</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
 
@@ -214,7 +458,12 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                 isOpen={isManagementOpen}
                 onClose={() => setIsManagementOpen(false)}
                 onUpdateSpotlight={handleUpdateSpotlight}
-                
+            />
+
+            <SpotlightViewDialog
+                isOpen={isViewOpen}
+                onClose={handleCloseView}
+                spotlightId={selectedSpotlightId}
             />
         </div>
     )
