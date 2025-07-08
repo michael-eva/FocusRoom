@@ -1,14 +1,15 @@
+"use client"
+
 import { Calendar, CheckSquare, FileText, Home, MessageSquare, Music, Settings } from "lucide-react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "~/components/ui/sidebar"
-
-
 
 const menuItems = [
     {
         title: "Dashboard",
         url: "/dashboard",
         icon: Home,
-        isActive: true,
     },
     {
         title: "Calendar & RSVP",
@@ -38,6 +39,8 @@ const menuItems = [
 ]
 
 export function AppSidebar() {
+    const pathname = usePathname()
+
     return (
         <Sidebar className="border-r">
             <SidebarHeader className="p-4">
@@ -55,16 +58,31 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {menuItems.map((item) => (
-                                <SidebarMenuItem key={item.title}>
-                                    <SidebarMenuButton asChild isActive={item.isActive}>
-                                        <a href={item.url} className="flex items-center gap-3">
-                                            <item.icon className="h-5 w-5" />
-                                            <span>{item.title}</span>
-                                        </a>
-                                    </SidebarMenuButton>
-                                </SidebarMenuItem>
-                            ))}
+                            {menuItems.map((item) => {
+                                // Determine if this item is active based on the current pathname
+                                const isActive = item.url === "#"
+                                    ? false
+                                    : pathname === item.url ||
+                                    (item.url !== "/dashboard" && pathname.startsWith(item.url))
+
+                                return (
+                                    <SidebarMenuItem key={item.title}>
+                                        <SidebarMenuButton asChild isActive={isActive}>
+                                            {item.url === "#" ? (
+                                                <a href={item.url} className="flex items-center gap-3">
+                                                    <item.icon className="h-5 w-5" />
+                                                    <span>{item.title}</span>
+                                                </a>
+                                            ) : (
+                                                <Link href={item.url} className="flex items-center gap-3">
+                                                    <item.icon className="h-5 w-5" />
+                                                    <span>{item.title}</span>
+                                                </Link>
+                                            )}
+                                        </SidebarMenuButton>
+                                    </SidebarMenuItem>
+                                )
+                            })}
                         </SidebarMenu>
                     </SidebarGroupContent>
                 </SidebarGroup>
