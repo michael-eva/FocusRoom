@@ -214,8 +214,8 @@ export const feedRouter = createTRPCRouter({
           title: event.title,
           content: event.content,
           eventDetails: {
-            date: event.startDateTime.toISOString().split("T")[0],
-            time: event.startDateTime.toLocaleTimeString([], {
+            date: new Date(event.startDateTime).toISOString().split("T")[0],
+            time: new Date(event.startDateTime).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             }),
