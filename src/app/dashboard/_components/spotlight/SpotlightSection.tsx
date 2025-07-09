@@ -299,22 +299,26 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                             )}
 
                             {/* External Links */}
-                            <div className="space-y-3">
-                                <h4 className="font-semibold text-gray-800">Connect & Listen</h4>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {Array.isArray(spotlight.links) && spotlight.links.map((link, index) => (
-                                        <Button
-                                            key={index}
-                                            variant="outline"
-                                            className={`justify-start text-white border-0 ${getLinkColor(link.type)}`}
-                                            onClick={() => window.open(link.url, "_blank")}
-                                        >
-                                            {getLinkIcon(link.type)}
-                                            <span className="ml-2">{link.label}</span>
-                                        </Button>
-                                    ))}
+                            {Array.isArray(spotlight.links) && spotlight.links.filter(link => !!link.url).length > 0 && (
+                                <div className="space-y-3">
+                                    <h4 className="font-semibold text-gray-800">Connect & Listen</h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                        {spotlight.links
+                                            .filter(link => !!link.url)
+                                            .map((link, index) => (
+                                                <Button
+                                                    key={index}
+                                                    variant="outline"
+                                                    className={`justify-start text-white border-0 ${getLinkColor(link.type)}`}
+                                                    onClick={() => window.open(link.url, "_blank")}
+                                                >
+                                                    {getLinkIcon(link.type)}
+                                                    <span className="ml-2">{link.label}</span>
+                                                </Button>
+                                            ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Engagement */}
                             <div className="flex items-center gap-4 pt-4 border-t">
