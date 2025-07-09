@@ -181,6 +181,24 @@ export const feedRouter = createTRPCRouter({
               .groupBy(comments.targetId)
           : [];
 
+      // Get RSVP counts for events
+      const eventRSVPs =
+        eventIds.length > 0
+          ? await db
+              .select({
+                eventId: eventRsvps.eventId,
+                count: sql<number>`count(*)`.as("count"),
+              })
+              .from(eventRsvps)
+              .where(
+                and(
+                  eq(eventRsvps.status, "attending"),
+                  inArray(eventRsvps.eventId, eventIds),
+                ),
+              )
+              .groupBy(eventRsvps.eventId)
+          : [];
+
       // Get user likes for events
       const userEventLikes =
         input.userId && eventIds.length > 0
@@ -204,6 +222,8 @@ export const feedRouter = createTRPCRouter({
           eventLikes.find((l) => l.targetId === event.id)?.count || 0;
         const commentCount =
           eventComments.find((c) => c.targetId === event.id)?.count || 0;
+        const rsvpCount =
+          eventRSVPs.find((r) => r.eventId === event.id)?.count || 0;
         const userHasLiked = userEventLikes.some(
           (l) => l.targetId === event.id,
         );
@@ -227,7 +247,7 @@ export const feedRouter = createTRPCRouter({
           author: event.author,
           likes: likeCount,
           comments: commentCount,
-          rsvps: 0, // Mock data for now
+          rsvps: rsvpCount,
           userHasLiked,
           userHasRSVPd: !!event.userRSVP,
           userRSVPStatus: event.userRSVP?.status || null,

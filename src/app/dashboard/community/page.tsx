@@ -29,7 +29,7 @@ export default function CommunityPage() {
     const currentUserId = currentUser?.[0]?.id || 1;
     const currentUserData = currentUser?.find(user => user.id === currentUserId);
     const isAdmin = currentUserData?.role === "admin";
-    console.log("Current user:", currentUserData);
+
     // Get feed data from database
     const { data: feedPosts = [], refetch: refetchFeed } = api.feed.getFeed.useQuery(
         {
@@ -41,17 +41,6 @@ export default function CommunityPage() {
             gcTime: 15 * 60 * 1000, // 15 minutes
         }
     );
-
-    // Debug: Log feed posts to see like/comment data
-    console.log("Feed posts:", feedPosts.map(post => ({
-        id: post.id,
-        type: post.type,
-        title: post.title,
-        likes: post.likes,
-        comments: post.comments,
-        userHasLiked: post.userHasLiked
-    })));
-
     // Get comments for the active post
     const { data: postComments = [] } = api.comments.getComments.useQuery(
         {
@@ -76,17 +65,14 @@ export default function CommunityPage() {
 
     const handleLike = async (postId: number, targetType: "event" | "poll") => {
         try {
-            console.log("Toggling like for:", { postId, targetType });
-            const result = await toggleLike.mutateAsync({
+            await toggleLike.mutateAsync({
                 userId: currentUserId,
                 targetId: postId,
                 targetType,
             });
-            console.log("Like result:", result);
 
             // Invalidate and refetch the feed to show updated like status
             await refetchFeed();
-            console.log("Feed refreshed");
         } catch (error) {
             console.error("Failed to toggle like:", error);
             alert("Failed to update like. Please try again.");
