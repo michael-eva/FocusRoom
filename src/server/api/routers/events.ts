@@ -26,8 +26,8 @@ export const eventsRouter = createTRPCRouter({
           title: input.title,
           description: input.description,
           location: input.location,
-          startDateTime: input.startDateTime,
-          endDateTime: input.endDateTime,
+          startDateTime: input.startDateTime.toISOString(),
+          endDateTime: input.endDateTime.toISOString(),
           allDay: input.allDay,
           rsvpLink: input.rsvpLink,
           createdById: input.createdById,
@@ -70,8 +70,8 @@ export const eventsRouter = createTRPCRouter({
         .from(events)
         .where(
           and(
-            gte(events.startDateTime, input.startDate),
-            lte(events.startDateTime, input.endDate),
+            gte(events.startDateTime, input.startDate.toISOString()),
+            lte(events.startDateTime, input.endDate.toISOString()),
           ),
         )
         .orderBy(events.startDateTime);
@@ -95,8 +95,8 @@ export const eventsRouter = createTRPCRouter({
         .from(events)
         .where(
           and(
-            gte(events.startDateTime, startDate),
-            lte(events.startDateTime, endDate),
+            gte(events.startDateTime, startDate.toISOString()),
+            lte(events.startDateTime, endDate.toISOString()),
           ),
         )
         .orderBy(events.startDateTime);
@@ -132,12 +132,24 @@ export const eventsRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       const { id, ...updateData } = input;
+
+      // Convert Date objects to ISO strings
+      const processedUpdateData: any = {
+        ...updateData,
+        updatedAt: new Date().toISOString(),
+      };
+
+      if (updateData.startDateTime) {
+        processedUpdateData.startDateTime =
+          updateData.startDateTime.toISOString();
+      }
+      if (updateData.endDateTime) {
+        processedUpdateData.endDateTime = updateData.endDateTime.toISOString();
+      }
+
       const updatedEvent = await db
         .update(events)
-        .set({
-          ...updateData,
-          updatedAt: new Date(),
-        })
+        .set(processedUpdateData)
         .where(eq(events.id, id))
         .returning();
 
@@ -158,7 +170,7 @@ export const eventsRouter = createTRPCRouter({
       const upcomingEvents = await db
         .select()
         .from(events)
-        .where(gte(events.startDateTime, now))
+        .where(gte(events.startDateTime, now.toISOString()))
         .orderBy(events.startDateTime)
         .limit(input.limit);
 

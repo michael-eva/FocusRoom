@@ -4,28 +4,6 @@ import type React from "react"
 
 import { useState } from "react"
 
-interface Link {
-    type: string;
-    url: string;
-    label: string;
-}
-
-interface FormData {
-    type: string;
-    name: string;
-    title: string;
-    description: string;
-    image: string;
-    location: string;
-    genre: string;
-    established: string;
-    links: Link[];
-    stats: {
-        monthlyListeners: string;
-        followers: string;
-        upcomingShows: string;
-    };
-}
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
@@ -33,19 +11,31 @@ import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
 import { Plus, X, Upload, Music, MapPin } from "lucide-react"
+import type { SpotlightLink, SpotlightStats, SpotlightType } from "~/db/types";
 
 interface SpotlightManagementDialogProps {
     isOpen: boolean
     onClose: () => void
-    onUpdateSpotlight: (spotlight: any) => void
+    onUpdateSpotlight: (spotlight: SpotlightFormData) => void
 }
-
+export interface SpotlightFormData {
+    type: SpotlightType;
+    name: string;
+    title: string;
+    description: string;
+    image: string;
+    location: string;
+    genre: string;
+    established: string;
+    links: SpotlightLink[];
+    stats: SpotlightStats;
+}
 export function SpotlightManagementDialog({
     isOpen,
     onClose,
     onUpdateSpotlight,
 }: SpotlightManagementDialogProps) {
-    const [formData, setFormData] = useState<FormData>({
+    const [formData, setFormData] = useState<SpotlightFormData>({
         type: "musician",
         name: "",
         title: "",
@@ -54,7 +44,7 @@ export function SpotlightManagementDialog({
         location: "",
         genre: "",
         established: "",
-        links: [{ type: "spotify", url: "", label: "" }],
+        links: [{ type: "thePack", url: "", label: "" }],
         stats: {
             monthlyListeners: "",
             followers: "",
@@ -64,6 +54,7 @@ export function SpotlightManagementDialog({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
+
         if (formData.name && formData.title && formData.description) {
             onUpdateSpotlight(formData)
             onClose()
@@ -83,7 +74,7 @@ export function SpotlightManagementDialog({
 
     const handleLinkChange = (index: number, field: string, value: string) => {
         const newLinks = [...formData.links]
-        newLinks[index] = { ...newLinks[index], [field]: value } as Link;
+        newLinks[index] = { ...newLinks[index], [field]: value } as SpotlightLink;
         setFormData((prev) => ({ ...prev, links: newLinks }));
     }
 

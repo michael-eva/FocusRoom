@@ -87,7 +87,7 @@ export const commentsRouter = createTRPCRouter({
         .update(comments)
         .set({
           content: input.content,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(
           and(

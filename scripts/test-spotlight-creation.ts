@@ -36,7 +36,7 @@ async function testSpotlightCreation() {
         .update(spotlights)
         .set({
           isCurrent: false,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(spotlights.isCurrent, true));
     }
@@ -108,7 +108,7 @@ async function testSpotlightCreation() {
         .update(spotlights)
         .set({
           isCurrent: false,
-          updatedAt: new Date(),
+          updatedAt: new Date().toISOString(),
         })
         .where(eq(spotlights.isCurrent, true));
     }

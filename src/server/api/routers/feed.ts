@@ -6,10 +6,10 @@ import {
   polls,
   pollOptions,
   users,
-  eventRSVPs,
   pollVotes,
   likes,
   comments,
+  eventRsvps,
 } from "~/db/schema";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
 
@@ -41,11 +41,11 @@ export const feedRouter = createTRPCRouter({
             name: users.name,
             email: users.email,
           },
-          userRSVP: eventRSVPs,
+          userRSVP: eventRsvps,
         })
         .from(events)
         .leftJoin(users, eq(events.createdById, users.id))
-        .leftJoin(eventRSVPs, eq(events.id, eventRSVPs.eventId))
+        .leftJoin(eventRsvps, eq(events.id, eventRsvps.eventId))
         .orderBy(desc(events.createdAt))
         .limit(input.limit)
         .offset(input.offset);

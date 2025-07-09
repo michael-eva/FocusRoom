@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
-import { eventRSVPs, events, users, activityLog } from "~/db/schema";
+import { eventRsvps, events, users, activityLog } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
 
 export const rsvpRouter = createTRPCRouter({
@@ -17,11 +17,11 @@ export const rsvpRouter = createTRPCRouter({
       // Check if RSVP already exists
       const existingRSVP = await db
         .select()
-        .from(eventRSVPs)
+        .from(eventRsvps)
         .where(
           and(
-            eq(eventRSVPs.eventId, input.eventId),
-            eq(eventRSVPs.userId, input.userId),
+            eq(eventRsvps.eventId, input.eventId),
+            eq(eventRsvps.userId, input.userId),
           ),
         )
         .limit(1);
@@ -29,12 +29,12 @@ export const rsvpRouter = createTRPCRouter({
       if (existingRSVP.length > 0) {
         // Update existing RSVP
         const updatedRSVP = await db
-          .update(eventRSVPs)
+          .update(eventRsvps)
           .set({
             status: input.status,
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
           })
-          .where(eq(eventRSVPs.id, existingRSVP[0]!.id))
+          .where(eq(eventRsvps.id, existingRSVP[0]!.id))
           .returning();
 
         // Log the activity
@@ -50,7 +50,7 @@ export const rsvpRouter = createTRPCRouter({
       } else {
         // Create new RSVP
         const newRSVP = await db
-          .insert(eventRSVPs)
+          .insert(eventRsvps)
           .values({
             eventId: input.eventId,
             userId: input.userId,
@@ -76,19 +76,19 @@ export const rsvpRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const rsvps = await db
         .select({
-          id: eventRSVPs.id,
-          status: eventRSVPs.status,
-          createdAt: eventRSVPs.createdAt,
-          updatedAt: eventRSVPs.updatedAt,
+          id: eventRsvps.id,
+          status: eventRsvps.status,
+          createdAt: eventRsvps.createdAt,
+          updatedAt: eventRsvps.updatedAt,
           user: {
             id: users.id,
             name: users.name,
             email: users.email,
           },
         })
-        .from(eventRSVPs)
-        .leftJoin(users, eq(eventRSVPs.userId, users.id))
-        .where(eq(eventRSVPs.eventId, input.eventId));
+        .from(eventRsvps)
+        .leftJoin(users, eq(eventRsvps.userId, users.id))
+        .where(eq(eventRsvps.eventId, input.eventId));
 
       return rsvps;
     }),
@@ -103,11 +103,11 @@ export const rsvpRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const rsvp = await db
         .select()
-        .from(eventRSVPs)
+        .from(eventRsvps)
         .where(
           and(
-            eq(eventRSVPs.eventId, input.eventId),
-            eq(eventRSVPs.userId, input.userId),
+            eq(eventRsvps.eventId, input.eventId),
+            eq(eventRsvps.userId, input.userId),
           ),
         )
         .limit(1);
@@ -124,11 +124,11 @@ export const rsvpRouter = createTRPCRouter({
     )
     .mutation(async ({ input }) => {
       await db
-        .delete(eventRSVPs)
+        .delete(eventRsvps)
         .where(
           and(
-            eq(eventRSVPs.eventId, input.eventId),
-            eq(eventRSVPs.userId, input.userId),
+            eq(eventRsvps.eventId, input.eventId),
+            eq(eventRsvps.userId, input.userId),
           ),
         );
 

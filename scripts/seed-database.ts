@@ -16,7 +16,7 @@ import {
   polls,
   pollOptions,
   pollVotes,
-  eventRSVPs,
+  eventRsvps,
   activityLog,
   likes,
   comments,
@@ -336,7 +336,7 @@ async function seedDatabase(db: any) {
     await db.execute(sql`ALTER SEQUENCE polls_id_seq RESTART WITH 1`);
     await db.execute(sql`ALTER SEQUENCE poll_options_id_seq RESTART WITH 1`);
     await db.execute(sql`ALTER SEQUENCE poll_votes_id_seq RESTART WITH 1`);
-    await db.delete(eventRSVPs);
+    await db.delete(eventRsvps);
     await db.delete(events);
     await db.delete(activityLog);
     await db.delete(likes);

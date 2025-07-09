@@ -74,7 +74,7 @@ export const projectRouter = createTRPCRouter({
           description: input.description,
           status: input.status,
           priority: input.priority,
-          deadline: input.deadline,
+          deadline: input.deadline?.toISOString(),
           progress: 0,
           totalTasks: input.tasks.length,
           completedTasks: 0,
@@ -101,7 +101,7 @@ export const projectRouter = createTRPCRouter({
           description: task.description,
           status: task.status,
           priority: task.priority,
-          deadline: task.deadline,
+          deadline: task.deadline?.toISOString(),
           projectId,
           assigneeId: task.assigneeId,
         }));
@@ -117,7 +117,7 @@ export const projectRouter = createTRPCRouter({
           url: resource.url,
           description: resource.description,
           projectId,
-          lastUpdated: new Date(),
+          lastUpdated: new Date().toISOString(),
         }));
 
         await db.insert(resources).values(resourceData);
@@ -147,7 +147,7 @@ export const projectRouter = createTRPCRouter({
           description: input.description,
           status: input.status,
           priority: input.priority,
-          deadline: input.deadline,
+          deadline: input.deadline?.toISOString(),
           projectId: input.projectId,
           assigneeId: input.assigneeId,
         })
@@ -195,7 +195,7 @@ export const projectRouter = createTRPCRouter({
           url: input.url,
           description: input.description,
           projectId: input.projectId,
-          lastUpdated: new Date(),
+          lastUpdated: new Date().toISOString(),
         })
         .returning();
 
@@ -214,7 +214,7 @@ export const projectRouter = createTRPCRouter({
         .update(tasks)
         .set({
           assigneeId: input.assigneeId,
-          deadline: input.deadline,
+          deadline: input.deadline?.toISOString(),
         })
         .where(eq(tasks.id, input.taskId))
         .returning();
@@ -392,7 +392,7 @@ export const projectRouter = createTRPCRouter({
           taskId: input.taskId,
           resourceId: input.resourceId,
           userId: input.userId,
-          timestamp: new Date(),
+          timestamp: new Date().toISOString(),
         })
         .returning();
 

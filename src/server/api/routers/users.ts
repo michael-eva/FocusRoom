@@ -148,7 +148,7 @@ export const usersRouter = createTRPCRouter({
           .values({
             email: input.email,
             role: input.role,
-            invitedAt: new Date(),
+            invitedAt: new Date().toISOString(),
             invitedBy: input.invitedBy,
           })
           .returning();
@@ -247,7 +247,7 @@ export const usersRouter = createTRPCRouter({
         .update(users)
         .set({
           name: input.name,
-          acceptedAt: new Date(),
+          acceptedAt: new Date().toISOString(),
         })
         .where(eq(users.id, input.userId))
         .returning();
@@ -305,7 +305,7 @@ export const usersRouter = createTRPCRouter({
     .mutation(async ({ input }) => {
       const updatedUser = await db
         .update(users)
-        .set({ invitedAt: new Date() })
+        .set({ invitedAt: new Date().toISOString() })
         .where(eq(users.id, input.userId))
         .returning();
 

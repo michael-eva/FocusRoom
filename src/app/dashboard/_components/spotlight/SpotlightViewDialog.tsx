@@ -15,6 +15,7 @@ import {
   Globe
 } from "lucide-react"
 import { api } from "~/trpc/react"
+import type { SpotlightLink, SpotlightStats } from "~/db/types"
 
 interface SpotlightViewDialogProps {
   isOpen: boolean
@@ -205,23 +206,23 @@ export function SpotlightViewDialog({
               <p className="text-gray-700 leading-relaxed">{spotlight.description}</p>
 
               {/* Stats */}
-              {spotlight.stats && (
+              {(spotlight.stats as SpotlightStats) && (
                 <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600">
-                      {spotlight.stats.monthlyListeners || "N/A"}
+                      {(spotlight.stats as SpotlightStats).monthlyListeners || "N/A"}
                     </div>
                     <div className="text-sm text-gray-600">Monthly Listeners</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600">
-                      {spotlight.stats.followers || "N/A"}
+                      {(spotlight.stats as SpotlightStats).followers || "N/A"}
                     </div>
                     <div className="text-sm text-gray-600">Followers</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-orange-600">
-                      {spotlight.stats.upcomingShows || "N/A"}
+                      {(spotlight.stats as SpotlightStats).upcomingShows || "N/A"}
                     </div>
                     <div className="text-sm text-gray-600">Upcoming Shows</div>
                   </div>
@@ -229,11 +230,11 @@ export function SpotlightViewDialog({
               )}
 
               {/* External Links */}
-              {spotlight.links && spotlight.links.length > 0 && (
+              {Array.isArray(spotlight.links) && spotlight.links.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-gray-800">External Links</h4>
                   <div className="flex flex-wrap gap-2">
-                    {spotlight.links.map((link: any, index: number) => (
+                    {spotlight.links.map((link: SpotlightLink, index: number) => (
                       <a
                         key={index}
                         href={link.url}

@@ -8,13 +8,13 @@ interface LocalEvent {
   title: string;
   description: string | null;
   location: string | null;
-  startDateTime: Date;
-  endDateTime: Date;
+  startDateTime: string;
+  endDateTime: string;
   allDay: boolean | null;
   rsvpLink: string | null;
   createdById: number | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
+  createdAt: string | null;
+  updatedAt: string | null;
   googleEventId: string | null;
 }
 
@@ -52,7 +52,7 @@ export function EventDetailsDialog({
 
   const formatDateRange = (): string => {
     if (event.allDay) {
-      const startDate = event.startDateTime.toLocaleDateString([], {
+      const startDate = new Date(event.startDateTime).toLocaleDateString([], {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -60,10 +60,10 @@ export function EventDetailsDialog({
       });
 
       // Check if it's a single day or multi-day event
-      if (event.startDateTime.toDateString() === event.endDateTime.toDateString()) {
+      if (event.startDateTime === event.endDateTime) {
         return `${startDate} (All day)`;
       } else {
-        const endDate = event.endDateTime.toLocaleDateString([], {
+        const endDate = new Date(event.endDateTime).toLocaleDateString([], {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
@@ -72,7 +72,7 @@ export function EventDetailsDialog({
         return `${startDate} - ${endDate} (All day)`;
       }
     } else {
-      const startDateTime = event.startDateTime.toLocaleString([], {
+      const startDateTime = new Date(event.startDateTime).toLocaleString([], {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
@@ -81,16 +81,16 @@ export function EventDetailsDialog({
         minute: '2-digit',
       });
 
-      const endTime = event.endDateTime.toLocaleTimeString([], {
+      const endTime = new Date(event.endDateTime).toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       });
 
       // Check if it's the same day
-      if (event.startDateTime.toDateString() === event.endDateTime.toDateString()) {
+      if (new Date(event.startDateTime).toDateString() === new Date(event.endDateTime).toDateString()) {
         return `${startDateTime} - ${endTime}`;
       } else {
-        const endDateTime = event.endDateTime.toLocaleString([], {
+        const endDateTime = new Date(event.endDateTime).toLocaleString([], {
           weekday: 'long',
           year: 'numeric',
           month: 'long',
@@ -104,7 +104,7 @@ export function EventDetailsDialog({
   };
 
   const getDuration = (): string => {
-    const durationMs = event.endDateTime.getTime() - event.startDateTime.getTime();
+    const durationMs = new Date(event.endDateTime).getTime() - new Date(event.startDateTime).getTime();
     const hours = Math.floor(durationMs / (1000 * 60 * 60));
     const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
 

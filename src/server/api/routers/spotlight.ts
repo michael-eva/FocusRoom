@@ -18,9 +18,9 @@ export const spotlightRouter = createTRPCRouter({
 
     const spotlight = currentSpotlight[0]!;
 
-    // Parse JSON fields
-    const links = spotlight.links ? JSON.parse(spotlight.links) : [];
-    const stats = spotlight.stats ? JSON.parse(spotlight.stats) : null;
+    // Access JSON fields directly
+    const links = spotlight.links;
+    const stats = spotlight.stats;
 
     // Get likes count
     const likesResult = await db
@@ -97,11 +97,9 @@ export const spotlightRouter = createTRPCRouter({
 
       const spotlightData = spotlight[0]!;
 
-      // Parse JSON fields
-      const links = spotlightData.links ? JSON.parse(spotlightData.links) : [];
-      const stats = spotlightData.stats
-        ? JSON.parse(spotlightData.stats)
-        : null;
+      // Access JSON fields directly
+      const links = spotlightData.links;
+      const stats = spotlightData.stats;
 
       // Get likes count
       const likesResult = await db
@@ -177,6 +175,22 @@ export const spotlightRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
+      // Debug logging
+      console.log("🔍 Spotlight create input:", input);
+      console.log(
+        "🔍 Location value:",
+        input.location,
+        "Type:",
+        typeof input.location,
+      );
+      console.log("🔍 Genre value:", input.genre, "Type:", typeof input.genre);
+      console.log(
+        "🔍 Established value:",
+        input.established,
+        "Type:",
+        typeof input.established,
+      );
+
       // Get the current spotlight before creating a new one
       const currentSpotlight = await db
         .select()
@@ -190,30 +204,48 @@ export const spotlightRouter = createTRPCRouter({
           .update(spotlights)
           .set({
             isCurrent: false,
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
           })
           .where(eq(spotlights.isCurrent, true));
       }
 
-      const newSpotlight = await db
-        .insert(spotlights)
-        .values({
-          type: input.type,
-          name: input.name,
-          title: input.title,
-          description: input.description,
-          image: input.image || "/placeholder.svg?height=300&width=300",
-          location: input.location,
-          genre: input.genre,
-          established: input.established,
-          links: input.links ? JSON.stringify(input.links) : null,
-          stats: input.stats ? JSON.stringify(input.stats) : null,
-          isCurrent: true,
-          createdById: input.createdById,
-        })
-        .returning();
+      const spotlightValues: any = {
+        type: input.type,
+        name: input.name,
+        title: input.title,
+        description: input.description,
+        image:
+          input.image && input.image.trim() !== ""
+            ? input.image
+            : "/placeholder.svg?height=300&width=300",
+        location:
+          input.location && input.location.trim() !== ""
+            ? input.location
+            : null,
+        genre: input.genre && input.genre.trim() !== "" ? input.genre : null,
+        established:
+          input.established && input.established.trim() !== ""
+            ? input.established
+            : null,
+        links: input.links || null,
+        stats: input.stats || null,
+        isCurrent: true,
+        createdById: input.createdById || null,
+      };
 
-      return newSpotlight[0];
+      console.log("🔍 Final spotlightValues:", spotlightValues);
+
+      try {
+        const newSpotlight = await db
+          .insert(spotlights)
+          .values(spotlightValues)
+          .returning();
+
+        return newSpotlight[0];
+      } catch (error) {
+        console.error("🔍 Database error:", error);
+        throw error;
+      }
     }),
 
   update: publicProcedure
@@ -256,10 +288,10 @@ export const spotlightRouter = createTRPCRouter({
 
       // Handle JSON fields
       if (updateData.links) {
-        updateValues.links = JSON.stringify(updateData.links);
+        updateValues.links = updateData.links;
       }
       if (updateData.stats) {
-        updateValues.stats = JSON.stringify(updateData.stats);
+        updateValues.stats = updateData.stats;
       }
 
       const updatedSpotlight = await db

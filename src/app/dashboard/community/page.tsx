@@ -26,7 +26,7 @@ export default function CommunityPage() {
     const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
 
     const { data: currentUser } = api.users.getAll.useQuery();
-    const currentUserId = currentUser?.[0]?.id
+    const currentUserId = currentUser?.[0]?.id || 1;
     const currentUserData = currentUser?.find(user => user.id === currentUserId);
     const isAdmin = currentUserData?.role === "admin";
     console.log("Current user:", currentUserData);

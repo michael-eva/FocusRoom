@@ -11,13 +11,13 @@ interface LocalEvent {
     title: string;
     description: string | null;
     location: string | null;
-    startDateTime: Date;
-    endDateTime: Date;
+    startDateTime: string;
+    endDateTime: string;
     allDay: boolean | null;
     rsvpLink: string | null;
     createdById: number | null;
-    createdAt: Date | null;
-    updatedAt: Date | null;
+    createdAt: string | null;
+    updatedAt: string | null;
     googleEventId: string | null;
 }
 
@@ -47,10 +47,10 @@ export function EditEventDialog({
     useEffect(() => {
         if (event) {
             // Format date for HTML input (YYYY-MM-DD)
-            const eventDate = event.startDateTime.toISOString().split('T')[0] || '';
+            const eventDate = new Date(event.startDateTime).toISOString().split('T')[0] || '';
 
             // Format time for HTML input (HH:mm)
-            const eventTime = event.startDateTime.toTimeString().split(' ')[0]?.slice(0, 5) || '00:00';
+            const eventTime = new Date(event.startDateTime).toTimeString().split(' ')[0]?.slice(0, 5) || '00:00';
 
             setFormData({
                 title: event.title,

@@ -12,13 +12,13 @@ interface Event {
   title: string;
   description: string | null;
   location: string | null;
-  startDateTime: Date;
-  endDateTime: Date;
+  startDateTime: string;
+  endDateTime: string;
   allDay: boolean | null;
   rsvpLink: string | null;
   createdById: number | null;
-  createdAt: Date | null;
-  updatedAt: Date | null;
+  createdAt: string | null;
+  updatedAt: string | null;
   googleEventId: string | null;
 }
 
@@ -64,11 +64,13 @@ export default function CalendarComponent({
     });
   };
 
-  const formatTime = (date: Date): string => {
+  const formatTime = (dateString: string): string => {
+    const date = new Date(dateString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const formatDate = (date: Date): string => {
+  const formatDate = (dateString: string): string => {
+    const date = new Date(dateString);
     return date.toLocaleDateString([], {
       weekday: 'short',
       month: 'short',

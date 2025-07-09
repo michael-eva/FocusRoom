@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { Heart, MessageSquare, ExternalLink, Music, MapPin, Calendar, Users, Play } from "lucide-react"
-import { SpotlightManagementDialog } from "./SpotlightManagementDialog"
+import { SpotlightManagementDialog, type SpotlightFormData } from "./SpotlightManagementDialog"
 import { SpotlightViewDialog } from "./SpotlightViewDialog"
 import { api } from "~/trpc/react"
 
@@ -86,11 +86,10 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
         }
     }
 
-    const handleUpdateSpotlight = (newSpotlight: any) => {
-        // Always create a new spotlight - this will automatically move the current one to previous
+    const handleUpdateSpotlight = (newSpotlight: SpotlightFormData) => {
         createSpotlight.mutate({
             ...newSpotlight,
-            createdById: 1, // TODO: Get actual user ID from auth context
+            createdById: 1,
         })
         setIsManagementOpen(false)
     }
@@ -282,20 +281,18 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                         {/* Description and Details */}
                         <div className="lg:col-span-2 space-y-4">
                             <p className="text-gray-700 leading-relaxed">{spotlight.description}</p>
-
-                            {/* Stats */}
-                            {spotlight.stats && (
+                            {Boolean(spotlight.stats && typeof spotlight.stats === 'object' && spotlight.stats !== null && 'monthlyListeners' in (spotlight.stats as any)) && (
                                 <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
                                     <div className="text-center">
-                                        <p className="text-2xl font-bold text-orange-600">{spotlight.stats.monthlyListeners}</p>
+                                        <p className="text-2xl font-bold text-orange-600">{(spotlight.stats as any).monthlyListeners}</p>
                                         <p className="text-sm text-gray-600">Monthly Listeners</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-2xl font-bold text-orange-600">{spotlight.stats.followers}</p>
+                                        <p className="text-2xl font-bold text-orange-600">{(spotlight.stats as any).followers}</p>
                                         <p className="text-sm text-gray-600">Followers</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-2xl font-bold text-orange-600">{spotlight.stats.upcomingShows}</p>
+                                        <p className="text-2xl font-bold text-orange-600">{(spotlight.stats as any).upcomingShows}</p>
                                         <p className="text-sm text-gray-600">Upcoming Shows</p>
                                     </div>
                                 </div>
@@ -305,7 +302,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                             <div className="space-y-3">
                                 <h4 className="font-semibold text-gray-800">Connect & Listen</h4>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                    {spotlight.links.map((link, index) => (
+                                    {Array.isArray(spotlight.links) && spotlight.links.map((link, index) => (
                                         <Button
                                             key={index}
                                             variant="outline"
