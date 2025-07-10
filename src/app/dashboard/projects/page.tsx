@@ -46,6 +46,28 @@ export default function ProjectsPage() {
         return <div>No projects found.</div>
     }
 
+    // Calculate dynamic statistics
+    const activeProjects = projects.filter(project => project.status === "active").length;
+    const totalTasks = projects.reduce((sum, project) => sum + (project.totalTasks || 0), 0);
+    const uniqueTeamMembers = new Set(
+        projects.flatMap(project =>
+            project.teamMembers.map(member => member.teamMemberId)
+        )
+    ).size;
+
+    // Calculate tasks due this week
+    const now = new Date();
+    const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const tasksDueThisWeek = projects.reduce((sum, project) => {
+        const projectTasks = project.tasks || [];
+        const dueThisWeek = projectTasks.filter(task => {
+            if (!task.deadline) return false;
+            const deadline = new Date(task.deadline);
+            return deadline >= now && deadline <= oneWeekFromNow;
+        }).length;
+        return sum + dueThisWeek;
+    }, 0);
+
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">
@@ -79,7 +101,7 @@ export default function ProjectsPage() {
                                     <CheckCircle2 className="h-5 w-5 text-green-500" />
                                     <div>
                                         <p className="text-sm text-gray-600">Active Projects</p>
-                                        <p className="text-2xl font-bold">3</p>
+                                        <p className="text-2xl font-bold">{activeProjects}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -90,7 +112,7 @@ export default function ProjectsPage() {
                                     <Clock className="h-5 w-5 text-orange-500" />
                                     <div>
                                         <p className="text-sm text-gray-600">Total Tasks</p>
-                                        <p className="text-2xl font-bold">45</p>
+                                        <p className="text-2xl font-bold">{totalTasks}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -101,7 +123,7 @@ export default function ProjectsPage() {
                                     <Users className="h-5 w-5 text-blue-500" />
                                     <div>
                                         <p className="text-sm text-gray-600">Team Members</p>
-                                        <p className="text-2xl font-bold">12</p>
+                                        <p className="text-2xl font-bold">{uniqueTeamMembers}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -112,7 +134,7 @@ export default function ProjectsPage() {
                                     <Calendar className="h-5 w-5 text-purple-500" />
                                     <div>
                                         <p className="text-sm text-gray-600">Due This Week</p>
-                                        <p className="text-2xl font-bold">7</p>
+                                        <p className="text-2xl font-bold">{tasksDueThisWeek}</p>
                                     </div>
                                 </div>
                             </CardContent>
