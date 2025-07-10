@@ -120,7 +120,7 @@ export function EventDetailsDialog({
 
   const handleEdit = () => {
     onEdit?.(event);
-    onClose();
+    // Don't call onClose here - let the parent handle the transition
   };
 
   const handleDelete = () => {
