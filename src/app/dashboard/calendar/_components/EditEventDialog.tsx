@@ -18,7 +18,14 @@ interface LocalEvent {
     createdById: number | null;
     createdAt: string | null;
     updatedAt: string | null;
-    googleEventId: string | null;
+    userRSVP?: {
+        id: number;
+        eventId: number;
+        userId: number;
+        status: "attending" | "maybe" | "declined";
+        createdAt: string;
+        updatedAt: string;
+    } | null;
 }
 
 interface EditEventDialogProps {

@@ -20,6 +20,14 @@ interface Event {
   createdAt: string | null;
   updatedAt: string | null;
   googleEventId: string | null;
+  userRSVP?: {
+    id: number;
+    eventId: number;
+    userId: number;
+    status: "attending" | "maybe" | "declined";
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 }
 
 interface CalendarComponentProps {
@@ -27,13 +35,15 @@ interface CalendarComponentProps {
   onEventClick?: (event: Event) => void;
   showCreateButton?: boolean;
   height?: string;
+  userId?: number;
 }
 
 export default function CalendarComponent({
   viewType = 'month',
   onEventClick,
   showCreateButton = true,
-  height = 'h-full'
+  height = 'h-full',
+  userId
 }: CalendarComponentProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -45,6 +55,7 @@ export default function CalendarComponent({
   const { data: events = [], isLoading } = api.events.getByMonth.useQuery({
     year,
     month,
+    userId,
   });
 
   // Get upcoming events
@@ -205,14 +216,32 @@ export default function CalendarComponent({
                     {dayEvents.slice(0, 3).map(event => (
                       <div
                         key={event.id}
-                        className="text-xs p-1 bg-blue-100 text-blue-800 rounded truncate cursor-pointer hover:bg-blue-200"
+                        className={`text-xs p-1 rounded truncate cursor-pointer hover:shadow-md transition-shadow ${event.userRSVP?.status === "attending"
+                          ? "bg-green-100 text-green-800 hover:bg-green-200"
+                          : event.userRSVP?.status === "maybe"
+                            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                            : event.userRSVP?.status === "declined"
+                              ? "bg-red-100 text-red-800 hover:bg-red-200"
+                              : "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                          }`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onEventClick?.(event);
                         }}
-                        title={event.title}
+                        title={`${event.title}${event.userRSVP ? ` (RSVP: ${event.userRSVP.status})` : ''}`}
                       >
-                        {event.allDay ? event.title : `${formatTime(event.startDateTime)} ${event.title}`}
+                        <div className="flex items-center justify-between">
+                          <span className="truncate flex-1">
+                            {event.allDay ? event.title : `${formatTime(event.startDateTime)} ${event.title}`}
+                          </span>
+                          {event.userRSVP && (
+                            <span className="ml-1 text-xs font-medium">
+                              {event.userRSVP.status === "attending" && "✓"}
+                              {event.userRSVP.status === "maybe" && "?"}
+                              {event.userRSVP.status === "declined" && "✗"}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ))}
                     {dayEvents.length > 3 && (

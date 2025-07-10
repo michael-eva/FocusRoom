@@ -15,7 +15,14 @@ interface LocalEvent {
   createdById: number | null;
   createdAt: string | null;
   updatedAt: string | null;
-  googleEventId: string | null;
+  userRSVP?: {
+    id: number;
+    eventId: number;
+    userId: number;
+    status: "attending" | "maybe" | "declined";
+    createdAt: string;
+    updatedAt: string;
+  } | null;
 }
 
 interface EventDetailsDialogProps {
@@ -38,17 +45,6 @@ export function EventDetailsDialog({
   canDelete = true,
 }: EventDetailsDialogProps) {
   if (!event) return null;
-
-  const formatDateTime = (date: Date): string => {
-    return date.toLocaleDateString([], {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: event.allDay ? undefined : '2-digit',
-      minute: event.allDay ? undefined : '2-digit',
-    });
-  };
 
   const formatDateRange = (): string => {
     if (event.allDay) {
@@ -193,6 +189,41 @@ export function EventDetailsDialog({
           )}
 
 
+
+          {/* RSVP Status */}
+          {event.userRSVP && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-gray-600">
+                <Users className="h-4 w-4" />
+                <span className="font-medium">Your RSVP Status</span>
+              </div>
+              <div className="ml-6">
+                <Badge
+                  variant={
+                    event.userRSVP.status === "attending"
+                      ? "default"
+                      : event.userRSVP.status === "maybe"
+                        ? "secondary"
+                        : "destructive"
+                  }
+                  className={
+                    event.userRSVP.status === "attending"
+                      ? "bg-green-100 text-green-800"
+                      : event.userRSVP.status === "maybe"
+                        ? "bg-yellow-100 text-yellow-800"
+                        : "bg-red-100 text-red-800"
+                  }
+                >
+                  {event.userRSVP.status === "attending"
+                    ? "Attending"
+                    : event.userRSVP.status === "maybe"
+                      ? "Maybe"
+                      : "Not Attending"
+                  }
+                </Badge>
+              </div>
+            </div>
+          )}
 
           {/* RSVP Link */}
           {event.rsvpLink && (

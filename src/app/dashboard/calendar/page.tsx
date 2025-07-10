@@ -5,7 +5,7 @@ import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
 import { ChevronLeft, ChevronRight, Plus, Bell, User, RefreshCw } from "lucide-react"
-import { CreateEventDialog } from "~/app/dashboard/community/_components/CreateEventDialog"
+import { CreateEventDialog, type EventFormData } from "~/app/dashboard/community/_components/CreateEventDialog"
 import { EventDetailsDialog } from "~/app/dashboard/calendar/_components/EventDetailsDialog"
 import { EditEventDialog } from "~/app/dashboard/calendar/_components/EditEventDialog"
 import { api } from "~/trpc/react"
@@ -29,7 +29,14 @@ interface LocalEvent {
     createdById: number | null;
     createdAt: string | null;
     updatedAt: string | null;
-    googleEventId: string | null;
+    userRSVP?: {
+        id: number;
+        eventId: number;
+        userId: number;
+        status: "attending" | "maybe" | "declined";
+        createdAt: string;
+        updatedAt: string;
+    } | null;
 }
 
 export default function CalendarPage() {
@@ -57,11 +64,12 @@ export default function CalendarPage() {
     const { data: localEvents = [], refetch: refetchLocalEvents, isFetching: localEventsFetching } = api.events.getByMonth.useQuery({
         year,
         month,
+        userId: currentUserId,
     }, {
         staleTime: 10 * 60 * 1000, // 10 minutes - events don't change that often
         gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache longer
     });
-
+    console.log("Local events:", localEvents)
     // Calendar navigation
     const navigateMonth = (direction: "prev" | "next") => {
         setCurrentDate(prev => {
@@ -76,8 +84,8 @@ export default function CalendarPage() {
     };
 
     // Event creation handler
-    const handleCreateEvent = useCallback(async (eventData: any) => {
-        const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
+    const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
+        const startDateTime = new Date(`${eventData.date}T${eventData.startTime}`);
         const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
 
         try {
@@ -147,13 +155,13 @@ export default function CalendarPage() {
         setIsEditEventOpen(true);
     };
 
-    const handleEventUpdate = useCallback(async (eventData: any) => {
+    const handleEventUpdate = useCallback(async (eventData: EventFormData) => {
         if (!selectedEvent) return;
 
         try {
             // Create new date/time objects
-            const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
-            const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
+            const startDateTime = new Date(`${eventData.date}T${eventData.startTime}`);
+            const endDateTime = new Date(`${eventData.date}T${eventData.endTime}`);
 
             await updateLocalEvent.mutateAsync({
                 id: selectedEvent.id,
@@ -291,9 +299,16 @@ export default function CalendarPage() {
                                                     {getEventsForDate(day).map((event) => (
                                                         <div
                                                             key={event.id}
-                                                            className="text-xs p-1 rounded truncate relative group cursor-pointer hover:shadow-md transition-shadow bg-green-100 text-green-800 border-l-2 border-green-500 hover:bg-green-200"
-                                                            title={`${event.title}${event.location ? ` - ${event.location}` : ''}${!event.allDay ? ` at ${formatTime(event.startDateTime)}` : ''
+                                                            className={`text-xs p-1 rounded truncate relative group cursor-pointer hover:shadow-md transition-shadow border-l-2 ${event.userRSVP?.status === "attending"
+                                                                ? "bg-green-100 text-green-800 border-green-500 hover:bg-green-200"
+                                                                : event.userRSVP?.status === "maybe"
+                                                                    ? "bg-yellow-100 text-yellow-800 border-yellow-500 hover:bg-yellow-200"
+                                                                    : event.userRSVP?.status === "declined"
+                                                                        ? "bg-red-100 text-red-800 border-red-500 hover:bg-red-200"
+                                                                        : "bg-blue-100 text-blue-800 border-blue-500 hover:bg-blue-200"
                                                                 }`}
+                                                            title={`${event.title}${event.location ? ` - ${event.location}` : ''}${!event.allDay ? ` at ${formatTime(event.startDateTime)}` : ''
+                                                                }${event.userRSVP ? ` (RSVP: ${event.userRSVP.status})` : ''}`}
                                                             onClick={() => handleEventClick(event)}
                                                         >
                                                             <div className="flex items-center justify-between">
@@ -303,6 +318,13 @@ export default function CalendarPage() {
                                                                     )}
                                                                     {event.title}
                                                                 </span>
+                                                                {event.userRSVP && (
+                                                                    <span className="ml-1 text-xs font-medium">
+                                                                        {event.userRSVP.status === "attending" && "✓"}
+                                                                        {event.userRSVP.status === "maybe" && "?"}
+                                                                        {event.userRSVP.status === "declined" && "✗"}
+                                                                    </span>
+                                                                )}
                                                             </div>
                                                             {event.location && (
                                                                 <div className="flex items-center text-xs opacity-75 mt-1">

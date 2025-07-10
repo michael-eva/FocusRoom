@@ -25,5 +25,3 @@ export interface SpotlightStats {
   followers: string;
   upcomingShows: string;
 }
-
-// Form data type for the management dialog

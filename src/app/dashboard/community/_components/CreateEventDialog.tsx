@@ -9,8 +9,18 @@ import { Calendar, Clock, MapPin, Link, Mail, Users } from "lucide-react"
 interface CreateEventDialogProps {
     isOpen: boolean
     onClose: () => void
-    onCreateEvent: (eventData: any) => void
-    showCommunityFeatures?: boolean; // New prop to show community-specific features
+    onCreateEvent: (eventData: EventFormData) => void
+    showCommunityFeatures?: boolean;
+}
+
+export interface EventFormData {
+    title: string;
+    description: string;
+    date: string | undefined;
+    startTime: string;
+    endTime: string;
+    location: string;
+    rsvpLink: string;
 }
 
 export function CreateEventDialog({
@@ -19,11 +29,16 @@ export function CreateEventDialog({
     onCreateEvent,
     showCommunityFeatures = false,
 }: CreateEventDialogProps) {
-    const [formData, setFormData] = useState({
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date();
+    const defaultStartTime = new Date().toTimeString().split(' ')[0]?.slice(0, 5) || '00:00';
+    const defaultEndTime = new Date(now.getTime() + (60 * 60 * 1000)).toTimeString().split(' ')[0]?.slice(0, 5) || '01:00';
+    const [formData, setFormData] = useState<EventFormData>({
         title: "",
         description: "",
-        date: "",
-        time: "",
+        date: today,
+        startTime: defaultStartTime,
+        endTime: defaultEndTime,
         location: "",
         rsvpLink: "",
     });
@@ -31,10 +46,9 @@ export function CreateEventDialog({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (formData.title && formData.description && formData.date && formData.time) {
+        if (formData.title && formData.description && formData.date && formData.startTime && formData.endTime) {
             onCreateEvent({
-                ...formData,
-                publishToCommunity: publishToCommunity,
+                ...formData
             });
 
             // Reset form
@@ -42,7 +56,8 @@ export function CreateEventDialog({
                 title: "",
                 description: "",
                 date: "",
-                time: "",
+                startTime: "",
+                endTime: "",
                 location: "",
                 rsvpLink: "",
             });
@@ -55,9 +70,6 @@ export function CreateEventDialog({
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-    // Set default date to today
-    const today = new Date().toISOString().split('T')[0];
-    const defaultTime = "09:00";
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -107,16 +119,46 @@ export function CreateEventDialog({
                                 />
                             </div>
                         </div>
+                        <div className="space-y-2">
+                            <div className="space-y-2">
+                                <Label htmlFor="location">Location</Label>
+                                <div className="relative">
+                                    <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        id="location"
+                                        placeholder={showCommunityFeatures ? "e.g., The Music Room, Melbourne" : "e.g., Conference Room A, Zoom, Melbourne CBD"}
+                                        value={formData.location}
+                                        onChange={(e) => handleChange("location", e.target.value)}
+                                        className="pl-10"
+                                    />
+                                </div>
+                            </div>
+                        </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="time">Time *</Label>
+                            <Label htmlFor="startTime">Start Time *</Label>
                             <div className="relative">
                                 <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <Input
-                                    id="time"
+                                    id="startTime"
                                     type="time"
-                                    value={formData.time || defaultTime}
-                                    onChange={(e) => handleChange("time", e.target.value)}
+                                    value={formData.startTime || defaultStartTime}
+                                    onChange={(e) => handleChange("startTime", e.target.value)}
+                                    className="pl-10"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="endTime">End Time *</Label>
+                            <div className="relative">
+                                <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Input
+                                    id="endTime"
+                                    type="time"
+                                    value={formData.endTime || defaultEndTime}
+                                    onChange={(e) => handleChange("endTime", e.target.value)}
                                     className="pl-10"
                                     required
                                 />
@@ -124,19 +166,7 @@ export function CreateEventDialog({
                         </div>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="location">Location</Label>
-                        <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input
-                                id="location"
-                                placeholder={showCommunityFeatures ? "e.g., The Music Room, Melbourne" : "e.g., Conference Room A, Zoom, Melbourne CBD"}
-                                value={formData.location}
-                                onChange={(e) => handleChange("location", e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                    </div>
+
 
                     <div className="space-y-2">
                         <Label htmlFor="rsvpLink">RSVP Link (optional)</Label>
@@ -204,7 +234,7 @@ export function CreateEventDialog({
                         <Button
                             type="submit"
                             className="bg-orange-500 hover:bg-orange-600"
-                            disabled={!formData.title || !formData.description || !formData.date || !formData.time}
+                            disabled={!formData.title || !formData.description}
                         >
                             {showCommunityFeatures ? "Create Event" : "Create Event"}
                         </Button>

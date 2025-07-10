@@ -16,7 +16,6 @@ export const eventsRouter = createTRPCRouter({
         allDay: z.boolean().default(false),
         rsvpLink: z.string().optional(),
         createdById: z.number().optional(),
-        googleEventId: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -31,7 +30,6 @@ export const eventsRouter = createTRPCRouter({
           allDay: input.allDay,
           rsvpLink: input.rsvpLink,
           createdById: input.createdById,
-          googleEventId: input.googleEventId,
         })
         .returning();
 
@@ -84,15 +82,33 @@ export const eventsRouter = createTRPCRouter({
       z.object({
         year: z.number(),
         month: z.number(), // 0-11 (JavaScript month format)
+        userId: z.number().optional(), // Add userId to check user RSVP status
       }),
     )
     .query(async ({ input }) => {
       const startDate = new Date(input.year, input.month, 1);
       const endDate = new Date(input.year, input.month + 1, 0, 23, 59, 59);
 
+      // Import eventRsvps schema
+      const { eventRsvps } = await import("~/db/schema");
+
       const eventsInMonth = await db
-        .select()
+        .select({
+          id: events.id,
+          title: events.title,
+          description: events.description,
+          location: events.location,
+          startDateTime: events.startDateTime,
+          endDateTime: events.endDateTime,
+          allDay: events.allDay,
+          rsvpLink: events.rsvpLink,
+          createdById: events.createdById,
+          createdAt: events.createdAt,
+          updatedAt: events.updatedAt,
+          userRSVP: eventRsvps,
+        })
         .from(events)
+        .leftJoin(eventRsvps, eq(events.id, eventRsvps.eventId))
         .where(
           and(
             gte(events.startDateTime, startDate.toISOString()),
@@ -101,7 +117,42 @@ export const eventsRouter = createTRPCRouter({
         )
         .orderBy(events.startDateTime);
 
-      return eventsInMonth;
+      // Group events by ID and collect RSVP data
+      const eventsWithRSVPs = eventsInMonth.reduce((acc, row) => {
+        const existingEvent = acc.find((e) => e.id === row.id);
+        if (existingEvent) {
+          if (
+            row.userRSVP &&
+            input.userId &&
+            row.userRSVP.userId === input.userId
+          ) {
+            existingEvent.userRSVP = row.userRSVP;
+          }
+        } else {
+          acc.push({
+            id: row.id,
+            title: row.title,
+            description: row.description,
+            location: row.location,
+            startDateTime: row.startDateTime,
+            endDateTime: row.endDateTime,
+            allDay: row.allDay,
+            rsvpLink: row.rsvpLink,
+            createdById: row.createdById,
+            createdAt: row.createdAt,
+            updatedAt: row.updatedAt,
+            userRSVP:
+              row.userRSVP &&
+              input.userId &&
+              row.userRSVP.userId === input.userId
+                ? row.userRSVP
+                : null,
+          });
+        }
+        return acc;
+      }, [] as any[]);
+
+      return eventsWithRSVPs;
     }),
 
   getById: publicProcedure
@@ -127,7 +178,6 @@ export const eventsRouter = createTRPCRouter({
         endDateTime: z.date().optional(),
         allDay: z.boolean().optional(),
         rsvpLink: z.string().optional(),
-        googleEventId: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
