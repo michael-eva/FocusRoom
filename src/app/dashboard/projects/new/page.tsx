@@ -46,8 +46,6 @@ interface ProjectFormData {
   resources: Resource[]
 }
 
-const DRAFT_KEY = "project-draft"
-
 export default function NewProjectPage() {
   const router = useRouter()
   const [formData, setFormData] = useState<ProjectFormData>({
@@ -62,31 +60,16 @@ export default function NewProjectPage() {
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [draftProjectId, setDraftProjectId] = useState<number | null>(null)
 
   // Get team members for selection
   const { data: teamMembers } = api.users.getAll.useQuery()
 
-  // Load draft on mount
+  // Track form changes
   useEffect(() => {
-    const savedDraft = localStorage.getItem(DRAFT_KEY)
-    if (savedDraft) {
-      try {
-        const draft = JSON.parse(savedDraft)
-        setFormData(draft)
-        setHasUnsavedChanges(true)
-      } catch (error) {
-        console.error("Failed to load draft:", error)
-      }
-    }
-  }, [])
-
-  // Save draft on form changes
-  useEffect(() => {
-    if (formData.name || formData.description || formData.tasks.length > 0 || formData.resources.length > 0) {
-      localStorage.setItem(DRAFT_KEY, JSON.stringify(formData))
-      setHasUnsavedChanges(true)
-    }
-  }, [formData])
+    const hasContent = Boolean(formData.name || formData.description || formData.tasks.length > 0 || formData.resources.length > 0)
+    setHasUnsavedChanges(hasContent && !draftProjectId)
+  }, [formData, draftProjectId])
 
   // Warn before leaving with unsaved changes
   useEffect(() => {
@@ -105,8 +88,8 @@ export default function NewProjectPage() {
     onSuccess: (project) => {
       if (project) {
         toast.success("Project created successfully!")
-        localStorage.removeItem(DRAFT_KEY)
         setHasUnsavedChanges(false)
+        setDraftProjectId(null)
         router.push(`/dashboard/projects/${project.id}`)
       }
     },
@@ -116,20 +99,109 @@ export default function NewProjectPage() {
     },
   })
 
+  const saveDraftMutation = api.project.saveDraft.useMutation({
+    onSuccess: (project) => {
+      if (project) {
+        toast.success("Draft saved to database!")
+        setDraftProjectId(project.id)
+        setHasUnsavedChanges(false)
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to save draft")
+    },
+  })
+
+  const updateProjectMutation = api.project.updateProject.useMutation({
+    onSuccess: (project) => {
+      if (project) {
+        toast.success("Draft updated!")
+        setHasUnsavedChanges(false)
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update draft")
+    },
+  })
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
     try {
-      await createProjectMutation.mutateAsync({
-        name: formData.name,
+      if (draftProjectId) {
+        // Update existing draft to final project
+        await updateProjectMutation.mutateAsync({
+          projectId: draftProjectId,
+          name: formData.name,
+          description: formData.description,
+          status: formData.status,
+          priority: formData.priority,
+          deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+          teamMemberIds: formData.teamMemberIds,
+          tasks: formData.tasks.map(task => ({
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            deadline: task.deadline ? new Date(task.deadline) : undefined,
+            assigneeId: task.assigneeId,
+          })),
+          resources: formData.resources.map(resource => ({
+            title: resource.title,
+            type: resource.type,
+            url: resource.url,
+            description: resource.description,
+          })),
+        })
+
+        toast.success("Project created successfully!")
+        setHasUnsavedChanges(false)
+        setDraftProjectId(null)
+        router.push(`/dashboard/projects/${draftProjectId}`)
+      } else {
+        // Create new project
+        await createProjectMutation.mutateAsync({
+          name: formData.name,
+          description: formData.description,
+          status: formData.status,
+          priority: formData.priority,
+          deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+          teamMemberIds: formData.teamMemberIds,
+          tasks: formData.tasks.map(task => ({
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            deadline: task.deadline ? new Date(task.deadline) : undefined,
+            assigneeId: task.assigneeId,
+          })),
+          resources: formData.resources.map(resource => ({
+            title: resource.title,
+            type: resource.type,
+            url: resource.url,
+            description: resource.description,
+          })),
+        })
+      }
+    } catch (error) {
+      // Error is handled in onError callback
+    }
+  }
+
+  const handleSaveDraft = () => {
+    if (draftProjectId) {
+      // Update existing draft
+      updateProjectMutation.mutate({
+        projectId: draftProjectId,
+        name: formData.name || undefined,
         description: formData.description,
-        status: formData.status,
+        status: "draft",
         priority: formData.priority,
         deadline: formData.deadline ? new Date(formData.deadline) : undefined,
         teamMemberIds: formData.teamMemberIds,
         tasks: formData.tasks.map(task => ({
-          title: task.title,
+          title: task.title || "Untitled Task",
           description: task.description,
           status: task.status,
           priority: task.priority,
@@ -137,25 +209,40 @@ export default function NewProjectPage() {
           assigneeId: task.assigneeId,
         })),
         resources: formData.resources.map(resource => ({
-          title: resource.title,
+          title: resource.title || "Untitled Resource",
           type: resource.type,
           url: resource.url,
           description: resource.description,
         })),
       })
-    } catch (error) {
-      // Error is handled in onError callback
+    } else {
+      // Create new draft
+      saveDraftMutation.mutate({
+        name: formData.name || undefined,
+        description: formData.description,
+        status: "draft",
+        priority: formData.priority,
+        deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+        teamMemberIds: formData.teamMemberIds,
+        tasks: formData.tasks.map(task => ({
+          title: task.title || "Untitled Task",
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          deadline: task.deadline ? new Date(task.deadline) : undefined,
+          assigneeId: task.assigneeId,
+        })),
+        resources: formData.resources.map(resource => ({
+          title: resource.title || "Untitled Resource",
+          type: resource.type,
+          url: resource.url,
+          description: resource.description,
+        })),
+      })
     }
   }
 
-  const handleSaveDraft = () => {
-    localStorage.setItem(DRAFT_KEY, JSON.stringify(formData))
-    toast.success("Draft saved!")
-    setHasUnsavedChanges(false)
-  }
-
   const handleClearDraft = () => {
-    localStorage.removeItem(DRAFT_KEY)
     setFormData({
       name: "",
       description: "",
@@ -167,7 +254,8 @@ export default function NewProjectPage() {
       resources: [],
     })
     setHasUnsavedChanges(false)
-    toast.success("Draft cleared!")
+    setDraftProjectId(null)
+    toast.success("Form cleared!")
   }
 
   const addTeamMember = (teamMemberId: number) => {
@@ -262,8 +350,12 @@ export default function NewProjectPage() {
             </Button>
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Create New Project</h1>
-            <p className="text-sm text-gray-600 mt-1">Set up your project with tasks, resources, and team members</p>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {draftProjectId ? "Edit Draft Project" : "Create New Project"}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {draftProjectId ? "Continue editing your draft project" : "Set up your project with tasks, resources, and team members"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -273,8 +365,16 @@ export default function NewProjectPage() {
               Save Draft
             </Button>
           )}
+          {draftProjectId && (
+            <Link href={`/dashboard/projects/${draftProjectId}`}>
+              <Button variant="outline" className="gap-2">
+                <FileText className="h-4 w-4" />
+                View Draft
+              </Button>
+            </Link>
+          )}
           <Button variant="ghost" onClick={handleClearDraft} className="text-gray-600 hover:text-gray-800">
-            Clear Draft
+            Clear Form
           </Button>
         </div>
       </header>
@@ -688,7 +788,7 @@ export default function NewProjectPage() {
                 </Button>
               </Link>
               <Button type="submit" disabled={isSubmitting || !formData.name} className="h-11 px-8">
-                {isSubmitting ? "Creating Project..." : "Create Project"}
+                {isSubmitting ? (draftProjectId ? "Finalizing Project..." : "Creating Project...") : (draftProjectId ? "Finalize Project" : "Create Project")}
               </Button>
             </div>
           </form>

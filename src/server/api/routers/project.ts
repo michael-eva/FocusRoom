@@ -34,7 +34,7 @@ export const projectRouter = createTRPCRouter({
         name: z.string().min(1, "Project name is required"),
         description: z.string().optional(),
         status: z
-          .enum(["planning", "active", "completed", "on-hold"])
+          .enum(["draft", "planning", "active", "completed", "on-hold"])
           .default("planning"),
         priority: z.enum(["low", "medium", "high"]).default("medium"),
         deadline: z.date().optional(),
@@ -113,6 +113,103 @@ export const projectRouter = createTRPCRouter({
       if (input.resources.length > 0) {
         const resourceData = input.resources.map((resource) => ({
           title: resource.title,
+          type: resource.type,
+          url: resource.url,
+          description: resource.description,
+          projectId,
+          lastUpdated: new Date().toISOString(),
+        }));
+
+        await db.insert(resources).values(resourceData);
+      }
+
+      return newProject[0];
+    }),
+  saveDraft: publicProcedure
+    .input(
+      z.object({
+        name: z.string().optional(),
+        description: z.string().optional(),
+        status: z
+          .enum(["draft", "planning", "active", "completed", "on-hold"])
+          .default("draft"),
+        priority: z.enum(["low", "medium", "high"]).default("medium"),
+        deadline: z.date().optional(),
+        teamMemberIds: z.array(z.number()).default([]),
+        tasks: z
+          .array(
+            z.object({
+              title: z.string().optional(),
+              description: z.string().optional(),
+              status: z
+                .enum(["pending", "in-progress", "completed", "overdue"])
+                .default("pending"),
+              priority: z.enum(["low", "medium", "high"]).default("medium"),
+              deadline: z.date().optional(),
+              assigneeId: z.number().optional(),
+            }),
+          )
+          .default([]),
+        resources: z
+          .array(
+            z.object({
+              title: z.string().optional(),
+              type: z.string().optional(),
+              url: z.string().optional(),
+              description: z.string().optional(),
+            }),
+          )
+          .default([]),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      // Create the draft project
+      const newProject = await db
+        .insert(projects)
+        .values({
+          name: input.name || "Untitled Project",
+          description: input.description,
+          status: "draft",
+          priority: input.priority,
+          deadline: input.deadline?.toISOString(),
+          progress: 0,
+          totalTasks: input.tasks.length,
+          completedTasks: 0,
+        })
+        .returning();
+
+      const projectId = newProject[0]!.id;
+
+      // Add team members if provided
+      if (input.teamMemberIds.length > 0) {
+        const teamMemberData = input.teamMemberIds.map((teamMemberId) => ({
+          projectId,
+          teamMemberId,
+          role: "member" as const,
+        }));
+
+        await db.insert(projectTeamMembers).values(teamMemberData);
+      }
+
+      // Create tasks if provided
+      if (input.tasks.length > 0) {
+        const taskData = input.tasks.map((task) => ({
+          title: task.title || "Untitled Task",
+          description: task.description,
+          status: task.status,
+          priority: task.priority,
+          deadline: task.deadline?.toISOString(),
+          projectId,
+          assigneeId: task.assigneeId,
+        }));
+
+        await db.insert(tasks).values(taskData);
+      }
+
+      // Create resources if provided
+      if (input.resources.length > 0) {
+        const resourceData = input.resources.map((resource) => ({
+          title: resource.title || "Untitled Resource",
           type: resource.type,
           url: resource.url,
           description: resource.description,
@@ -557,5 +654,151 @@ export const projectRouter = createTRPCRouter({
         console.error("Error deleting project:", error);
         throw new Error("Failed to delete project. Please try again.");
       }
+    }),
+  updateProject: publicProcedure
+    .input(
+      z.object({
+        projectId: z.number(),
+        name: z.string().min(1, "Project name is required").optional(),
+        description: z.string().optional(),
+        status: z
+          .enum(["draft", "planning", "active", "completed", "on-hold"])
+          .optional(),
+        priority: z.enum(["low", "medium", "high"]).optional(),
+        deadline: z.date().optional(),
+        teamMemberIds: z.array(z.number()).optional(),
+        tasks: z
+          .array(
+            z.object({
+              title: z.string().min(1, "Task title is required"),
+              description: z.string().optional(),
+              status: z
+                .enum(["pending", "in-progress", "completed", "overdue"])
+                .default("pending"),
+              priority: z.enum(["low", "medium", "high"]).default("medium"),
+              deadline: z.date().optional(),
+              assigneeId: z.number().optional(),
+            }),
+          )
+          .optional(),
+        resources: z
+          .array(
+            z.object({
+              title: z.string().min(1, "Resource title is required"),
+              type: z.string().optional(),
+              url: z.string().optional(),
+              description: z.string().optional(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .mutation(async ({ input }) => {
+      const {
+        projectId,
+        teamMemberIds: newTeamMemberIds,
+        tasks: newTasks,
+        resources: newResources,
+        ...updateData
+      } = input;
+
+      // Update the project
+      const updatedProject = await db
+        .update(projects)
+        .set({
+          ...updateData,
+          deadline: updateData.deadline?.toISOString(),
+          totalTasks: newTasks?.length || undefined,
+        })
+        .where(eq(projects.id, projectId))
+        .returning();
+
+      if (updatedProject.length === 0) {
+        throw new Error("Project not found");
+      }
+
+      // Update team members if provided
+      if (newTeamMemberIds !== undefined) {
+        // Remove existing team members
+        await db
+          .delete(projectTeamMembers)
+          .where(eq(projectTeamMembers.projectId, projectId));
+
+        // Add new team members
+        if (newTeamMemberIds.length > 0) {
+          const teamMemberData = newTeamMemberIds.map((teamMemberId) => ({
+            projectId,
+            teamMemberId,
+            role: "member" as const,
+          }));
+
+          await db.insert(projectTeamMembers).values(teamMemberData);
+        }
+      }
+
+      // Update tasks if provided
+      if (newTasks !== undefined) {
+        // Remove existing tasks
+        await db.delete(tasks).where(eq(tasks.projectId, projectId));
+
+        // Add new tasks
+        if (newTasks.length > 0) {
+          const taskData = newTasks.map((task) => ({
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            deadline: task.deadline?.toISOString(),
+            projectId,
+            assigneeId: task.assigneeId,
+          }));
+
+          await db.insert(tasks).values(taskData);
+        }
+      }
+
+      // Update resources if provided
+      if (newResources !== undefined) {
+        // Remove existing resources
+        await db.delete(resources).where(eq(resources.projectId, projectId));
+
+        // Add new resources
+        if (newResources.length > 0) {
+          const resourceData = newResources.map((resource) => ({
+            title: resource.title,
+            type: resource.type,
+            url: resource.url,
+            description: resource.description,
+            projectId,
+            lastUpdated: new Date().toISOString(),
+          }));
+
+          await db.insert(resources).values(resourceData);
+        }
+      }
+
+      // Update project task counts and progress
+      const projectTasks = await db
+        .select()
+        .from(tasks)
+        .where(eq(tasks.projectId, projectId));
+
+      const totalTasks = projectTasks.length;
+      const completedTasks = projectTasks.filter(
+        (task) => task.status === "completed",
+      ).length;
+      const progress =
+        totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      await db
+        .update(projects)
+        .set({
+          totalTasks,
+          completedTasks,
+          progress,
+        })
+        .where(eq(projects.id, projectId));
+
+      return updatedProject[0];
     }),
 });
