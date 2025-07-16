@@ -30,6 +30,11 @@ export default function CommunityPage() {
     const currentUserData = currentUser?.find(user => user.id === currentUserId);
     const isAdmin = currentUserData?.role === "admin";
 
+    // Get dynamic stats for community
+    const { data: userCount = 0 } = api.users.getCount.useQuery();
+    const { data: pollCount = 0 } = api.polls.getCount.useQuery();
+    const { data: commentCount = 0 } = api.comments.getCount.useQuery();
+
     // Get feed data from database
     const { data: feedPosts = [], refetch: refetchFeed } = api.feed.getFeed.useQuery(
         {
@@ -58,6 +63,7 @@ export default function CommunityPage() {
     const createLocalEvent = api.events.create.useMutation();
     const createPoll = api.polls.create.useMutation();
     const deletePoll = api.polls.delete.useMutation();
+    const deleteEvent = api.events.delete.useMutation();
     const votePoll = api.polls.vote.useMutation();
     const createRSVP = api.rsvp.create.useMutation();
     const toggleLike = api.likes.toggleLike.useMutation();
@@ -216,6 +222,26 @@ export default function CommunityPage() {
         }
     }
 
+    const handleDeleteEvent = async (eventId: number) => {
+        if (!confirm("Are you sure you want to delete this event? This action cannot be undone.")) {
+            return;
+        }
+
+        try {
+            await deleteEvent.mutateAsync({
+                id: eventId
+            });
+
+            // Refresh the feed to show updated data
+            await refetchFeed();
+
+            alert("Event deleted successfully!");
+        } catch (error) {
+            console.error("Failed to delete event:", error);
+            alert("Failed to delete event. Please try again.");
+        }
+    }
+
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">
@@ -252,7 +278,7 @@ export default function CommunityPage() {
                         <Card>
                             <CardContent className="p-4 text-center">
                                 <Users className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                                <p className="text-2xl font-bold">247</p>
+                                <p className="text-2xl font-bold">{userCount}</p>
                                 <p className="text-sm text-gray-600">Members</p>
                             </CardContent>
                         </Card>
@@ -266,15 +292,15 @@ export default function CommunityPage() {
                         <Card>
                             <CardContent className="p-4 text-center">
                                 <MessageSquare className="h-6 w-6 mx-auto mb-2 text-purple-500" />
-                                <p className="text-2xl font-bold">89</p>
+                                <p className="text-2xl font-bold">{commentCount}</p>
                                 <p className="text-sm text-gray-600">Active Discussions</p>
                             </CardContent>
                         </Card>
                         <Card>
                             <CardContent className="p-4 text-center">
-                                <Mail className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                                <p className="text-2xl font-bold">156</p>
-                                <p className="text-sm text-gray-600">Email Subscribers</p>
+                                <BarChart3 className="h-6 w-6 mx-auto mb-2 text-orange-500" />
+                                <p className="text-2xl font-bold">{pollCount}</p>
+                                <p className="text-sm text-gray-600">Active Polls</p>
                             </CardContent>
                         </Card>
                     </div>
@@ -302,12 +328,12 @@ export default function CommunityPage() {
                                             </div>
                                             <h2 className="text-lg font-semibold text-gray-800 mt-1">{post.title}</h2>
                                         </div>
-                                        {/* Delete button in header for polls - show for owner or admin */}
-                                        {post.type === "poll" && (post.author?.id === currentUserId || isAdmin) && (
+                                        {/* Delete button in header for polls and events - show for owner or admin */}
+                                        {(post.type === "poll" || post.type === "event") && (post.author?.id === currentUserId || isAdmin) && (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => handleDeletePoll(post.id)}
+                                                onClick={() => post.type === "poll" ? handleDeletePoll(post.id) : handleDeleteEvent(post.id)}
                                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             >
                                                 <Trash2 className="h-4 w-4" />
@@ -487,12 +513,12 @@ export default function CommunityPage() {
                                             </Button>
                                         )}
 
-                                        {/* Delete button for polls - show for owner or admin */}
-                                        {post.type === "poll" && (post.author?.id === currentUserId || isAdmin) && (
+                                        {/* Delete button for polls and events - show for owner or admin */}
+                                        {(post.type === "poll" || post.type === "event") && (post.author?.id === currentUserId || isAdmin) && (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                onClick={() => handleDeletePoll(post.id)}
+                                                onClick={() => post.type === "poll" ? handleDeletePoll(post.id) : handleDeleteEvent(post.id)}
                                                 className="text-red-600 hover:text-red-700 hover:bg-red-50"
                                             >
                                                 <Trash2 className="h-4 w-4 mr-1" />

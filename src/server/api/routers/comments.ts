@@ -3,6 +3,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
 import { comments, users, activityLog } from "~/db/schema";
 import { eq, and, desc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export const commentsRouter = createTRPCRouter({
   createComment: publicProcedure
@@ -120,6 +121,15 @@ export const commentsRouter = createTRPCRouter({
 
       return deletedComment[0];
     }),
+
+  // Get total comments count for community stats
+  getCount: publicProcedure.query(async () => {
+    const result = await db
+      .select({ count: sql<number>`count(*)`.as("count") })
+      .from(comments);
+
+    return result[0]?.count || 0;
+  }),
 
   getCommentsCount: publicProcedure
     .input(

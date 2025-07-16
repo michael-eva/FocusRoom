@@ -113,6 +113,15 @@ export const pollsRouter = createTRPCRouter({
       }
     }),
 
+  // Get total poll count for community stats
+  getCount: publicProcedure.query(async () => {
+    const result = await db
+      .select({ count: sql<number>`count(*)`.as("count") })
+      .from(polls);
+
+    return result[0]?.count || 0;
+  }),
+
   getAll: publicProcedure.query(async () => {
     const allPolls = await db
       .select({

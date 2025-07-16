@@ -3,6 +3,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { users, teamMembers, projectTeamMembers, projects } from "~/db/schema";
 import { db } from "~/db";
 import { eq, and, isNull, desc } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 export const usersRouter = createTRPCRouter({
   // Get all users
@@ -73,6 +74,15 @@ export const usersRouter = createTRPCRouter({
 
       return teamMembersData;
     }),
+
+  // Get total user count for community stats
+  getCount: publicProcedure.query(async () => {
+    const result = await db
+      .select({ count: sql<number>`count(*)`.as("count") })
+      .from(users);
+
+    return result[0]?.count || 0;
+  }),
 
   // Get users by role in a specific project
   getByRole: publicProcedure
