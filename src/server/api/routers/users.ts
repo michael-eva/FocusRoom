@@ -23,6 +23,22 @@ export const usersRouter = createTRPCRouter({
     return allUsers;
   }),
 
+  // Get all team members
+  getAllTeamMembers: publicProcedure.query(async () => {
+    const allTeamMembers = await db
+      .select({
+        id: teamMembers.id,
+        name: teamMembers.name,
+        email: teamMembers.email,
+        avatar: teamMembers.avatar,
+        userId: teamMembers.userId,
+      })
+      .from(teamMembers)
+      .orderBy(teamMembers.name);
+
+    return allTeamMembers;
+  }),
+
   // Get team members for a specific project/focus room
   getTeamMembers: publicProcedure
     .input(z.object({ projectId: z.number() }))

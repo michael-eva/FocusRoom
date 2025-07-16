@@ -428,9 +428,13 @@ async function seedDatabase(db: any) {
 
     // Insert projects
     console.log("📋 Inserting projects...");
+    const sampleProjectsWithCreator = sampleProjects.map((project, index) => ({
+      ...project,
+      createdBy: insertedUsers[index % insertedUsers.length].id, // Assign creators in round-robin fashion
+    }));
     const insertedProjects = await db
       .insert(projects)
-      .values(sampleProjects)
+      .values(sampleProjectsWithCreator)
       .returning();
     console.log(`✅ Inserted ${insertedProjects.length} projects`);
 

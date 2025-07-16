@@ -26,11 +26,11 @@ const menuItems = [
         url: "/dashboard/community",
         icon: MessageSquare,
     },
-    {
-        title: "Resources/Docs",
-        url: "#",
-        icon: FileText,
-    },
+    // {
+    //     title: "Resources/Docs",
+    //     url: "#",
+    //     icon: FileText,
+    // },
     {
         title: "Settings",
         url: "/dashboard/settings",

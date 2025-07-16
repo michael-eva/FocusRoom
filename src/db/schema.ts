@@ -219,17 +219,28 @@ export const posts = pgTable(
   ],
 );
 
-export const projects = pgTable("projects", {
-  id: serial().primaryKey().notNull(),
-  name: text(),
-  description: text(),
-  status: text(),
-  progress: integer(),
-  totalTasks: integer(),
-  completedTasks: integer(),
-  deadline: timestamp({ mode: "string" }),
-  priority: text(),
-});
+export const projects = pgTable(
+  "projects",
+  {
+    id: serial().primaryKey().notNull(),
+    name: text(),
+    description: text(),
+    status: text(),
+    progress: integer(),
+    totalTasks: integer(),
+    completedTasks: integer(),
+    deadline: timestamp({ mode: "string" }),
+    priority: text(),
+    createdBy: integer("created_by"),
+  },
+  (table) => [
+    foreignKey({
+      columns: [table.createdBy],
+      foreignColumns: [users.id],
+      name: "projects_created_by_users_id_fk",
+    }),
+  ],
+);
 
 export const projectActivities = pgTable(
   "project_activities",

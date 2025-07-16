@@ -5,6 +5,7 @@ import {
   projectTeamMembers,
   teamMembers,
   tasks,
+  users,
 } from "../schema";
 import { eq } from "drizzle-orm";
 
@@ -95,10 +96,28 @@ export async function getProjects() {
 }
 
 export async function getProjectById(id: number) {
-  // Get the project
+  // Get the project with creator information
   const project = await db
-    .select()
+    .select({
+      id: projects.id,
+      name: projects.name,
+      description: projects.description,
+      status: projects.status,
+      progress: projects.progress,
+      totalTasks: projects.totalTasks,
+      completedTasks: projects.completedTasks,
+      deadline: projects.deadline,
+      priority: projects.priority,
+      createdBy: projects.createdBy,
+      creator: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+        role: users.role,
+      },
+    })
     .from(projects)
+    .leftJoin(users, eq(projects.createdBy, users.id))
     .where(eq(projects.id, id))
     .limit(1)
     .execute();

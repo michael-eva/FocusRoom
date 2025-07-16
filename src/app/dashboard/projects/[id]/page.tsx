@@ -22,6 +22,7 @@ import { ActivitySection } from "../_components/ActivitySection"
 import { DeleteConfirmationDialog } from "../_components/DeleteConfirmationDialog"
 import { ProjectSettingsDropdown } from "../_components/ProjectSettingsDropdown"
 import { AddResourceForm } from "../_components/AddResourceForm"
+import { EditProjectDialog } from "../../_components/EditProjectDialog"
 import { api } from "~/trpc/react"
 import { toast } from "sonner"
 
@@ -85,9 +86,12 @@ export default function ProjectDetailPage({ params }: PageProps) {
     const [isDeleteResourceDialogOpen, setIsDeleteResourceDialogOpen] = useState(false)
     const [resourceToDelete, setResourceToDelete] = useState<any>(null)
     const [isDeleteProjectDialogOpen, setIsDeleteProjectDialogOpen] = useState(false)
+    const [isEditProjectDialogOpen, setIsEditProjectDialogOpen] = useState(false)
 
     const { data: project, isLoading, refetch } = api.project.getProjectById.useQuery({ id });
-    const { data: teamMembers } = api.users.getAll.useQuery();
+    const { data: allUsers } = api.users.getAll.useQuery();
+    const { data: allTeamMembers } = api.users.getAllTeamMembers.useQuery();
+    const { data: currentUser } = api.users.getAll.useQuery();
     const utils = api.useUtils()
 
     const createTaskMutation = api.project.createTask.useMutation({
@@ -203,6 +207,17 @@ export default function ProjectDetailPage({ params }: PageProps) {
         },
     })
 
+    const updateProjectMutation = api.project.updateProject.useMutation({
+        onSuccess: async () => {
+            toast.success("Project updated successfully!")
+            setIsEditProjectDialogOpen(false)
+            await refetch()
+        },
+        onError: (error) => {
+            toast.error(error.message || "Failed to update project")
+        },
+    })
+
     if (isLoading) {
         return <div>Loading...</div>
     }
@@ -213,6 +228,12 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
     const completedTasks = project.tasks.filter((task) => task.status === "completed").length
     const totalTasks = project.tasks.length
+
+    // Check if current user can edit the project (admin or project creator)
+    const currentUserId = currentUser?.[0]?.id || 1
+    const isAdmin = currentUser?.[0]?.role === "admin"
+    const isProjectCreator = project.createdBy === currentUserId
+    const canEditProject = isAdmin || isProjectCreator
 
     const handleTaskAssign = (taskId: number, assignee: any, deadline: string) => {
         const task = project.tasks.find(t => t.id === taskId)
@@ -337,6 +358,27 @@ export default function ProjectDetailPage({ params }: PageProps) {
         deleteProjectMutation.mutate({ projectId: parseInt(id) })
     }
 
+    const handleUpdateProject = (projectId: number, formData: any) => {
+        updateProjectMutation.mutate({
+            projectId,
+            name: formData.name,
+            description: formData.description,
+            status: formData.status,
+            priority: formData.priority,
+            deadline: formData.deadline,
+            teamMemberIds: formData.teamMemberIds,
+        }, {
+            onSuccess: () => {
+                // Log activity
+                logActivityMutation.mutate({
+                    projectId: parseInt(id),
+                    type: "project_updated",
+                    description: `Project "${formData.name}" was updated`,
+                })
+            }
+        })
+    }
+
     return (
         <>
             <header className="flex items-center justify-between p-6 border-b bg-white shadow-sm">
@@ -364,7 +406,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                             <DialogHeader>
                                 <DialogTitle>Add New Task</DialogTitle>
                             </DialogHeader>
-                            <AddTaskForm onSubmit={handleCreateTask} teamMembers={teamMembers || []} />
+                            <AddTaskForm onSubmit={handleCreateTask} teamMembers={allUsers || []} />
                         </DialogContent>
                     </Dialog>
                     <Dialog open={isAddResourceDialogOpen} onOpenChange={setIsAddResourceDialogOpen}>
@@ -381,6 +423,16 @@ export default function ProjectDetailPage({ params }: PageProps) {
                             <AddResourceForm onSubmit={handleCreateResource} />
                         </DialogContent>
                     </Dialog>
+                    {canEditProject && (
+                        <Button
+                            variant="outline"
+                            onClick={() => setIsEditProjectDialogOpen(true)}
+                            className="gap-2"
+                        >
+                            <Edit className="h-4 w-4" />
+                            Edit Project
+                        </Button>
+                    )}
                     <ProjectSettingsDropdown
                         onDelete={() => setIsDeleteProjectDialogOpen(true)}
                         isLoading={deleteProjectMutation.isPending}
@@ -699,6 +751,15 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 message="This action cannot be undone. The project and all its tasks, resources, and activities will be permanently deleted."
                 itemName={project?.name || ""}
                 isLoading={deleteProjectMutation.isPending}
+            />
+
+            <EditProjectDialog
+                isOpen={isEditProjectDialogOpen}
+                onClose={() => setIsEditProjectDialogOpen(false)}
+                project={project}
+                teamMembers={allTeamMembers || []}
+                onUpdate={handleUpdateProject}
+                isLoading={updateProjectMutation.isPending}
             />
         </>
     )

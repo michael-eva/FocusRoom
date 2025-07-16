@@ -65,6 +65,10 @@ export default function NewProjectPage() {
   // Get team members for selection
   const { data: teamMembers } = api.users.getAll.useQuery()
 
+  // Get current user for project creation
+  const { data: currentUser } = api.users.getAll.useQuery()
+  const currentUserId = currentUser?.[0]?.id || 1
+
   // Track form changes
   useEffect(() => {
     const hasContent = Boolean(formData.name || formData.description || formData.tasks.length > 0 || formData.resources.length > 0)
@@ -167,6 +171,7 @@ export default function NewProjectPage() {
           status: formData.status,
           priority: formData.priority,
           deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+          createdBy: currentUserId,
           teamMemberIds: formData.teamMemberIds,
           tasks: formData.tasks.map(task => ({
             title: task.title,
@@ -223,6 +228,7 @@ export default function NewProjectPage() {
         status: "draft",
         priority: formData.priority,
         deadline: formData.deadline ? new Date(formData.deadline) : undefined,
+        createdBy: currentUserId,
         teamMemberIds: formData.teamMemberIds,
         tasks: formData.tasks.map(task => ({
           title: task.title || "Untitled Task",
