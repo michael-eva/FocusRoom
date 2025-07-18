@@ -77,25 +77,22 @@ export function CreateEventDialog({
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
-
+    // Use consistent component selection to prevent layout shifts
     const DialogWrapper = isMobile ? Sheet : Dialog;
     const DialogContentWrapper = isMobile ? SheetContent : DialogContent;
     const DialogHeaderWrapper = isMobile ? SheetHeader : DialogHeader;
     const DialogTitleWrapper = isMobile ? SheetTitle : DialogTitle;
 
-    const dialogProps = isMobile ? {
-        open: isOpen,
-        onOpenChange: onClose,
-    } : {
+    const dialogProps = {
         open: isOpen,
         onOpenChange: onClose,
     };
 
     const contentProps = isMobile ? {
         side: "bottom" as const,
-        className: "max-h-[95vh] overflow-hidden flex flex-col"
+        className: "max-h-[95vh] overflow-hidden flex flex-col w-full"
     } : {
-        className: "overflow-hidden flex flex-col max-w-lg"
+        className: "overflow-hidden flex flex-col max-w-lg w-full"
     };
 
     return (
@@ -255,13 +252,13 @@ export function CreateEventDialog({
                     </form>
                 </div>
 
-                <div className="flex justify-end gap-2 py-4 border-t px-6">
-                    <Button type="button" variant="outline" onClick={onClose}>
+                <div className="flex justify-end gap-2 py-4 border-t px-6 bg-white">
+                    <Button type="button" variant="outline" onClick={onClose} className="min-w-[80px]">
                         Cancel
                     </Button>
                     <Button
                         type="submit"
-                        className="bg-orange-500 hover:bg-orange-600"
+                        className="bg-orange-500 hover:bg-orange-600 min-w-[120px]"
                         disabled={!formData.title || !formData.description}
                         onClick={handleSubmit}
                     >
