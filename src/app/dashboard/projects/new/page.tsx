@@ -347,75 +347,82 @@ export default function NewProjectPage() {
 
   return (
     <>
-      <header className="flex items-center justify-between p-6 border-b bg-white shadow-sm">
-        <div className="flex items-center gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b bg-white shadow-sm gap-4">
+        <div className="flex items-center gap-3 sm:gap-4">
           <SidebarTrigger />
           <Link href="/dashboard/projects">
             <Button variant="ghost" size="icon" className="hover:bg-gray-100">
               <ArrowLeft className="h-5 w-5" />
             </Button>
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
               {draftProjectId ? "Edit Draft Project" : "Create New Project"}
             </h1>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">
               {draftProjectId ? "Continue editing your draft project" : "Set up your project with tasks, resources, and team members"}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {hasUnsavedChanges && (
-            <Button variant="outline" onClick={handleSaveDraft} className="gap-2">
-              <Save className="h-4 w-4" />
-              Save Draft
+            <Button variant="outline" onClick={handleSaveDraft} className="gap-1 sm:gap-2 text-xs sm:text-sm">
+              <Save className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Save Draft</span>
+              <span className="sm:hidden">Save</span>
             </Button>
           )}
           {draftProjectId && (
             <Link href={`/dashboard/projects/${draftProjectId}`}>
-              <Button variant="outline" className="gap-2">
-                <FileText className="h-4 w-4" />
-                View Draft
+              <Button variant="outline" className="gap-1 sm:gap-2 text-xs sm:text-sm">
+                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span className="hidden sm:inline">View Draft</span>
+                <span className="sm:hidden">View</span>
               </Button>
             </Link>
           )}
-          <Button variant="ghost" onClick={handleClearDraft} className="text-gray-600 hover:text-gray-800">
-            Clear Form
+          <Button variant="ghost" onClick={handleClearDraft} className="text-gray-600 hover:text-gray-800 text-xs sm:text-sm">
+            <span className="hidden sm:inline">Clear Form</span>
+            <span className="sm:hidden">Clear</span>
           </Button>
         </div>
       </header>
 
-      <main className="flex-1 p-8 bg-gray-50">
+      <main className="flex-1 p-4 sm:p-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <Tabs defaultValue="basic" className="space-y-8">
-              <TabsList className="grid w-full grid-cols-4 h-12 bg-white shadow-sm">
-                <TabsTrigger value="basic" className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Basic Info
+          <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+            <Tabs defaultValue="basic" className="space-y-6 sm:space-y-8">
+              <TabsList className="grid w-full grid-cols-4 h-10 sm:h-12 bg-white shadow-sm">
+                <TabsTrigger value="basic" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                  <Target className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Basic Info</span>
+                  <span className="sm:hidden">Basic</span>
                 </TabsTrigger>
-                <TabsTrigger value="team" className="flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Team ({formData.teamMemberIds.length})
+                <TabsTrigger value="team" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                  <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Team ({formData.teamMemberIds.length})</span>
+                  <span className="sm:hidden">Team</span>
                 </TabsTrigger>
-                <TabsTrigger value="tasks" className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Tasks ({formData.tasks.length})
+                <TabsTrigger value="tasks" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                  <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Tasks ({formData.tasks.length})</span>
+                  <span className="sm:hidden">Tasks</span>
                 </TabsTrigger>
-                <TabsTrigger value="resources" className="flex items-center gap-2">
-                  <LinkIcon className="h-4 w-4" />
-                  Resources ({formData.resources.length})
+                <TabsTrigger value="resources" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3">
+                  <LinkIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Resources ({formData.resources.length})</span>
+                  <span className="sm:hidden">Resources</span>
                 </TabsTrigger>
               </TabsList>
 
               {/* Basic Information */}
-              <TabsContent value="basic" className="space-y-6">
+              <TabsContent value="basic" className="space-y-4 sm:space-y-6">
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-xl font-semibold text-gray-900">Project Details</CardTitle>
-                    <p className="text-sm text-gray-600">Define the core information for your project</p>
+                  <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                    <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900">Project Details</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-600">Define the core information for your project</p>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
                     <div className="space-y-2">
                       <Label htmlFor="name" className="text-sm font-medium text-gray-700">Project Name *</Label>
                       <Input
@@ -423,7 +430,7 @@ export default function NewProjectPage() {
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                         placeholder="Enter a descriptive project name"
-                        className="h-11 text-base"
+                        className="h-10 sm:h-11 text-sm sm:text-base"
                         required
                       />
                     </div>
@@ -434,12 +441,12 @@ export default function NewProjectPage() {
                         value={formData.description}
                         onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                         placeholder="Describe your project goals, scope, and objectives"
-                        rows={4}
-                        className="resize-none"
+                        rows={3}
+                        className="resize-none text-sm sm:text-base"
                       />
                     </div>
                     <Separator />
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                       <div className="space-y-2">
                         <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
                         <Select
@@ -448,7 +455,7 @@ export default function NewProjectPage() {
                             setFormData(prev => ({ ...prev, status: value }))
                           }
                         >
-                          <SelectTrigger className="h-11">
+                          <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -467,7 +474,7 @@ export default function NewProjectPage() {
                             setFormData(prev => ({ ...prev, priority: value }))
                           }
                         >
-                          <SelectTrigger className="h-11">
+                          <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -477,14 +484,14 @@ export default function NewProjectPage() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                         <Label htmlFor="deadline" className="text-sm font-medium text-gray-700">Deadline</Label>
                         <Input
                           id="deadline"
                           type="date"
                           value={formData.deadline}
                           onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
-                          className="h-11"
+                          className="h-10 sm:h-11 text-sm sm:text-base"
                         />
                       </div>
                     </div>
@@ -493,13 +500,13 @@ export default function NewProjectPage() {
               </TabsContent>
 
               {/* Team Members */}
-              <TabsContent value="team" className="space-y-6">
+              <TabsContent value="team" className="space-y-4 sm:space-y-6">
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="text-xl font-semibold text-gray-900">Team Members</CardTitle>
-                    <p className="text-sm text-gray-600">Add team members who will work on this project</p>
+                  <CardHeader className="pb-3 sm:pb-4 px-4 sm:px-6">
+                    <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900">Team Members</CardTitle>
+                    <p className="text-xs sm:text-sm text-gray-600">Add team members who will work on this project</p>
                   </CardHeader>
-                  <CardContent className="space-y-6">
+                  <CardContent className="space-y-4 sm:space-y-6 px-4 sm:px-6">
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700">Available Team Members</Label>
                       <div className="flex flex-wrap gap-2">
@@ -511,10 +518,12 @@ export default function NewProjectPage() {
                             size="sm"
                             onClick={() => addTeamMember(member.id)}
                             disabled={formData.teamMemberIds.includes(member.id)}
-                            className="h-8 px-3"
+                            className="h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm"
                           >
                             <Plus className="h-3 w-3 mr-1" />
-                            {member.name || member.email}
+                            <span className="truncate max-w-20 sm:max-w-none">
+                              {member.name || member.email}
+                            </span>
                           </Button>
                         ))}
                       </div>
@@ -527,9 +536,11 @@ export default function NewProjectPage() {
                           <Label className="text-sm font-medium text-gray-700">Selected Team Members</Label>
                           <div className="flex flex-wrap gap-2">
                             {selectedTeamMembers.map((member) => (
-                              <Badge key={member.id} variant="secondary" className="flex items-center gap-1 h-8 px-3">
+                              <Badge key={member.id} variant="secondary" className="flex items-center gap-1 h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm">
                                 <Users className="h-3 w-3" />
-                                {member.name || member.email}
+                                <span className="truncate max-w-20 sm:max-w-none">
+                                  {member.name || member.email}
+                                </span>
                                 <button
                                   type="button"
                                   onClick={() => removeTeamMember(member.id)}
@@ -548,25 +559,25 @@ export default function NewProjectPage() {
               </TabsContent>
 
               {/* Tasks */}
-              <TabsContent value="tasks" className="space-y-6">
+              <TabsContent value="tasks" className="space-y-4 sm:space-y-6">
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 sm:pb-4 px-4 sm:px-6 gap-3 sm:gap-0">
                     <div>
-                      <CardTitle className="text-xl font-semibold text-gray-900">Project Tasks</CardTitle>
-                      <p className="text-sm text-gray-600">Define the tasks needed to complete this project</p>
+                      <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900">Project Tasks</CardTitle>
+                      <p className="text-xs sm:text-sm text-gray-600">Define the tasks needed to complete this project</p>
                     </div>
-                    <Button type="button" onClick={addTask} variant="outline" size="sm" className="gap-2">
-                      <Plus className="h-4 w-4" />
+                    <Button type="button" onClick={addTask} variant="outline" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm w-full sm:w-auto">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       Add Task
                     </Button>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 px-4 sm:px-6">
                     {formData.tasks.length === 0 ? (
-                      <div className="text-center py-12">
-                        <FileText className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 mb-4">No tasks added yet. Create your first task to get started!</p>
-                        <Button onClick={addTask} className="gap-2">
-                          <Plus className="h-4 w-4" />
+                      <div className="text-center py-8 sm:py-12">
+                        <FileText className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                        <p className="text-sm sm:text-base text-gray-500 mb-3 sm:mb-4">No tasks added yet. Create your first task to get started!</p>
+                        <Button onClick={addTask} className="gap-1 sm:gap-2 text-sm sm:text-base">
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                           Add First Task
                         </Button>
                       </div>
@@ -574,32 +585,32 @@ export default function NewProjectPage() {
                       <div className="space-y-4">
                         {formData.tasks.map((task, index) => (
                           <Card key={task.id} className="border border-gray-200 bg-white">
-                            <CardContent className="p-6">
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
-                                    <span className="text-sm font-medium text-orange-600">{index + 1}</span>
+                            <CardContent className="p-4 sm:p-6">
+                              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                                    <span className="text-xs sm:text-sm font-medium text-orange-600">{index + 1}</span>
                                   </div>
-                                  <h4 className="font-medium text-gray-900">Task {index + 1}</h4>
+                                  <h4 className="font-medium text-gray-900 text-sm sm:text-base">Task {index + 1}</h4>
                                 </div>
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeTask(task.id)}
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <div className="space-y-4">
+                              <div className="space-y-3 sm:space-y-4">
                                 <div className="space-y-2">
                                   <Label className="text-sm font-medium text-gray-700">Title *</Label>
                                   <Input
                                     value={task.title}
                                     onChange={(e) => updateTask(task.id, "title", e.target.value)}
                                     placeholder="Enter task title"
-                                    className="h-10"
+                                    className="h-9 sm:h-10 text-sm sm:text-base"
                                     required
                                   />
                                 </div>
@@ -610,10 +621,10 @@ export default function NewProjectPage() {
                                     onChange={(e) => updateTask(task.id, "description", e.target.value)}
                                     placeholder="Describe what needs to be done"
                                     rows={2}
-                                    className="resize-none"
+                                    className="resize-none text-sm sm:text-base"
                                   />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                                   <div className="space-y-2">
                                     <Label className="text-sm font-medium text-gray-700">Status</Label>
                                     <Select
@@ -622,7 +633,7 @@ export default function NewProjectPage() {
                                         updateTask(task.id, "status", value)
                                       }
                                     >
-                                      <SelectTrigger className="h-10">
+                                      <SelectTrigger className="h-9 sm:h-10 text-sm sm:text-base">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -641,7 +652,7 @@ export default function NewProjectPage() {
                                         updateTask(task.id, "priority", value)
                                       }
                                     >
-                                      <SelectTrigger className="h-10">
+                                      <SelectTrigger className="h-9 sm:h-10 text-sm sm:text-base">
                                         <SelectValue />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -651,13 +662,13 @@ export default function NewProjectPage() {
                                       </SelectContent>
                                     </Select>
                                   </div>
-                                  <div className="space-y-2">
+                                  <div className="space-y-2 sm:col-span-2 lg:col-span-1">
                                     <Label className="text-sm font-medium text-gray-700">Deadline</Label>
                                     <Input
                                       type="date"
                                       value={task.deadline}
                                       onChange={(e) => updateTask(task.id, "deadline", e.target.value)}
-                                      className="h-10"
+                                      className="h-9 sm:h-10 text-sm sm:text-base"
                                     />
                                   </div>
                                 </div>
@@ -667,7 +678,7 @@ export default function NewProjectPage() {
                                     value={task.assigneeId?.toString() || "none"}
                                     onValueChange={(value) => updateTask(task.id, "assigneeId", value === "none" ? undefined : parseInt(value))}
                                   >
-                                    <SelectTrigger className="h-10">
+                                    <SelectTrigger className="h-9 sm:h-10 text-sm sm:text-base">
                                       <SelectValue placeholder="Select assignee" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -691,25 +702,25 @@ export default function NewProjectPage() {
               </TabsContent>
 
               {/* Resources */}
-              <TabsContent value="resources" className="space-y-6">
+              <TabsContent value="resources" className="space-y-4 sm:space-y-6">
                 <Card className="border-0 shadow-sm">
-                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                  <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-3 sm:pb-4 px-4 sm:px-6 gap-3 sm:gap-0">
                     <div>
-                      <CardTitle className="text-xl font-semibold text-gray-900">Project Resources</CardTitle>
-                      <p className="text-sm text-gray-600">Add documents, links, and other resources for this project</p>
+                      <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900">Project Resources</CardTitle>
+                      <p className="text-xs sm:text-sm text-gray-600">Add documents, links, and other resources for this project</p>
                     </div>
-                    <Button type="button" onClick={addResource} variant="outline" size="sm" className="gap-2">
-                      <Plus className="h-4 w-4" />
+                    <Button type="button" onClick={addResource} variant="outline" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm w-full sm:w-auto">
+                      <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       Add Resource
                     </Button>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="space-y-4 px-4 sm:px-6">
                     {formData.resources.length === 0 ? (
-                      <div className="text-center py-12">
-                        <LinkIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                        <p className="text-gray-500 mb-4">No resources added yet. Add documents, links, or files to get started!</p>
-                        <Button onClick={addResource} className="gap-2">
-                          <Plus className="h-4 w-4" />
+                      <div className="text-center py-8 sm:py-12">
+                        <LinkIcon className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
+                        <p className="text-sm sm:text-base text-gray-500 mb-3 sm:mb-4">No resources added yet. Add documents, links, or files to get started!</p>
+                        <Button onClick={addResource} className="gap-1 sm:gap-2 text-sm sm:text-base">
+                          <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                           Add First Resource
                         </Button>
                       </div>
@@ -717,32 +728,32 @@ export default function NewProjectPage() {
                       <div className="space-y-4">
                         {formData.resources.map((resource, index) => (
                           <Card key={resource.id} className="border border-gray-200 bg-white">
-                            <CardContent className="p-6">
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                                    <span className="text-sm font-medium text-blue-600">{index + 1}</span>
+                            <CardContent className="p-4 sm:p-6">
+                              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                                <div className="flex items-center gap-2 sm:gap-3">
+                                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span className="text-xs sm:text-sm font-medium text-blue-600">{index + 1}</span>
                                   </div>
-                                  <h4 className="font-medium text-gray-900">Resource {index + 1}</h4>
+                                  <h4 className="font-medium text-gray-900 text-sm sm:text-base">Resource {index + 1}</h4>
                                 </div>
                                 <Button
                                   type="button"
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => removeResource(resource.id)}
-                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
-                              <div className="space-y-4">
+                              <div className="space-y-3 sm:space-y-4">
                                 <div className="space-y-2">
                                   <Label className="text-sm font-medium text-gray-700">Title *</Label>
                                   <Input
                                     value={resource.title}
                                     onChange={(e) => updateResource(resource.id, "title", e.target.value)}
                                     placeholder="Enter resource title"
-                                    className="h-10"
+                                    className="h-9 sm:h-10 text-sm sm:text-base"
                                     required
                                   />
                                 </div>
@@ -752,7 +763,7 @@ export default function NewProjectPage() {
                                     value={resource.type}
                                     onChange={(e) => updateResource(resource.id, "type", e.target.value)}
                                     placeholder="e.g., Document, Link, File, Spreadsheet"
-                                    className="h-10"
+                                    className="h-9 sm:h-10 text-sm sm:text-base"
                                   />
                                 </div>
                                 <div className="space-y-2">
@@ -762,7 +773,7 @@ export default function NewProjectPage() {
                                     onChange={(e) => updateResource(resource.id, "url", e.target.value)}
                                     placeholder="https://..."
                                     type="url"
-                                    className="h-10"
+                                    className="h-9 sm:h-10 text-sm sm:text-base"
                                   />
                                 </div>
                                 <div className="space-y-2">
@@ -772,7 +783,7 @@ export default function NewProjectPage() {
                                     onChange={(e) => updateResource(resource.id, "description", e.target.value)}
                                     placeholder="Describe what this resource contains"
                                     rows={2}
-                                    className="resize-none"
+                                    className="resize-none text-sm sm:text-base"
                                   />
                                 </div>
                               </div>
@@ -787,13 +798,13 @@ export default function NewProjectPage() {
             </Tabs>
 
             {/* Submit Buttons */}
-            <div className="flex justify-end gap-4 pt-6 border-t bg-white p-6 rounded-lg shadow-sm">
-              <Link href="/dashboard/projects">
-                <Button type="button" variant="outline" className="h-11 px-6">
+            <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-4 sm:pt-6 border-t bg-white p-4 sm:p-6 rounded-lg shadow-sm">
+              <Link href="/dashboard/projects" className="w-full sm:w-auto">
+                <Button type="button" variant="outline" className="h-10 sm:h-11 px-4 sm:px-6 w-full sm:w-auto text-sm sm:text-base">
                   Cancel
                 </Button>
               </Link>
-              <Button type="submit" disabled={isSubmitting || !formData.name} className="h-11 px-8">
+              <Button type="submit" disabled={isSubmitting || !formData.name} className="h-10 sm:h-11 px-6 sm:px-8 w-full sm:w-auto text-sm sm:text-base">
                 {isSubmitting ? (draftProjectId ? "Finalizing Project..." : "Creating Project...") : (draftProjectId ? "Finalize Project" : "Create Project")}
               </Button>
             </div>

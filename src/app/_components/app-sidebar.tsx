@@ -45,12 +45,12 @@ export function AppSidebar() {
         <Sidebar className="border-r">
             <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full">
+                    <div className="flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full flex-shrink-0">
                         <Music className="h-6 w-6 text-white" />
                     </div>
-                    <div>
-                        <h2 className="font-semibold text-gray-800">Pack</h2>
-                        <p className="text-sm text-gray-600">Australia</p>
+                    <div className="min-w-0">
+                        <h2 className="font-semibold text-gray-800 truncate">Pack</h2>
+                        <p className="text-sm text-gray-600 truncate">Australia</p>
                     </div>
                 </div>
             </SidebarHeader>
@@ -69,14 +69,14 @@ export function AppSidebar() {
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton asChild isActive={isActive}>
                                             {item.url === "#" ? (
-                                                <a href={item.url} className="flex items-center gap-3">
-                                                    <item.icon className="h-5 w-5" />
-                                                    <span>{item.title}</span>
+                                                <a href={item.url} className="flex items-center gap-3 w-full touch-target">
+                                                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                                                    <span className="truncate">{item.title}</span>
                                                 </a>
                                             ) : (
-                                                <Link href={item.url} className="flex items-center gap-3">
-                                                    <item.icon className="h-5 w-5" />
-                                                    <span>{item.title}</span>
+                                                <Link href={item.url} className="flex items-center gap-3 w-full touch-target">
+                                                    <item.icon className="h-5 w-5 flex-shrink-0" />
+                                                    <span className="truncate">{item.title}</span>
                                                 </Link>
                                             )}
                                         </SidebarMenuButton>

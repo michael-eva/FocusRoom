@@ -165,85 +165,90 @@ export default function Dashboard() {
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                     <SidebarTrigger />
-                    <h1 className="text-xl font-semibold text-gray-800">Pack Music Australia</h1>
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
+                        <span className="hidden sm:inline">Pack Music Australia</span>
+                        <span className="sm:hidden">Pack Music</span>
+                    </h1>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="ghost" size="icon">
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
                         <Bell className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
                         <User className="h-5 w-5" />
                     </Button>
                 </div>
             </header>
 
-            <main className="flex-1 p-6 bg-gray-50">
-                <div className="max-w-6xl mx-auto space-y-6">
+            <main className="flex-1 p-4 sm:p-6 bg-gray-50">
+                <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
                     {/* Welcome Banner */}
                     <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200">
-                        <CardContent className="p-6">
+                        <CardContent className="p-4 sm:p-6">
                             <div className="flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-800 mb-2">Welcome to the Focus Room!</h2>
-                                    <p className="text-gray-600">Songwriters Showcase - Apr 30</p>
+                                <div className="min-w-0 flex-1 pr-4">
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-2 leading-tight">
+                                        Welcome to the Focus Room!
+                                    </h2>
+                                    <p className="text-sm sm:text-base text-gray-600">Songwriters Showcase - Apr 30</p>
                                 </div>
-                                <div className="flex items-center gap-4 text-orange-400">
-                                    <Music className="h-8 w-8" />
-                                    <Guitar className="h-12 w-12" />
-                                    <Music className="h-6 w-6" />
+                                <div className="flex items-center gap-2 sm:gap-4 text-orange-400 flex-shrink-0">
+                                    <Music className="h-6 w-6 sm:h-8 sm:w-8" />
+                                    <Guitar className="h-8 w-8 sm:h-12 sm:w-12" />
+                                    <Music className="h-4 w-4 sm:h-6 sm:w-6" />
                                 </div>
                             </div>
                         </CardContent>
                     </Card>
 
                     {/* Action Cards */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group"
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95"
                             onClick={() => setIsCreateEventOpen(true)}>
-                            <CardContent className="p-6 text-center">
+                            <CardContent className="p-4 sm:p-6 text-center">
                                 <div className="flex flex-col items-center gap-3">
-                                    <div className="w-12 h-12 bg-orange-500 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors">
-                                        <Calendar className="h-6 w-6 text-white" />
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-orange-500 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors">
+                                        <Calendar className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-800 text-lg mb-1">Create Event</h3>
-                                        <p className="text-sm text-gray-600">Schedule a new event or meeting</p>
+                                        <h3 className="font-semibold text-gray-800 text-base sm:text-lg mb-1">Create Event</h3>
+                                        <p className="text-xs sm:text-sm text-gray-600">Schedule a new event or meeting</p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card
-                            className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group"
+                            className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95"
                             onClick={() => setIsCreatePollOpen(true)}
                         >
-                            <CardContent className="p-6 text-center">
+                            <CardContent className="p-4 sm:p-6 text-center">
                                 <div className="flex flex-col items-center gap-3">
-                                    <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
-                                        <BarChart3 className="h-6 w-6 text-white" />
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-500 rounded-full flex items-center justify-center group-hover:bg-blue-600 transition-colors">
+                                        <BarChart3 className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-800 text-lg mb-1">Create Poll</h3>
-                                        <p className="text-sm text-gray-600">Get feedback from the community</p>
+                                        <h3 className="font-semibold text-gray-800 text-base sm:text-lg mb-1">Create Poll</h3>
+                                        <p className="text-xs sm:text-sm text-gray-600">Get feedback from the community</p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
 
                         <Card
-                            className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group"
+                            className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95 sm:col-span-2 lg:col-span-1"
                             onClick={() => setIsSpotlightOpen(true)}
                         >
-                            <CardContent className="p-6 text-center">
+                            <CardContent className="p-4 sm:p-6 text-center">
                                 <div className="flex flex-col items-center gap-3">
-                                    <div className="w-12 h-12 bg-gray-500 rounded-full flex items-center justify-center group-hover:bg-gray-600 transition-colors">
-                                        <Mic className="h-6 w-6 text-white" />
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-500 rounded-full flex items-center justify-center group-hover:bg-gray-600 transition-colors">
+                                        <Mic className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
                                     </div>
                                     <div>
-                                        <h3 className="font-semibold text-gray-800 text-lg mb-1">Spotlight</h3>
-                                        <p className="text-sm text-gray-600">Share your music or story</p>
+                                        <h3 className="font-semibold text-gray-800 text-base sm:text-lg mb-1">Spotlight</h3>
+                                        <p className="text-xs sm:text-sm text-gray-600">Share your music or story</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -252,30 +257,30 @@ export default function Dashboard() {
 
                     {/* Recent Activity */}
                     <Card>
-                        <CardHeader>
-                            <CardTitle className="text-lg font-semibold text-gray-800">Recent Activity</CardTitle>
+                        <CardHeader className="p-4 sm:p-6">
+                            <CardTitle className="text-base sm:text-lg font-semibold text-gray-800">Recent Activity</CardTitle>
                         </CardHeader>
-                        <CardContent className="space-y-4">
+                        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
                             {activityData.length > 0 ? (
                                 activityData.map((activity) => {
                                     const display = getActivityDisplay(activity);
                                     return (
-                                        <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                                        <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors active:bg-gray-100 cursor-pointer">
                                             <div className="flex-shrink-0 mt-1">
                                                 {display.icon}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-start justify-between">
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-medium text-gray-800">{display.text}</p>
+                                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-gray-800 leading-snug">{display.text}</p>
                                                         {display.title && (
-                                                            <p className="text-sm text-gray-600 mt-1 font-medium">{display.title}</p>
+                                                            <p className="text-sm text-gray-600 mt-1 font-medium truncate">{display.title}</p>
                                                         )}
                                                         {display.content && (
-                                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{display.content}</p>
+                                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{display.content}</p>
                                                         )}
                                                     </div>
-                                                    <span className="text-xs text-gray-400 ml-2 flex-shrink-0">{display.timeAgo}</span>
+                                                    <span className="text-xs text-gray-400 flex-shrink-0 self-start">{display.timeAgo}</span>
                                                 </div>
                                             </div>
                                         </div>

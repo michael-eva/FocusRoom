@@ -123,3 +123,72 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Mobile-optimized utility classes */
+@layer utilities {
+  /* Touch-friendly interactive elements */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+  
+  /* Mobile-first responsive text */
+  .text-mobile-xs {
+    @apply text-xs sm:text-sm;
+  }
+  
+  .text-mobile-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-mobile-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-mobile-lg {
+    @apply text-lg sm:text-xl;
+  }
+  
+  .text-mobile-xl {
+    @apply text-xl sm:text-2xl;
+  }
+  
+  /* Mobile-optimized spacing */
+  .p-mobile {
+    @apply p-4 sm:p-6;
+  }
+  
+  .px-mobile {
+    @apply px-4 sm:px-6;
+  }
+  
+  .py-mobile {
+    @apply py-4 sm:py-6;
+  }
+  
+  .gap-mobile {
+    @apply gap-3 sm:gap-4;
+  }
+  
+  .gap-mobile-lg {
+    @apply gap-4 sm:gap-6;
+  }
+  
+  /* Mobile card grid patterns */
+  .grid-mobile-cards {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .grid-mobile-stats {
+    @apply grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4;
+  }
+  
+  /* Mobile-optimized buttons */
+  .btn-mobile {
+    @apply px-3 py-2 sm:px-4 sm:py-2 text-sm sm:text-base;
+  }
+  
+  /* Mobile-safe truncation */
+  .truncate-mobile {
+    @apply truncate sm:text-clip;
+  }
+}

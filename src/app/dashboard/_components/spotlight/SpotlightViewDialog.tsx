@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { Card, CardContent } from "~/components/ui/card"
@@ -15,6 +16,7 @@ import {
   Globe
 } from "lucide-react"
 import { api } from "~/trpc/react"
+import { useIsMobile } from "~/hooks/use-mobile"
 import type { SpotlightLink, SpotlightStats } from "~/db/types"
 
 interface SpotlightViewDialogProps {
@@ -28,6 +30,7 @@ export function SpotlightViewDialog({
   onClose,
   spotlightId,
 }: SpotlightViewDialogProps) {
+  const isMobile = useIsMobile();
   const [commentContent, setCommentContent] = useState("")
 
   // Fetch spotlight data
@@ -125,49 +128,69 @@ export function SpotlightViewDialog({
     }
   }
 
+  const DialogWrapper = isMobile ? Sheet : Dialog;
+  const DialogContentWrapper = isMobile ? SheetContent : DialogContent;
+  const DialogHeaderWrapper = isMobile ? SheetHeader : DialogHeader;
+  const DialogTitleWrapper = isMobile ? SheetTitle : DialogTitle;
+
+  const dialogProps = isMobile ? {
+    open: isOpen,
+    onOpenChange: onClose,
+  } : {
+    open: isOpen,
+    onOpenChange: onClose,
+  };
+
+  const contentProps = isMobile ? {
+    side: "bottom" as const,
+    className: "max-h-[95vh] overflow-hidden flex flex-col"
+  } : {
+    className: "sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+  };
+
   if (isLoading) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Loading Spotlight...</DialogTitle>
-          </DialogHeader>
+      <DialogWrapper {...dialogProps}>
+        <DialogContentWrapper {...contentProps}>
+          <DialogHeaderWrapper>
+            <DialogTitleWrapper>Loading Spotlight...</DialogTitleWrapper>
+          </DialogHeaderWrapper>
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </DialogContentWrapper>
+      </DialogWrapper>
     )
   }
 
   if (!spotlight) {
     return (
-      <Dialog open={isOpen} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Spotlight Not Found</DialogTitle>
-          </DialogHeader>
+      <DialogWrapper {...dialogProps}>
+        <DialogContentWrapper {...contentProps}>
+          <DialogHeaderWrapper>
+            <DialogTitleWrapper>Spotlight Not Found</DialogTitleWrapper>
+          </DialogHeaderWrapper>
           <div className="text-center py-12">
             <p className="text-gray-600">The requested spotlight could not be found.</p>
           </div>
-        </DialogContent>
-      </Dialog>
+        </DialogContentWrapper>
+      </DialogWrapper>
     )
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <DialogWrapper {...dialogProps}>
+      <DialogContentWrapper {...contentProps}>
+        <DialogHeaderWrapper className={isMobile ? "pb-2" : ""}>
+          <DialogTitleWrapper className={`flex items-center gap-2 ${isMobile ? "text-lg" : ""}`}>
             <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
             Featured {spotlight.type === "musician" ? "Musician" : "Venue"}
             <Badge variant="secondary">Previous Spotlight</Badge>
-          </DialogTitle>
-        </DialogHeader>
+          </DialogTitleWrapper>
+        </DialogHeaderWrapper>
 
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className={`space-y-6 ${isMobile ? "flex-1 overflow-y-auto px-4 pb-4" : ""}`}>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
             {/* Image and Basic Info */}
             <div className="space-y-4">
               <div className="aspect-square rounded-lg overflow-hidden bg-gray-100">
@@ -179,10 +202,10 @@ export function SpotlightViewDialog({
               </div>
 
               <div className="text-center space-y-2">
-                <h3 className="text-xl font-bold text-gray-800">{spotlight.name}</h3>
+                <h3 className="text-lg sm:text-xl font-bold text-gray-800">{spotlight.name}</h3>
                 <p className="text-orange-600 font-medium">{spotlight.title}</p>
 
-                <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-gray-600">
                   {spotlight.location && (
                     <div className="flex items-center gap-1">
                       <MapPin className="h-4 w-4" />
@@ -203,28 +226,28 @@ export function SpotlightViewDialog({
 
             {/* Description and Details */}
             <div className="lg:col-span-2 space-y-4">
-              <p className="text-gray-700 leading-relaxed">{spotlight.description}</p>
+              <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{spotlight.description}</p>
 
               {/* Stats */}
               {(spotlight.stats as SpotlightStats) && (
-                <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-lg sm:text-2xl font-bold text-orange-600">
                       {(spotlight.stats as SpotlightStats).monthlyListeners || "N/A"}
                     </div>
-                    <div className="text-sm text-gray-600">Monthly Listeners</div>
+                    <div className="text-xs sm:text-sm text-gray-600">Monthly Listeners</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-lg sm:text-2xl font-bold text-orange-600">
                       {(spotlight.stats as SpotlightStats).followers || "N/A"}
                     </div>
-                    <div className="text-sm text-gray-600">Followers</div>
+                    <div className="text-xs sm:text-sm text-gray-600">Followers</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-orange-600">
+                    <div className="text-lg sm:text-2xl font-bold text-orange-600">
                       {(spotlight.stats as SpotlightStats).upcomingShows || "N/A"}
                     </div>
-                    <div className="text-sm text-gray-600">Upcoming Shows</div>
+                    <div className="text-xs sm:text-sm text-gray-600">Upcoming Shows</div>
                   </div>
                 </div>
               )}
@@ -260,8 +283,8 @@ export function SpotlightViewDialog({
 
           {/* Engagement Section */}
           <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4">
                 <h4 className="font-semibold text-gray-800">Community Engagement</h4>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
                   <div className="flex items-center gap-1">
@@ -298,7 +321,7 @@ export function SpotlightViewDialog({
                     placeholder="Add a comment..."
                     value={commentContent}
                     onChange={(e) => setCommentContent(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
                     rows={3}
                   />
                   <div className="flex justify-end">
@@ -315,7 +338,7 @@ export function SpotlightViewDialog({
                         }
                       }}
                       disabled={!commentContent.trim()}
-                      className="bg-orange-500 hover:bg-orange-600"
+                      className="bg-orange-500 hover:bg-orange-600 text-sm sm:text-base"
                     >
                       Post Comment
                     </Button>
@@ -325,18 +348,18 @@ export function SpotlightViewDialog({
                 {/* Comments List */}
                 <div className="space-y-3 max-h-60 overflow-y-auto">
                   {comments.length === 0 ? (
-                    <p className="text-gray-500 text-center py-4">No comments yet. Be the first to comment!</p>
+                    <p className="text-gray-500 text-center py-4 text-sm">No comments yet. Be the first to comment!</p>
                   ) : (
                     comments.map((comment) => (
                       <div key={comment.id} className="p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
                             <span className="text-orange-600 font-medium text-sm">
                               {comment.user?.name?.charAt(0) || "U"}
                             </span>
                           </div>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-1">
                               <span className="font-medium text-sm text-gray-800">
                                 {comment.user?.name || "Anonymous"}
                               </span>
@@ -355,7 +378,7 @@ export function SpotlightViewDialog({
             </CardContent>
           </Card>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DialogContentWrapper>
+    </DialogWrapper>
   )
 } 

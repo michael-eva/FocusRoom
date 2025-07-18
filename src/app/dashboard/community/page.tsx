@@ -245,68 +245,96 @@ export default function CommunityPage() {
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                     <SidebarTrigger />
-                    <h1 className="text-xl font-semibold text-gray-800">Community Feed</h1>
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
+                        <span className="hidden sm:inline">Community Feed</span>
+                        <span className="sm:hidden">Community</span>
+                    </h1>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Button variant="outline" onClick={() => setIsCreatePollOpen(true)}>
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Create Poll
-                    </Button>
-                    <Button
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
-                        onClick={() => setIsCreateEventOpen(true)}
-                    >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Event
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                        <Bell className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                        <User className="h-5 w-5" />
-                    </Button>
+                <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
+                    {/* Mobile: Show only essential buttons */}
+                    <div className="hidden sm:flex items-center gap-3">
+                        <Button variant="outline" onClick={() => setIsCreatePollOpen(true)}>
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Create Poll
+                        </Button>
+                        <Button
+                            className="bg-orange-500 hover:bg-orange-600 text-white"
+                            onClick={() => setIsCreateEventOpen(true)}
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Create Event
+                        </Button>
+                    </div>
+                    
+                    {/* Mobile: Compact action buttons */}
+                    <div className="sm:hidden flex items-center gap-1">
+                        <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsCreatePollOpen(true)}
+                            className="px-2"
+                        >
+                            <BarChart3 className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white px-2"
+                            onClick={() => setIsCreateEventOpen(true)}
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    
+                    <div className="hidden sm:flex items-center gap-3">
+                        <Button variant="ghost" size="icon">
+                            <Bell className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon">
+                            <User className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
             </header>
 
             {/* Main Content */}
-            <main className="flex-1 p-6 bg-gray-50">
-                <div className="max-w-4xl mx-auto space-y-6">
-                    {/* Community Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <main className="flex-1 p-4 sm:p-6 bg-gray-50">
+                <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
+                    {/* Community Stats - Condensed for mobile */}
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <Card>
-                            <CardContent className="p-4 text-center">
-                                <Users className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                                <p className="text-2xl font-bold">{userCount}</p>
-                                <p className="text-sm text-gray-600">Members</p>
+                            <CardContent className="p-3 sm:p-4 text-center">
+                                <Users className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-blue-500" />
+                                <p className="text-xl sm:text-2xl font-bold">{userCount}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">Members</p>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardContent className="p-4 text-center">
-                                <Calendar className="h-6 w-6 mx-auto mb-2 text-green-500" />
-                                <p className="text-2xl font-bold">{feedPosts.filter(post => post.type === 'event').length}</p>
-                                <p className="text-sm text-gray-600">Events This Month</p>
+                            <CardContent className="p-3 sm:p-4 text-center">
+                                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-green-500" />
+                                <p className="text-xl sm:text-2xl font-bold">{feedPosts.filter(post => post.type === 'event').length}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">Events This Month</p>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardContent className="p-4 text-center">
-                                <MessageSquare className="h-6 w-6 mx-auto mb-2 text-purple-500" />
-                                <p className="text-2xl font-bold">{commentCount}</p>
-                                <p className="text-sm text-gray-600">Active Discussions</p>
+                            <CardContent className="p-3 sm:p-4 text-center">
+                                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-purple-500" />
+                                <p className="text-xl sm:text-2xl font-bold">{commentCount}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">Active Discussions</p>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardContent className="p-4 text-center">
-                                <BarChart3 className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                                <p className="text-2xl font-bold">{pollCount}</p>
-                                <p className="text-sm text-gray-600">Active Polls</p>
+                            <CardContent className="p-3 sm:p-4 text-center">
+                                <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-orange-500" />
+                                <p className="text-xl sm:text-2xl font-bold">{pollCount}</p>
+                                <p className="text-xs sm:text-sm text-gray-600">Active Polls</p>
                             </CardContent>
                         </Card>
                     </div>
 
                     {/* Feed Posts */}
-                    <div className="space-y-6">
+                    <div className="space-y-4 sm:space-y-6">
                         {feedPosts.map((post) => (
                             <Card key={post.id} className="hover:shadow-md transition-shadow">
                                 <CardHeader className="pb-4">

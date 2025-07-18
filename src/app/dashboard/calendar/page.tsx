@@ -4,7 +4,7 @@ import { useState, useCallback } from "react"
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
-import { ChevronLeft, ChevronRight, Plus, Bell, User, RefreshCw } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Bell, User, RefreshCw, Calendar } from "lucide-react"
 import { CreateEventDialog, type EventFormData } from "~/app/dashboard/community/_components/CreateEventDialog"
 import { EventDetailsDialog } from "~/app/dashboard/calendar/_components/EventDetailsDialog"
 import { EditEventDialog } from "~/app/dashboard/calendar/_components/EditEventDialog"
@@ -45,6 +45,7 @@ export default function CalendarPage() {
     const [selectedEvent, setSelectedEvent] = useState<LocalEvent | null>(null);
     const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
     const [isEditEventOpen, setIsEditEventOpen] = useState(false);
+    const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
 
     const utils = api.useUtils();
 
@@ -206,51 +207,73 @@ export default function CalendarPage() {
 
     return (
         <>
-            <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center gap-4">
+            <header className="flex items-center justify-between p-3 sm:p-4 border-b bg-white">
+                <div className="flex items-center gap-2 sm:gap-4">
                     <SidebarTrigger />
-                    <h1 className="text-xl font-semibold text-gray-800">Calendar & Events</h1>
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800">Calendar & Events</h1>
                     {localEventsFetching && (
-                        <div className="flex items-center gap-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
+                        <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
                             <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
                             <span>Loading events...</span>
                         </div>
                     )}
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     <Button
-                        className="bg-orange-500 hover:bg-orange-600 text-white"
+                        className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base px-2 sm:px-4"
                         onClick={() => setIsCreateEventOpen(true)}
                     >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Create Event
+                        <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+                        <span className="hidden sm:inline">Create Event</span>
+                        <span className="sm:hidden">Add</span>
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="hidden sm:flex">
                         <Bell className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="hidden sm:flex">
                         <User className="h-5 w-5" />
                     </Button>
                 </div>
             </header>
 
-            <main className="flex-1 p-6 bg-gray-50 overflow-auto">
+            <main className="flex-1 p-3 sm:p-6 bg-gray-50 overflow-auto">
                 <div className="max-w-7xl mx-auto">
                     <Card className="h-full">
-                        <CardContent className="p-6 h-full">
+                        <CardContent className="p-3 sm:p-6 h-full">
                             {/* Calendar Header */}
-                            <div className="flex items-center justify-between mb-6">
-                                <h2 className="text-2xl font-bold text-gray-800">
-                                    {MONTHS[month]} {year}
-                                </h2>
-                                <div className="flex items-center gap-2">
-                                    <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-3">
+                                <div className="flex items-center justify-between sm:justify-start">
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
+                                        {MONTHS[month]} {year}
+                                    </h2>
+                                    {/* Mobile view toggle */}
+                                    <div className="flex sm:hidden gap-1">
+                                        <Button
+                                            variant={viewMode === "calendar" ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setViewMode("calendar")}
+                                            className="px-2"
+                                        >
+                                            <Calendar className="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant={viewMode === "list" ? "default" : "outline"}
+                                            size="sm"
+                                            onClick={() => setViewMode("list")}
+                                            className="px-2"
+                                        >
+                                            List
+                                        </Button>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1 sm:gap-2">
+                                    <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} className="h-8 w-8 sm:h-10 sm:w-10">
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="outline" onClick={() => setCurrentDate(new Date())}>
+                                    <Button variant="outline" onClick={() => setCurrentDate(new Date())} className="text-sm px-2 sm:px-4">
                                         Today
                                     </Button>
-                                    <Button variant="outline" size="icon" onClick={() => navigateMonth("next")}>
+                                    <Button variant="outline" size="icon" onClick={() => navigateMonth("next")} className="h-8 w-8 sm:h-10 sm:w-10">
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>
                                     <Button
@@ -261,85 +284,177 @@ export default function CalendarPage() {
                                         }}
                                         disabled={localEventsFetching}
                                         title="Refresh events"
+                                        className="h-8 w-8 sm:h-10 sm:w-10"
                                     >
                                         <RefreshCw className={`h-4 w-4 ${localEventsFetching ? 'animate-spin' : ''}`} />
                                     </Button>
                                 </div>
                             </div>
 
-                            {/* Calendar Grid */}
-                            <div className="grid grid-cols-7 gap-1 h-full">
-                                {/* Day Headers */}
-                                {DAYS.map((day) => (
-                                    <div key={day} className="p-3 text-center font-semibold text-gray-600 border-b">
-                                        {day}
-                                    </div>
-                                ))}
+                            {/* Loading indicator for mobile */}
+                            {localEventsFetching && (
+                                <div className="flex sm:hidden items-center justify-center gap-2 py-4 bg-blue-50 text-blue-700 rounded-lg mb-4">
+                                    <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                    <span className="text-sm">Loading events...</span>
+                                </div>
+                            )}
 
-                                {/* Calendar Days */}
-                                {calendarDays.map((day, index) => (
-                                    <div
-                                        key={index}
-                                        className={`min-h-[120px] p-2 border border-gray-200 bg-white hover:bg-gray-50 transition-colors ${day ? "cursor-pointer" : ""
-                                            }`}
-                                    >
-                                        {day && (
-                                            <>
-                                                <div
-                                                    className={`text-sm font-medium mb-1 ${isToday(day)
-                                                        ? "bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center"
-                                                        : "text-gray-700"
-                                                        }`}
-                                                >
-                                                    {day}
-                                                </div>
+                            {/* Calendar Grid - Hidden on mobile when in list view */}
+                            {viewMode === "calendar" && (
+                                <div className="grid grid-cols-7 gap-1 h-full">
+                                    {/* Day Headers */}
+                                    {DAYS.map((day) => (
+                                        <div key={day} className="p-2 sm:p-3 text-center font-semibold text-gray-600 border-b text-xs sm:text-sm">
+                                            {day}
+                                        </div>
+                                    ))}
 
-                                                {/* Events for this day */}
-                                                <div className="space-y-1">
-                                                    {getEventsForDate(day).map((event) => (
-                                                        <div
-                                                            key={event.id}
-                                                            className={`text-xs p-1 rounded truncate relative group cursor-pointer hover:shadow-md transition-shadow border-l-2 ${event.userRSVP?.status === "attending"
-                                                                ? "bg-green-100 text-green-800 border-green-500 hover:bg-green-200"
-                                                                : event.userRSVP?.status === "maybe"
-                                                                    ? "bg-yellow-100 text-yellow-800 border-yellow-500 hover:bg-yellow-200"
-                                                                    : event.userRSVP?.status === "declined"
-                                                                        ? "bg-red-100 text-red-800 border-red-500 hover:bg-red-200"
-                                                                        : "bg-blue-100 text-blue-800 border-blue-500 hover:bg-blue-200"
-                                                                }`}
-                                                            title={`${event.title}${event.location ? ` - ${event.location}` : ''}${!event.allDay ? ` at ${formatTime(event.startDateTime)}` : ''
-                                                                }${event.userRSVP ? ` (RSVP: ${event.userRSVP.status})` : ''}`}
-                                                            onClick={() => handleEventClick(event)}
-                                                        >
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="truncate flex-1">
-                                                                    {!event.allDay && (
-                                                                        <span className="inline-block w-3 h-3 mr-1">🕐</span>
-                                                                    )}
-                                                                    {event.title}
-                                                                </span>
-                                                                {event.userRSVP && (
-                                                                    <span className="ml-1 text-xs font-medium">
-                                                                        {event.userRSVP.status === "attending" && "✓"}
-                                                                        {event.userRSVP.status === "maybe" && "?"}
-                                                                        {event.userRSVP.status === "declined" && "✗"}
+                                    {/* Calendar Days */}
+                                    {calendarDays.map((day, index) => (
+                                        <div
+                                            key={index}
+                                            className={`min-h-[80px] sm:min-h-[120px] p-1 sm:p-2 border border-gray-200 bg-white hover:bg-gray-50 transition-colors ${day ? "cursor-pointer" : ""
+                                                }`}
+                                        >
+                                            {day && (
+                                                <>
+                                                    <div
+                                                        className={`text-xs sm:text-sm font-medium mb-1 ${isToday(day)
+                                                            ? "bg-orange-500 text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center"
+                                                            : "text-gray-700"
+                                                            }`}
+                                                    >
+                                                        {day}
+                                                    </div>
+
+                                                    {/* Events for this day */}
+                                                    <div className="space-y-1">
+                                                        {getEventsForDate(day).map((event) => (
+                                                            <div
+                                                                key={event.id}
+                                                                className={`text-xs p-1 rounded truncate relative group cursor-pointer hover:shadow-md transition-shadow border-l-2 ${event.userRSVP?.status === "attending"
+                                                                    ? "bg-green-100 text-green-800 border-green-500 hover:bg-green-200"
+                                                                    : event.userRSVP?.status === "maybe"
+                                                                        ? "bg-yellow-100 text-yellow-800 border-yellow-500 hover:bg-yellow-200"
+                                                                        : event.userRSVP?.status === "declined"
+                                                                            ? "bg-red-100 text-red-800 border-red-500 hover:bg-red-200"
+                                                                            : "bg-blue-100 text-blue-800 border-blue-500 hover:bg-blue-200"
+                                                                    }`}
+                                                                title={`${event.title}${event.location ? ` - ${event.location}` : ''}${!event.allDay ? ` at ${formatTime(event.startDateTime)}` : ''
+                                                                    }${event.userRSVP ? ` (RSVP: ${event.userRSVP.status})` : ''}`}
+                                                                onClick={() => handleEventClick(event)}
+                                                            >
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="truncate flex-1">
+                                                                        {!event.allDay && (
+                                                                            <span className="inline-block w-2 h-2 sm:w-3 sm:h-3 mr-1">🕐</span>
+                                                                        )}
+                                                                        <span className="hidden sm:inline">{event.title}</span>
+                                                                        <span className="sm:hidden">{event.title.length > 8 ? event.title.substring(0, 8) + '...' : event.title}</span>
                                                                     </span>
+                                                                    {event.userRSVP && (
+                                                                        <span className="ml-1 text-xs font-medium">
+                                                                            {event.userRSVP.status === "attending" && "✓"}
+                                                                            {event.userRSVP.status === "maybe" && "?"}
+                                                                            {event.userRSVP.status === "declined" && "✗"}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {event.location && (
+                                                                    <div className="hidden sm:flex items-center text-xs opacity-75 mt-1">
+                                                                        <span className="inline-block w-3 h-3 mr-1">📍</span>
+                                                                        <span className="truncate">{event.location}</span>
+                                                                    </div>
                                                                 )}
                                                             </div>
-                                                            {event.location && (
-                                                                <div className="flex items-center text-xs opacity-75 mt-1">
-                                                                    <span className="inline-block w-3 h-3 mr-1">📍</span>
-                                                                    <span className="truncate">{event.location}</span>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* List View - Mobile optimized */}
+                            {viewMode === "list" && (
+                                <div className="space-y-3">
+                                    <div className="text-lg font-semibold text-gray-800 mb-4">
+                                        Events for {MONTHS[month]} {year}
+                                    </div>
+                                    {localEvents.length === 0 ? (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                                            <p>No events scheduled for this month</p>
+                                            <Button
+                                                className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
+                                                onClick={() => setIsCreateEventOpen(true)}
+                                            >
+                                                <Plus className="h-4 w-4 mr-2" />
+                                                Create Event
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-3">
+                                            {localEvents
+                                                .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime())
+                                                .map((event) => (
+                                                    <div
+                                                        key={event.id}
+                                                        className={`p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${event.userRSVP?.status === "attending"
+                                                            ? "bg-green-50 border-green-500 hover:bg-green-100"
+                                                            : event.userRSVP?.status === "maybe"
+                                                                ? "bg-yellow-50 border-yellow-500 hover:bg-yellow-100"
+                                                                : event.userRSVP?.status === "declined"
+                                                                    ? "bg-red-50 border-red-500 hover:bg-red-100"
+                                                                    : "bg-blue-50 border-blue-500 hover:bg-blue-100"
+                                                            }`}
+                                                        onClick={() => handleEventClick(event)}
+                                                    >
+                                                        <div className="flex items-start justify-between">
+                                                            <div className="flex-1">
+                                                                <h3 className="font-semibold text-gray-900 mb-1">{event.title}</h3>
+                                                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                                                    <div className="flex items-center gap-1">
+                                                                        <span className="text-gray-400">📅</span>
+                                                                        <span>{new Date(event.startDateTime).toLocaleDateString()}</span>
+                                                                    </div>
+                                                                    {!event.allDay && (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-gray-400">🕐</span>
+                                                                            <span>{formatTime(event.startDateTime)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {event.location && (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-gray-400">📍</span>
+                                                                            <span className="truncate">{event.location}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                {event.description && (
+                                                                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
+                                                                )}
+                                                            </div>
+                                                            {event.userRSVP && (
+                                                                <div className="ml-2">
+                                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${event.userRSVP.status === "attending" ? "bg-green-100 text-green-800" :
+                                                                        event.userRSVP.status === "maybe" ? "bg-yellow-100 text-yellow-800" :
+                                                                            "bg-red-100 text-red-800"
+                                                                        }`}>
+                                                                        {event.userRSVP.status === "attending" && "✓ Attending"}
+                                                                        {event.userRSVP.status === "maybe" && "? Maybe"}
+                                                                        {event.userRSVP.status === "declined" && "✗ Declined"}
+                                                                    </span>
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </CardContent>
                     </Card>
                 </div>

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/u
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { Check, X, HelpCircle } from "lucide-react"
+import { useScrollLock } from "~/hooks/use-scroll-lock"
 
 interface RSVPDialogProps {
   isOpen: boolean
@@ -43,6 +44,9 @@ const RSVP_OPTIONS = [
 
 export function RSVPDialog({ isOpen, onClose, onRSVP, eventTitle, currentStatus }: RSVPDialogProps) {
   const [selectedStatus, setSelectedStatus] = useState<"attending" | "maybe" | "declined" | null>(currentStatus || null)
+
+  // Lock scroll when dialog is open
+  useScrollLock(isOpen)
 
   const handleSubmit = () => {
     if (selectedStatus) {

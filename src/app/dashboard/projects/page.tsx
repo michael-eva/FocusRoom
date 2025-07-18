@@ -71,70 +71,73 @@ export default function ProjectsPage() {
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                     <SidebarTrigger />
-                    <h1 className="text-xl font-semibold text-gray-800">Projects & Tasks</h1>
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
+                        <span className="hidden sm:inline">Projects & Tasks</span>
+                        <span className="sm:hidden">Projects</span>
+                    </h1>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     <Link href="/dashboard/projects/new">
-                        <Button className="bg-orange-500 hover:bg-orange-600 text-white">
-                            <Plus className="h-4 w-4 mr-2" />
-                            New Project
+                        <Button className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base px-3 sm:px-4 py-2">
+                            <Plus className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">New Project</span>
                         </Button>
                     </Link>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
                         <Bell className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
                         <User className="h-5 w-5" />
                     </Button>
                 </div>
             </header>
 
-            <main className="flex-1 p-6 bg-gray-50">
-                <div className="max-w-7xl mx-auto space-y-6">
+            <main className="flex-1 p-4 sm:p-6 bg-gray-50">
+                <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
                     {/* Projects Overview */}
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                         <Card>
-                            <CardContent className="p-4">
+                            <CardContent className="p-3 sm:p-4">
                                 <div className="flex items-center gap-2">
-                                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Active Projects</p>
-                                        <p className="text-2xl font-bold">{activeProjects}</p>
+                                    <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
+                                    <div className="min-w-0">
+                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Active Projects</p>
+                                        <p className="text-xl sm:text-2xl font-bold leading-tight">{activeProjects}</p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardContent className="p-4">
+                            <CardContent className="p-3 sm:p-4">
                                 <div className="flex items-center gap-2">
-                                    <Clock className="h-5 w-5 text-orange-500" />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Total Tasks</p>
-                                        <p className="text-2xl font-bold">{totalTasks}</p>
+                                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 text-orange-500" />
+                                    <div className="min-w-0">
+                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Total Tasks</p>
+                                        <p className="text-xl sm:text-2xl font-bold leading-tight">{totalTasks}</p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardContent className="p-4">
+                            <CardContent className="p-3 sm:p-4">
                                 <div className="flex items-center gap-2">
-                                    <Users className="h-5 w-5 text-blue-500" />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Team Members</p>
-                                        <p className="text-2xl font-bold">{uniqueTeamMembers}</p>
+                                    <Users className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500" />
+                                    <div className="min-w-0">
+                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Team Members</p>
+                                        <p className="text-xl sm:text-2xl font-bold leading-tight">{uniqueTeamMembers}</p>
                                     </div>
                                 </div>
                             </CardContent>
                         </Card>
                         <Card>
-                            <CardContent className="p-4">
+                            <CardContent className="p-3 sm:p-4">
                                 <div className="flex items-center gap-2">
-                                    <Calendar className="h-5 w-5 text-purple-500" />
-                                    <div>
-                                        <p className="text-sm text-gray-600">Due This Week</p>
-                                        <p className="text-2xl font-bold">{tasksDueThisWeek}</p>
+                                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500" />
+                                    <div className="min-w-0">
+                                        <p className="text-xs sm:text-sm text-gray-600 truncate">Due This Week</p>
+                                        <p className="text-xl sm:text-2xl font-bold leading-tight">{tasksDueThisWeek}</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -142,22 +145,22 @@ export default function ProjectsPage() {
                     </div>
 
                     {/* Projects Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                         {projects.map((project) => (
                             <Link key={project.id} href={`/dashboard/projects/${project.id}`}>
-                                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full">
-                                    <CardHeader className="pb-3">
-                                        <div className="flex items-start justify-between">
-                                            <CardTitle className="text-lg font-semibold text-gray-800 line-clamp-2">
+                                <Card className="hover:shadow-lg transition-shadow cursor-pointer h-full active:scale-95">
+                                    <CardHeader className="p-4 sm:p-6 pb-3">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 line-clamp-2 leading-tight">
                                                 {project.name}
                                             </CardTitle>
-                                            <div className="flex gap-1">
-                                                <Badge className={getPriorityColor(project.priority)}>{project.priority}</Badge>
+                                            <div className="flex gap-1 flex-shrink-0">
+                                                <Badge className={`${getPriorityColor(project.priority)} text-xs`}>{project.priority}</Badge>
                                             </div>
                                         </div>
-                                        <p className="text-sm text-gray-600 line-clamp-2">{project.description}</p>
+                                        <p className="text-xs sm:text-sm text-gray-600 line-clamp-2 leading-relaxed">{project.description}</p>
                                     </CardHeader>
-                                    <CardContent className="space-y-4">
+                                    <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
                                         {/* Progress Bar */}
                                         <div>
                                             <div className="flex justify-between text-sm mb-1">

@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { Checkbox } from "~/components/ui/checkbox"
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet"
+import { useIsMobile } from "~/hooks/use-mobile"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
@@ -21,7 +23,7 @@ import { EditTaskDialog } from "../_components/EditTaskDialog"
 import { ActivitySection } from "../_components/ActivitySection"
 import { DeleteConfirmationDialog } from "../_components/DeleteConfirmationDialog"
 import { ProjectSettingsDropdown } from "../_components/ProjectSettingsDropdown"
-import { AddResourceForm } from "../_components/AddResourceForm"
+
 import { EditProjectDialog } from "../../_components/EditProjectDialog"
 import { api } from "~/trpc/react"
 import { toast } from "sonner"
@@ -381,126 +383,148 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
     return (
         <>
-            <header className="flex items-center justify-between p-6 border-b bg-white shadow-sm">
-                <div className="flex items-center gap-4">
+            <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                     <SidebarTrigger />
                     <Link href="/dashboard/projects">
-                        <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                        <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-100">
                             <ArrowLeft className="h-5 w-5" />
                         </Button>
                     </Link>
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
-                        <p className="text-sm text-gray-600 mt-1">{project.description}</p>
+                    <div className="min-w-0 flex-1">
+                        <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{project.name}</h1>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate hidden sm:block">{project.description}</p>
                     </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <Dialog open={isAddTaskDialogOpen} onOpenChange={setIsAddTaskDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button className="bg-orange-500 hover:bg-orange-600 text-white gap-2">
-                                <Plus className="h-4 w-4" />
-                                Add Task
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Add New Task</DialogTitle>
-                            </DialogHeader>
-                            <AddTaskForm onSubmit={handleCreateTask} teamMembers={allUsers || []} />
-                        </DialogContent>
-                    </Dialog>
-                    <Dialog open={isAddResourceDialogOpen} onOpenChange={setIsAddResourceDialogOpen}>
-                        <DialogTrigger asChild>
-                            <Button variant="outline" className="gap-2">
-                                <Plus className="h-4 w-4" />
-                                Add Resource
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Add New Resource</DialogTitle>
-                            </DialogHeader>
-                            <AddResourceForm onSubmit={handleCreateResource} />
-                        </DialogContent>
-                    </Dialog>
-                    {canEditProject && (
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                    {/* Mobile: Show menu button, Desktop: Show all buttons */}
+                    <div className="hidden sm:flex items-center gap-3">
                         <Button
+                            onClick={() => setIsAddTaskDialogOpen(true)}
+                            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+                        >
+                            <Plus className="h-4 w-4" />
+                            Add Task
+                        </Button>
+                        <Button
+                            onClick={() => setIsAddResourceDialogOpen(true)}
                             variant="outline"
-                            onClick={() => setIsEditProjectDialogOpen(true)}
                             className="gap-2"
                         >
-                            <Edit className="h-4 w-4" />
-                            Edit Project
+                            <Plus className="h-4 w-4" />
+                            Add Resource
                         </Button>
-                    )}
+                        {canEditProject && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setIsEditProjectDialogOpen(true)}
+                                className="gap-2"
+                            >
+                                <Edit className="h-4 w-4" />
+                                Edit Project
+                            </Button>
+                        )}
+                    </div>
+
+                    {/* Mobile: Compact actions */}
+                    <div className="sm:hidden flex items-center gap-2">
+                        <Button
+                            size="sm"
+                            className="bg-orange-500 hover:bg-orange-600 text-white"
+                            onClick={() => setIsAddTaskDialogOpen(true)}
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setIsAddResourceDialogOpen(true)}
+                        >
+                            <LinkIcon className="h-4 w-4" />
+                        </Button>
+                    </div>
+
                     <ProjectSettingsDropdown
                         onDelete={() => setIsDeleteProjectDialogOpen(true)}
                         isLoading={deleteProjectMutation.isPending}
                     />
-                    <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-                        <Bell className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-                        <User className="h-5 w-5" />
-                    </Button>
+                    <div className="hidden sm:flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                            <Bell className="h-5 w-5" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="hover:bg-gray-100">
+                            <User className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
             </header>
-            <main className="flex-1 p-8 bg-gray-50">
-                <div className="max-w-7xl mx-auto space-y-8">
+            <main className="flex-1 p-4 sm:p-8 bg-gray-50">
+                <div className="max-w-7xl mx-auto space-y-4 sm:space-y-8">
                     {/* Project Overview */}
                     <Card className="border-0 shadow-sm">
-                        <CardContent className="p-8">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                        <CardContent className="p-4 sm:p-8">
+                            {/* Mobile: Show project description here since it's hidden in header */}
+                            <div className="sm:hidden mb-4">
+                                <p className="text-sm text-gray-600">{project.description}</p>
+                            </div>
+
+                            {/* Mobile: Stack vertically, Desktop: 4 columns */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
                                 <div className="space-y-3">
-                                    <h3 className="font-semibold text-gray-900 text-lg">Progress</h3>
+                                    <h3 className="font-semibold text-gray-900 text-base sm:text-lg">Progress</h3>
                                     <div className="space-y-2">
                                         <div className="flex items-center gap-3">
-                                            <div className="flex-1 bg-gray-200 rounded-full h-3">
+                                            <div className="flex-1 bg-gray-200 rounded-full h-2 sm:h-3">
                                                 <div
-                                                    className="bg-orange-500 h-3 rounded-full transition-all duration-300"
+                                                    className="bg-orange-500 h-2 sm:h-3 rounded-full transition-all duration-300"
                                                     style={{ width: `${project.progress}%` }}
                                                 ></div>
                                             </div>
-                                            <span className="text-lg font-bold text-gray-900">{project.progress}%</span>
+                                            <span className="text-lg sm:text-lg font-bold text-gray-900">{project.progress}%</span>
                                         </div>
-                                        <p className="text-sm text-gray-600">
+                                        <p className="text-xs sm:text-sm text-gray-600">
                                             {completedTasks} of {totalTasks} tasks completed
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <h3 className="font-semibold text-gray-900 text-lg">Deadline</h3>
+                                    <h3 className="font-semibold text-gray-900 text-base sm:text-lg">Deadline</h3>
                                     <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                                            <Calendar className="h-5 w-5 text-red-600" />
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-red-600" />
                                         </div>
-                                        <div>
-                                            <p className="font-medium text-gray-900">{new Date(project.deadline!).toLocaleDateString()}</p>
-                                            <p className="text-sm text-gray-600">Project deadline</p>
+                                        <div className="min-w-0">
+                                            <p className="font-medium text-gray-900 text-sm sm:text-base truncate">{new Date(project.deadline!).toLocaleDateString()}</p>
+                                            <p className="text-xs sm:text-sm text-gray-600">Project deadline</p>
                                         </div>
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <h3 className="font-semibold text-gray-900 text-lg">Team</h3>
+                                    <h3 className="font-semibold text-gray-900 text-base sm:text-lg">Team</h3>
                                     <div className="flex items-center gap-3">
-                                        <div className="flex -space-x-2">
-                                            {project.teamMembers.map((member) => (
-                                                <Avatar key={member?.id} className="w-8 h-8 border-2 border-white shadow-sm">
+                                        <div className="flex -space-x-1 sm:-space-x-2">
+                                            {project.teamMembers.slice(0, 4).map((member) => (
+                                                <Avatar key={member?.id} className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-white shadow-sm">
                                                     <AvatarFallback className="bg-orange-500 text-white text-xs font-medium">
                                                         {member?.avatar || (member?.name?.charAt(0) || "?")}
                                                     </AvatarFallback>
                                                 </Avatar>
                                             ))}
+                                            {project.teamMembers.length > 4 && (
+                                                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white">
+                                                    +{project.teamMembers.length - 4}
+                                                </div>
+                                            )}
                                         </div>
-                                        <span className="text-sm text-gray-600">{project.teamMembers.length} members</span>
+                                        <span className="text-xs sm:text-sm text-gray-600">{project.teamMembers.length} members</span>
                                     </div>
                                 </div>
 
                                 <div className="space-y-3">
-                                    <h3 className="font-semibold text-gray-900 text-lg">Status</h3>
-                                    <Badge className={`${getStatusColor(project.status ?? null)} px-3 py-1 text-sm font-medium`}>
+                                    <h3 className="font-semibold text-gray-900 text-base sm:text-lg">Status</h3>
+                                    <Badge className={`${getStatusColor(project.status ?? null)} px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium`}>
                                         {project.status}
                                     </Badge>
                                 </div>
@@ -509,28 +533,32 @@ export default function ProjectDetailPage({ params }: PageProps) {
                     </Card>
 
                     {/* Tabs */}
-                    <Tabs defaultValue="tasks" className="space-y-6">
-                        <TabsList className="grid w-full grid-cols-3 h-12 bg-white shadow-sm">
-                            <TabsTrigger value="tasks" className="flex items-center gap-2">
-                                <FileText className="h-4 w-4" />
-                                Tasks ({totalTasks})
+                    <Tabs defaultValue="tasks" className="space-y-4 sm:space-y-6">
+                        <TabsList className="grid w-full grid-cols-3 h-10 sm:h-12 bg-white shadow-sm">
+                            <TabsTrigger value="tasks" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <span className="hidden sm:inline">Tasks ({totalTasks})</span>
+                                <span className="sm:hidden">Tasks</span>
                             </TabsTrigger>
-                            <TabsTrigger value="resources" className="flex items-center gap-2">
-                                <LinkIcon className="h-4 w-4" />
-                                Resources ({project.resources?.length || 0})
+                            <TabsTrigger value="resources" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <LinkIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <span className="hidden sm:inline">Resources ({project.resources?.length || 0})</span>
+                                <span className="sm:hidden">Resources</span>
                             </TabsTrigger>
-                            <TabsTrigger value="activity" className="flex items-center gap-2">
-                                <Calendar className="h-4 w-4" />
-                                Activity
+                            <TabsTrigger value="activity" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                                <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                                <span className="hidden sm:inline">Activity</span>
+                                <span className="sm:hidden">Activity</span>
                             </TabsTrigger>
                         </TabsList>
 
                         <TabsContent value="tasks" className="space-y-4">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-lg font-semibold text-gray-900">Project Tasks</h3>
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+                                <h3 className="text-base sm:text-lg font-semibold text-gray-900">Project Tasks</h3>
                                 <Button
                                     onClick={() => setIsAddTaskDialogOpen(true)}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
+                                    className="bg-orange-500 hover:bg-orange-600 text-white gap-2 self-start sm:self-auto"
+                                    size="sm"
                                 >
                                     <Plus className="h-4 w-4" />
                                     Add Task
@@ -539,44 +567,45 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
                             {project.tasks.length === 0 ? (
                                 <Card className="border-0 shadow-sm">
-                                    <CardContent className="p-12 text-center">
-                                        <FileText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No tasks yet</h3>
-                                        <p className="text-gray-500 mb-6">Create your first task to get started with this project!</p>
-                                        <Button onClick={() => setIsAddTaskDialogOpen(true)} className="gap-2">
+                                    <CardContent className="p-6 sm:p-12 text-center">
+                                        <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
+                                        <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No tasks yet</h3>
+                                        <p className="text-sm text-gray-500 mb-4 sm:mb-6">Create your first task to get started with this project!</p>
+                                        <Button onClick={() => setIsAddTaskDialogOpen(true)} className="gap-2" size="sm">
                                             <Plus className="h-4 w-4" />
                                             Add First Task
                                         </Button>
                                     </CardContent>
                                 </Card>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-3 sm:space-y-4">
                                     {project.tasks.map((task) => (
                                         <Card key={task.id} className="border border-gray-200 bg-white hover:shadow-md transition-shadow">
-                                            <CardContent className="p-6">
-                                                <div className="flex items-start gap-4">
+                                            <CardContent className="p-4 sm:p-6">
+                                                <div className="flex items-start gap-3 sm:gap-4">
                                                     <Checkbox
                                                         checked={task.status === "completed"}
                                                         onCheckedChange={(checked) => handleTaskStatusChange(task.id, checked as boolean)}
-                                                        className="mt-1"
+                                                        className="mt-1 flex-shrink-0"
                                                     />
-                                                    <div className="flex-1 space-y-4">
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="space-y-1">
+                                                    <div className="flex-1 space-y-3 sm:space-y-4 min-w-0">
+                                                        {/* Title and controls row */}
+                                                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                                            <div className="min-w-0 flex-1">
                                                                 <h4
-                                                                    className={`text-lg font-medium ${task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"}`}
+                                                                    className={`text-base sm:text-lg font-medium leading-tight ${task.status === "completed" ? "line-through text-gray-500" : "text-gray-900"
+                                                                        }`}
                                                                 >
                                                                     {task.title}
                                                                 </h4>
-                                                                {task.description && (
-                                                                    <p className="text-gray-600">{task.description}</p>
-                                                                )}
                                                             </div>
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0">
                                                                 {task.priority && (
                                                                     <Badge className={`${getPriorityColor(task.priority)} px-2 py-1 text-xs font-medium flex items-center gap-1`}>
                                                                         {getPriorityIcon(task.priority)}
-                                                                        {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                                                                        <span className="truncate">
+                                                                            {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
+                                                                        </span>
                                                                     </Badge>
                                                                 )}
                                                                 <Select
@@ -588,7 +617,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                         })
                                                                     }
                                                                 >
-                                                                    <SelectTrigger className="w-32 h-8">
+                                                                    <SelectTrigger className="w-28 sm:w-32 h-8 text-xs">
                                                                         <SelectValue />
                                                                     </SelectTrigger>
                                                                     <SelectContent>
@@ -601,16 +630,23 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                             </div>
                                                         </div>
 
-                                                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                                                            <div className="flex items-center gap-6">
+                                                        {/* Description spans full width */}
+                                                        {task.description && (
+                                                            <div className="w-full">
+                                                                <p className="text-sm text-gray-600 line-clamp-2">{task.description}</p>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-gray-100 gap-3 sm:gap-6">
+                                                            <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
                                                                 {task.assignee ? (
                                                                     <div className="flex items-center gap-2">
-                                                                        <Avatar className="w-6 h-6">
+                                                                        <Avatar className="w-5 h-5 sm:w-6 sm:h-6">
                                                                             <AvatarFallback className="bg-orange-500 text-white text-xs">
                                                                                 {task.assignee.avatar || task.assignee.name?.charAt(0)}
                                                                             </AvatarFallback>
                                                                         </Avatar>
-                                                                        <span className="text-sm text-gray-600">{task.assignee.name}</span>
+                                                                        <span className="text-xs sm:text-sm text-gray-600 truncate">{task.assignee.name}</span>
                                                                     </div>
                                                                 ) : (
                                                                     <Button
@@ -620,7 +656,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                             setSelectedTask(task)
                                                                             setIsAssignDialogOpen(true)
                                                                         }}
-                                                                        className="gap-2"
+                                                                        className="gap-2 h-8 px-2 sm:px-3 text-xs"
                                                                     >
                                                                         <Users className="h-3 w-3" />
                                                                         Assign
@@ -628,20 +664,20 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                 )}
 
                                                                 {task.deadline && (
-                                                                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                                                                        <Calendar className="h-4 w-4" />
-                                                                        Due {new Date(task.deadline).toLocaleDateString()}
+                                                                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                        <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                                        <span className="truncate">Due {new Date(task.deadline).toLocaleDateString()}</span>
                                                                     </div>
                                                                 )}
                                                                 {task.completedAt && (
-                                                                    <div className="flex items-center gap-2 text-sm text-green-600">
-                                                                        <CheckCircle2 className="h-4 w-4" />
-                                                                        Completed {new Date(task.completedAt).toLocaleDateString()}
+                                                                    <div className="flex items-center gap-2 text-xs text-green-600">
+                                                                        <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                                        <span className="truncate">Completed {new Date(task.completedAt).toLocaleDateString()}</span>
                                                                     </div>
                                                                 )}
                                                             </div>
 
-                                                            <div className="flex items-center gap-2">
+                                                            <div className="flex items-center gap-2 sm:gap-3">
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="sm"
@@ -649,10 +685,10 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                         setTaskToEdit(task)
                                                                         setIsEditTaskDialogOpen(true)
                                                                     }}
-                                                                    className="gap-2"
+                                                                    className="gap-1 sm:gap-2 h-8 px-2 sm:px-3 text-xs"
                                                                 >
-                                                                    <Edit className="h-4 w-4" />
-                                                                    Edit
+                                                                    <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                                    <span className="hidden sm:inline">Edit</span>
                                                                 </Button>
                                                                 <Button
                                                                     variant="ghost"
@@ -661,14 +697,14 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                         setTaskToDelete(task)
                                                                         setIsDeleteTaskDialogOpen(true)
                                                                     }}
-                                                                    className="gap-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                                                    className="gap-1 sm:gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2 sm:px-3 text-xs"
                                                                 >
-                                                                    <Trash2 className="h-4 w-4" />
-                                                                    Delete
+                                                                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                                    <span className="hidden sm:inline">Delete</span>
                                                                 </Button>
-                                                                <Button variant="ghost" size="sm" className="gap-2">
-                                                                    <Mail className="h-4 w-4" />
-                                                                    Notify
+                                                                <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 h-8 px-2 sm:px-3 text-xs hidden sm:flex">
+                                                                    <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
+                                                                    <span className="hidden sm:inline">Notify</span>
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -761,11 +797,327 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 onUpdate={handleUpdateProject}
                 isLoading={updateProjectMutation.isPending}
             />
+
+            <AddTaskDialog
+                isOpen={isAddTaskDialogOpen}
+                onClose={() => setIsAddTaskDialogOpen(false)}
+                onSubmit={handleCreateTask}
+                teamMembers={allUsers || []}
+            />
+
+            <AddResourceDialog
+                isOpen={isAddResourceDialogOpen}
+                onClose={() => setIsAddResourceDialogOpen(false)}
+                onSubmit={handleCreateResource}
+            />
         </>
     )
 }
 
-// Add Task Form Component
+function AddTaskDialog({
+    isOpen,
+    onClose,
+    onSubmit,
+    teamMembers
+}: {
+    isOpen: boolean
+    onClose: () => void
+    onSubmit: (data: any) => void
+    teamMembers: any[]
+}) {
+    const isMobile = useIsMobile();
+
+    const [formData, setFormData] = useState({
+        title: "",
+        description: "",
+        status: "pending" as "pending" | "in-progress" | "completed" | "overdue",
+        priority: "medium" as "low" | "medium" | "high",
+        deadline: "",
+        assigneeId: "",
+    })
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        onSubmit({
+            ...formData,
+            assigneeId: formData.assigneeId ? parseInt(formData.assigneeId) : undefined,
+        })
+        // Reset form
+        setFormData({
+            title: "",
+            description: "",
+            status: "pending",
+            priority: "medium",
+            deadline: "",
+            assigneeId: "",
+        })
+        onClose()
+    }
+
+    const DialogWrapper = isMobile ? Sheet : Dialog;
+    const DialogContentWrapper = isMobile ? SheetContent : DialogContent;
+    const DialogHeaderWrapper = isMobile ? SheetHeader : DialogHeader;
+    const DialogTitleWrapper = isMobile ? SheetTitle : DialogTitle;
+
+    const dialogProps = isMobile ? {
+        open: isOpen,
+        onOpenChange: onClose,
+    } : {
+        open: isOpen,
+        onOpenChange: onClose,
+    };
+
+    const contentProps = isMobile ? {
+        side: "bottom" as const,
+        className: "max-h-[95vh] overflow-hidden flex flex-col"
+    } : {
+        className: "overflow-hidden flex flex-col max-w-md"
+    };
+
+    return (
+        <DialogWrapper {...dialogProps}>
+            <DialogContentWrapper {...contentProps}>
+                <DialogHeaderWrapper>
+                    <DialogTitleWrapper>Add New Task</DialogTitleWrapper>
+                </DialogHeaderWrapper>
+
+                <div className="flex-1 overflow-y-auto px-6">
+                    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="title" className="text-sm font-medium text-gray-700">Title *</Label>
+                            <Input
+                                id="title"
+                                value={formData.title}
+                                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Enter task title"
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description" className="text-sm font-medium text-gray-700">Description</Label>
+                            <Textarea
+                                id="description"
+                                value={formData.description}
+                                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                placeholder="Describe what needs to be done"
+                                rows={3}
+                                className="resize-none text-sm sm:text-base"
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
+                                <Select
+                                    value={formData.status}
+                                    onValueChange={(value: "pending" | "in-progress" | "completed" | "overdue") =>
+                                        setFormData(prev => ({ ...prev, status: value }))
+                                    }
+                                >
+                                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="pending">Pending</SelectItem>
+                                        <SelectItem value="in-progress">In Progress</SelectItem>
+                                        <SelectItem value="completed">Completed</SelectItem>
+                                        <SelectItem value="overdue">Overdue</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="priority" className="text-sm font-medium text-gray-700">Priority</Label>
+                                <Select
+                                    value={formData.priority}
+                                    onValueChange={(value: "low" | "medium" | "high") =>
+                                        setFormData(prev => ({ ...prev, priority: value }))
+                                    }
+                                >
+                                    <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="low">Low</SelectItem>
+                                        <SelectItem value="medium">Medium</SelectItem>
+                                        <SelectItem value="high">High</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="deadline" className="text-sm font-medium text-gray-700">Deadline</Label>
+                            <Input
+                                id="deadline"
+                                type="date"
+                                value={formData.deadline}
+                                onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="assignee" className="text-sm font-medium text-gray-700">Assignee</Label>
+                            <Select
+                                value={formData.assigneeId || "none"}
+                                onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value === "none" ? "" : value }))}
+                            >
+                                <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
+                                    <SelectValue placeholder="Select assignee" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="none">No assignee</SelectItem>
+                                    {teamMembers.map((member) => (
+                                        <SelectItem key={member.id} value={member.id.toString()}>
+                                            {member.name || member.email}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </form>
+                </div>
+
+                <div className="flex justify-end gap-2 py-4 border-t px-6">
+                    <Button type="button" variant="outline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={!formData.title}
+                        onClick={handleSubmit}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
+                    >
+                        Create Task
+                    </Button>
+                </div>
+            </DialogContentWrapper>
+        </DialogWrapper>
+    )
+}
+
+function AddResourceDialog({
+    isOpen,
+    onClose,
+    onSubmit
+}: {
+    isOpen: boolean
+    onClose: () => void
+    onSubmit: (data: any) => void
+}) {
+    const isMobile = useIsMobile();
+
+    const [formData, setFormData] = useState({
+        title: "",
+        type: "",
+        url: "",
+        description: "",
+    })
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        onSubmit(formData)
+        // Reset form
+        setFormData({
+            title: "",
+            type: "",
+            url: "",
+            description: "",
+        })
+        onClose()
+    }
+
+    const DialogWrapper = isMobile ? Sheet : Dialog;
+    const DialogContentWrapper = isMobile ? SheetContent : DialogContent;
+    const DialogHeaderWrapper = isMobile ? SheetHeader : DialogHeader;
+    const DialogTitleWrapper = isMobile ? SheetTitle : DialogTitle;
+
+    const dialogProps = isMobile ? {
+        open: isOpen,
+        onOpenChange: onClose,
+    } : {
+        open: isOpen,
+        onOpenChange: onClose,
+    };
+
+    const contentProps = isMobile ? {
+        side: "bottom" as const,
+        className: "max-h-[95vh] overflow-hidden flex flex-col"
+    } : {
+        className: "overflow-hidden flex flex-col max-w-md"
+    };
+
+    return (
+        <DialogWrapper {...dialogProps}>
+            <DialogContentWrapper {...contentProps}>
+                <DialogHeaderWrapper>
+                    <DialogTitleWrapper>Add New Resource</DialogTitleWrapper>
+                </DialogHeaderWrapper>
+
+                <div className="flex-1 overflow-y-auto px-6">
+                    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="title" className="text-sm font-medium text-gray-700">Title *</Label>
+                            <Input
+                                id="title"
+                                value={formData.title}
+                                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Enter resource title"
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="type" className="text-sm font-medium text-gray-700">Type</Label>
+                            <Input
+                                id="type"
+                                value={formData.type}
+                                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                                placeholder="e.g., Document, Link, File, Spreadsheet"
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="url" className="text-sm font-medium text-gray-700">URL</Label>
+                            <Input
+                                id="url"
+                                value={formData.url}
+                                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                                placeholder="https://..."
+                                type="url"
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description" className="text-sm font-medium text-gray-700">Description</Label>
+                            <Textarea
+                                id="description"
+                                value={formData.description}
+                                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                placeholder="Describe what this resource contains"
+                                rows={3}
+                                className="resize-none text-sm sm:text-base"
+                            />
+                        </div>
+                    </form>
+                </div>
+
+                <div className="flex justify-end gap-2 py-4 border-t px-6">
+                    <Button type="button" variant="outline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={!formData.title}
+                        onClick={handleSubmit}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
+                    >
+                        Create Resource
+                    </Button>
+                </div>
+            </DialogContentWrapper>
+        </DialogWrapper>
+    )
+}
+
 function AddTaskForm({ onSubmit, teamMembers }: { onSubmit: (data: any) => void, teamMembers: any[] }) {
     const [formData, setFormData] = useState({
         title: "",
@@ -785,7 +1137,7 @@ function AddTaskForm({ onSubmit, teamMembers }: { onSubmit: (data: any) => void,
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
                 <Label htmlFor="title" className="text-sm font-medium text-gray-700">Title *</Label>
                 <Input
@@ -808,7 +1160,7 @@ function AddTaskForm({ onSubmit, teamMembers }: { onSubmit: (data: any) => void,
                     className="resize-none"
                 />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="status" className="text-sm font-medium text-gray-700">Status</Label>
                     <Select
@@ -876,8 +1228,8 @@ function AddTaskForm({ onSubmit, teamMembers }: { onSubmit: (data: any) => void,
                     </SelectContent>
                 </Select>
             </div>
-            <div className="flex justify-end gap-3 pt-4">
-                <Button type="submit" disabled={!formData.title} className="h-10 px-6">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+                <Button type="submit" disabled={!formData.title} className="h-10 px-6 w-full sm:w-auto">
                     Create Task
                 </Button>
             </div>

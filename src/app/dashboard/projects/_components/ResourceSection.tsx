@@ -5,8 +5,12 @@ import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { ExternalLink, FileText, Plus, LinkIcon, Trash2 } from "lucide-react"
 import { api } from "~/trpc/react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "~/components/ui/dialog"
-import { AddResourceForm } from "./AddResourceForm"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet"
+import { useIsMobile } from "~/hooks/use-mobile"
+import { Input } from "~/components/ui/input"
+import { Label } from "~/components/ui/label"
+import { Textarea } from "~/components/ui/textarea"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -35,6 +39,129 @@ const getTypeIcon = (type: string | null) => {
         default:
             return <LinkIcon className="h-4 w-4" />
     }
+}
+
+function AddResourceDialog({
+    isOpen,
+    onClose,
+    onSubmit
+}: {
+    isOpen: boolean
+    onClose: () => void
+    onSubmit: (data: any) => void
+}) {
+    const isMobile = useIsMobile();
+    const [formData, setFormData] = useState({
+        title: "",
+        type: "",
+        url: "",
+        description: "",
+    })
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault()
+        onSubmit(formData)
+        // Reset form
+        setFormData({
+            title: "",
+            type: "",
+            url: "",
+            description: "",
+        })
+        onClose()
+    }
+
+    const DialogWrapper = isMobile ? Sheet : Dialog;
+    const DialogContentWrapper = isMobile ? SheetContent : DialogContent;
+    const DialogHeaderWrapper = isMobile ? SheetHeader : DialogHeader;
+    const DialogTitleWrapper = isMobile ? SheetTitle : DialogTitle;
+
+    const dialogProps = isMobile ? {
+        open: isOpen,
+        onOpenChange: onClose,
+    } : {
+        open: isOpen,
+        onOpenChange: onClose,
+    };
+
+    const contentProps = isMobile ? {
+        side: "bottom" as const,
+        className: "max-h-[95vh] overflow-hidden flex flex-col"
+    } : {
+        className: "overflow-hidden flex flex-col max-w-md"
+    };
+
+    return (
+        <DialogWrapper {...dialogProps}>
+            <DialogContentWrapper {...contentProps}>
+                <DialogHeaderWrapper>
+                    <DialogTitleWrapper>Add New Resource</DialogTitleWrapper>
+                </DialogHeaderWrapper>
+
+                <div className="flex-1 overflow-y-auto px-6">
+                    <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+                        <div className="space-y-2">
+                            <Label htmlFor="title" className="text-sm font-medium text-gray-700">Title *</Label>
+                            <Input
+                                id="title"
+                                value={formData.title}
+                                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                                placeholder="Enter resource title"
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="type" className="text-sm font-medium text-gray-700">Type</Label>
+                            <Input
+                                id="type"
+                                value={formData.type}
+                                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                                placeholder="e.g., Document, Link, File, Spreadsheet"
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="url" className="text-sm font-medium text-gray-700">URL</Label>
+                            <Input
+                                id="url"
+                                value={formData.url}
+                                onChange={(e) => setFormData(prev => ({ ...prev, url: e.target.value }))}
+                                placeholder="https://..."
+                                type="url"
+                                className="h-10 sm:h-11 text-sm sm:text-base"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="description" className="text-sm font-medium text-gray-700">Description</Label>
+                            <Textarea
+                                id="description"
+                                value={formData.description}
+                                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                                placeholder="Describe what this resource contains"
+                                rows={3}
+                                className="resize-none text-sm sm:text-base"
+                            />
+                        </div>
+                    </form>
+                </div>
+
+                <div className="flex justify-end gap-2 py-4 border-t px-6">
+                    <Button type="button" variant="outline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        disabled={!formData.title}
+                        onClick={handleSubmit}
+                        className="h-10 sm:h-11 text-sm sm:text-base"
+                    >
+                        Create Resource
+                    </Button>
+                </div>
+            </DialogContentWrapper>
+        </DialogWrapper>
+    )
 }
 
 export function ResourcesSection({ projectId, onDeleteResource }: ResourcesSectionProps) {
@@ -96,21 +223,20 @@ export function ResourcesSection({ projectId, onDeleteResource }: ResourcesSecti
     return (
         <div className="space-y-4">
             <div className="flex justify-end">
-                <Dialog open={isAddResourceDialogOpen} onOpenChange={setIsAddResourceDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button className="gap-2 bg-orange-500 hover:bg-orange-600 text-white">
-                            <Plus className="h-4 w-4" />
-                            Add Resource
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Add New Resource</DialogTitle>
-                        </DialogHeader>
-                        <AddResourceForm onSubmit={handleCreateResource} />
-                    </DialogContent>
-                </Dialog>
+                <Button
+                    onClick={() => setIsAddResourceDialogOpen(true)}
+                    className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+                >
+                    <Plus className="h-4 w-4" />
+                    Add Resource
+                </Button>
             </div>
+
+            <AddResourceDialog
+                isOpen={isAddResourceDialogOpen}
+                onClose={() => setIsAddResourceDialogOpen(false)}
+                onSubmit={handleCreateResource}
+            />
 
             {projectResources.length === 0 ? (
                 <Card className="border-0 shadow-sm">
@@ -118,7 +244,10 @@ export function ResourcesSection({ projectId, onDeleteResource }: ResourcesSecti
                         <LinkIcon className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">No resources yet</h3>
                         <p className="text-gray-500 mb-6">Add your first resource to get started with this project!</p>
-                        <Button className="gap-2">
+                        <Button
+                            onClick={() => setIsAddResourceDialogOpen(true)}
+                            className="gap-2"
+                        >
                             <Plus className="h-4 w-4" />
                             Add First Resource
                         </Button>

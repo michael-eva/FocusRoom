@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet"
 import { Button } from "~/components/ui/button"
 import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
 import { Calendar, Clock, MapPin, Link, Mail, CalendarPlus, Edit } from "lucide-react"
+import { useIsMobile } from "~/hooks/use-mobile"
 
 interface LocalEvent {
     id: number;
@@ -41,6 +43,7 @@ export function EditEventDialog({
     onClose,
     onUpdateEvent,
 }: EditEventDialogProps) {
+    const isMobile = useIsMobile();
     const [formData, setFormData] = useState({
         title: "",
         description: "",
@@ -85,137 +88,165 @@ export function EditEventDialog({
         setFormData((prev) => ({ ...prev, [field]: value }));
     };
 
+    const DialogWrapper = isMobile ? Sheet : Dialog;
+    const DialogContentWrapper = isMobile ? SheetContent : DialogContent;
+    const DialogHeaderWrapper = isMobile ? SheetHeader : DialogHeader;
+    const DialogTitleWrapper = isMobile ? SheetTitle : DialogTitle;
+
+    const dialogProps = isMobile ? {
+        open: isOpen,
+        onOpenChange: onClose,
+    } : {
+        open: isOpen,
+        onOpenChange: onClose,
+    };
+
+    const contentProps = isMobile ? {
+        side: "bottom" as const,
+        className: "max-h-[95vh] overflow-hidden flex flex-col"
+    } : {
+        className: "sm:max-w-lg"
+    };
+
     if (!event) return null;
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-lg">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
+        <DialogWrapper {...dialogProps}>
+            <DialogContentWrapper {...contentProps}>
+                <DialogHeaderWrapper>
+                    <DialogTitleWrapper className="flex items-center gap-2">
                         <Edit className="h-5 w-5" />
                         Edit Event
-                    </DialogTitle>
-                </DialogHeader>
+                    </DialogTitleWrapper>
+                </DialogHeaderWrapper>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="title">Event Title *</Label>
-                        <Input
-                            id="title"
-                            placeholder="e.g., Team Meeting, Workshop, Conference"
-                            value={formData.title}
-                            onChange={(e) => handleChange("title", e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea
-                            id="description"
-                            placeholder="Describe your event, agenda, or what participants can expect..."
-                            value={formData.description}
-                            onChange={(e) => handleChange("description", e.target.value)}
-                            className="min-h-[100px]"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
+                <form id="edit-event-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6">
+                    <div className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="date">Date *</Label>
+                            <Label htmlFor="title">Event Title *</Label>
+                            <Input
+                                id="title"
+                                placeholder="e.g., Team Meeting, Workshop, Conference"
+                                value={formData.title}
+                                onChange={(e) => handleChange("title", e.target.value)}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="description">Description</Label>
+                            <Textarea
+                                id="description"
+                                placeholder="Describe your event, agenda, or what participants can expect..."
+                                value={formData.description}
+                                onChange={(e) => handleChange("description", e.target.value)}
+                                className="min-h-[100px]"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="date">Date *</Label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        id="date"
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => handleChange("date", e.target.value)}
+                                        className="pl-10"
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="time">Time *</Label>
+                                <div className="relative">
+                                    <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                    <Input
+                                        id="time"
+                                        type="time"
+                                        value={formData.time}
+                                        onChange={(e) => handleChange("time", e.target.value)}
+                                        className="pl-10"
+                                        required
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="location">Location</Label>
                             <div className="relative">
-                                <Calendar className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <Input
-                                    id="date"
-                                    type="date"
-                                    value={formData.date}
-                                    onChange={(e) => handleChange("date", e.target.value)}
+                                    id="location"
+                                    placeholder="e.g., Conference Room A, Zoom, Melbourne CBD"
+                                    value={formData.location}
+                                    onChange={(e) => handleChange("location", e.target.value)}
                                     className="pl-10"
-                                    required
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="time">Time *</Label>
+                            <Label htmlFor="rsvpLink">RSVP Link (optional)</Label>
                             <div className="relative">
-                                <Clock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Link className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <Input
-                                    id="time"
-                                    type="time"
-                                    value={formData.time}
-                                    onChange={(e) => handleChange("time", e.target.value)}
+                                    id="rsvpLink"
+                                    type="url"
+                                    placeholder="https://example.com/rsvp"
+                                    value={formData.rsvpLink}
+                                    onChange={(e) => handleChange("rsvpLink", e.target.value)}
                                     className="pl-10"
-                                    required
                                 />
                             </div>
                         </div>
-                    </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="location">Location</Label>
-                        <div className="relative">
-                            <MapPin className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input
-                                id="location"
-                                placeholder="e.g., Conference Room A, Zoom, Melbourne CBD"
-                                value={formData.location}
-                                onChange={(e) => handleChange("location", e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                    </div>
+                        {/* Event Status Info */}
+                        <div className="space-y-3 p-4 rounded-lg border-2 bg-gray-50 border-gray-200">
+                            <div className="flex items-center gap-2">
+                                <CalendarPlus className="h-5 w-5 text-gray-600" />
+                                <h3 className="font-medium text-gray-800">Event Status</h3>
+                            </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="rsvpLink">RSVP Link (optional)</Label>
-                        <div className="relative">
-                            <Link className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                            <Input
-                                id="rsvpLink"
-                                type="url"
-                                placeholder="https://example.com/rsvp"
-                                value={formData.rsvpLink}
-                                onChange={(e) => handleChange("rsvpLink", e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                    </div>
-
-                    {/* Event Status Info */}
-                    <div className="space-y-3 p-4 rounded-lg border-2 bg-gray-50 border-gray-200">
-                        <div className="flex items-center gap-2">
-                            <CalendarPlus className="h-5 w-5 text-gray-600" />
-                            <h3 className="font-medium text-gray-800">Event Status</h3>
-                        </div>
-
-                        <div className="space-y-2">
-                            <div className="text-sm text-green-700 bg-green-100 p-2 rounded">
-                                📋 This is a local FocusRoom event.
+                            <div className="space-y-2">
+                                <div className="text-sm text-green-700 bg-green-100 p-2 rounded">
+                                    📋 This is a local FocusRoom event.
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
-                        <Mail className="h-4 w-4 text-blue-600" />
-                        <p className="text-sm text-blue-800">
-                            Your changes will be saved to your local calendar.
-                        </p>
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={onClose}>
-                            Cancel
-                        </Button>
-                        <Button
-                            type="submit"
-                            className="bg-orange-500 hover:bg-orange-600"
-                            disabled={!formData.title || !formData.date || !formData.time}
-                        >
-                            Save Changes
-                        </Button>
+                        <div className="flex items-center gap-2 p-3 bg-blue-50 rounded-lg">
+                            <Mail className="h-4 w-4 text-blue-600" />
+                            <p className="text-sm text-blue-800">
+                                Changes will be saved immediately to your local calendar.
+                            </p>
+                        </div>
                     </div>
                 </form>
-            </DialogContent>
-        </Dialog>
+
+                {/* Action Buttons */}
+                <div className="flex items-center gap-2 p-6 border-t">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClose}
+                        className="flex-1"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        form="edit-event-form"
+                        className="flex-1"
+                    >
+                        Save Changes
+                    </Button>
+                </div>
+            </DialogContentWrapper>
+        </DialogWrapper>
     );
 }
