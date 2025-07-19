@@ -41,7 +41,7 @@ interface ProjectFormData {
   status: "planning" | "active" | "completed" | "on-hold"
   priority: "low" | "medium" | "high"
   deadline: string
-  teamMemberIds: number[]
+  teamMemberIds: string[]
   tasks: Task[]
   resources: Resource[]
 }
@@ -264,7 +264,7 @@ export default function NewProjectPage() {
     toast.success("Form cleared!")
   }
 
-  const addTeamMember = (teamMemberId: number) => {
+  const addTeamMember = (teamMemberId: string) => {
     if (!formData.teamMemberIds.includes(teamMemberId)) {
       setFormData(prev => ({
         ...prev,
@@ -273,7 +273,7 @@ export default function NewProjectPage() {
     }
   }
 
-  const removeTeamMember = (teamMemberId: number) => {
+  const removeTeamMember = (teamMemberId: string) => {
     setFormData(prev => ({
       ...prev,
       teamMemberIds: prev.teamMemberIds.filter(id => id !== teamMemberId)
@@ -341,7 +341,7 @@ export default function NewProjectPage() {
     }))
   }
 
-  const selectedTeamMembers = teamMembers?.filter(member =>
+  const selectedTeamMembers = teamMembers?.data?.filter(member =>
     formData.teamMemberIds.includes(member.id)
   ) || []
 
@@ -510,7 +510,7 @@ export default function NewProjectPage() {
                     <div className="space-y-3">
                       <Label className="text-sm font-medium text-gray-700">Available Team Members</Label>
                       <div className="flex flex-wrap gap-2">
-                        {teamMembers?.map((member) => (
+                        {teamMembers?.data.map((member) => (
                           <Button
                             key={member.id}
                             type="button"
@@ -522,7 +522,7 @@ export default function NewProjectPage() {
                           >
                             <Plus className="h-3 w-3 mr-1" />
                             <span className="truncate max-w-20 sm:max-w-none">
-                              {member.name || member.email}
+                              {member.firstName || member.emailAddresses?.[0]?.emailAddress}
                             </span>
                           </Button>
                         ))}
@@ -539,7 +539,7 @@ export default function NewProjectPage() {
                               <Badge key={member.id} variant="secondary" className="flex items-center gap-1 h-7 sm:h-8 px-2 sm:px-3 text-xs sm:text-sm">
                                 <Users className="h-3 w-3" />
                                 <span className="truncate max-w-20 sm:max-w-none">
-                                  {member.name || member.email}
+                                  {member.firstName || member.emailAddresses?.[0]?.emailAddress}
                                 </span>
                                 <button
                                   type="button"
@@ -685,7 +685,7 @@ export default function NewProjectPage() {
                                       <SelectItem value="none">No assignee</SelectItem>
                                       {selectedTeamMembers.map((member) => (
                                         <SelectItem key={member.id} value={member.id.toString()}>
-                                          {member.name || member.email}
+                                          {member.firstName || member.emailAddresses?.[0]?.emailAddress}
                                         </SelectItem>
                                       ))}
                                     </SelectContent>

@@ -25,29 +25,9 @@ export default function SettingsPage() {
   // In the future, this would come from the current user's context or URL params
   const currentProjectId = 1
 
-  // Get team members for the current project
-  const { data: teamMembers = [], refetch: refetchTeamMembers } = api.users.getTeamMembers.useQuery(
-    { projectId: currentProjectId },
-    {
-      staleTime: 30 * 1000, // 30 seconds
-    }
-  )
-
-  // Get admins for the current project
-  const { data: admins = [] } = api.users.getByRole.useQuery(
-    { projectId: currentProjectId, role: "admin" },
-    {
-      staleTime: 30 * 1000,
-    }
-  )
-
-  // Get members for the current project
-  const { data: members = [] } = api.users.getByRole.useQuery(
-    { projectId: currentProjectId, role: "member" },
-    {
-      staleTime: 30 * 1000,
-    }
-  )
+  const { data: users, refetch: refetchUsers } = api.users.getAll.useQuery();
+  const admins = users?.data.filter((user) => user.publicMetadata.role === "admin");
+  const { data: pendingInvitations = [] } = api.users.getPendingInvitations.useQuery()
 
   // Mutations
   const inviteMutation = api.users.inviteToProject.useMutation({
@@ -55,7 +35,7 @@ export default function SettingsPage() {
       setIsInviteDialogOpen(false)
       setInviteEmail("")
       setInviteRole("member")
-      void refetchTeamMembers()
+      void refetchUsers()
     },
   })
 
@@ -63,13 +43,13 @@ export default function SettingsPage() {
     onSuccess: () => {
       setIsEditDialogOpen(false)
       setEditingMember(null)
-      void refetchTeamMembers()
+      void refetchUsers()
     },
   })
 
   const removeMemberMutation = api.users.removeFromProject.useMutation({
     onSuccess: () => {
-      void refetchTeamMembers()
+      void refetchUsers()
     },
   })
 
@@ -89,12 +69,11 @@ export default function SettingsPage() {
     }
   }
 
-  const handleUpdateRole = async (newRole: "admin" | "member" | "moderator") => {
+  const handleUpdateRole = async (newRole: "admin" | "member") => {
     if (!editingMember) return
 
     try {
       await updateRoleMutation.mutateAsync({
-        projectId: currentProjectId,
         teamMemberId: editingMember.id,
         role: newRole,
       })
@@ -103,7 +82,7 @@ export default function SettingsPage() {
     }
   }
 
-  const handleRemoveMember = async (teamMemberId: number) => {
+  const handleRemoveMember = async (teamMemberId: string) => {
     if (!confirm("Are you sure you want to remove this member from the team?")) return
 
     try {
@@ -141,6 +120,7 @@ export default function SettingsPage() {
         return <User className="h-4 w-4" />
     }
   }
+  console.log(editingMember);
 
   return (
     <>
@@ -257,28 +237,28 @@ export default function SettingsPage() {
             <Card>
               <CardContent className="p-4 text-center">
                 <Users className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                <p className="text-2xl font-bold">{teamMembers.length}</p>
+                <p className="text-2xl font-bold">{users?.totalCount}</p>
                 <p className="text-sm text-gray-600">Total Members</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
                 <Shield className="h-6 w-6 mx-auto mb-2 text-red-500" />
-                <p className="text-2xl font-bold">{admins.length}</p>
+                <p className="text-2xl font-bold">{admins?.length}</p>
                 <p className="text-sm text-gray-600">Admins</p>
               </CardContent>
             </Card>
-            <Card>
+            {/* <Card>
               <CardContent className="p-4 text-center">
                 <Users className="h-6 w-6 mx-auto mb-2 text-blue-500" />
                 <p className="text-2xl font-bold">{members.length}</p>
                 <p className="text-sm text-gray-600">Members</p>
               </CardContent>
-            </Card>
+            </Card> */}
             <Card>
               <CardContent className="p-4 text-center">
                 <Mail className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                <p className="text-2xl font-bold">0</p>
+                <p className="text-2xl font-bold">{pendingInvitations?.length}</p>
                 <p className="text-sm text-gray-600">Pending Invites</p>
               </CardContent>
             </Card>
@@ -294,28 +274,28 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {teamMembers.map((member) => (
+                {users?.data.map((member) => (
                   <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
                     <div className="flex items-center gap-3">
                       <Avatar>
                         <AvatarFallback className="bg-orange-500 text-white">
-                          {member.name?.split(' ').map(n => n[0]).join('') || member.email?.charAt(0).toUpperCase() || 'U'}
+                          {member.firstName?.split(' ').map(n => n[0]).join('') || member?.emailAddresses?.[0]?.emailAddress?.charAt(0).toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="font-semibold text-gray-800">
-                            {member.name || member.email || 'Unknown'}
+                            {member.firstName || member.emailAddresses?.[0]?.emailAddress || 'Unknown'}
                           </h3>
-                          <Badge className={getRoleColor(member.projectRole || 'member')}>
-                            {getRoleIcon(member.projectRole || 'member')}
-                            <span className="ml-1 capitalize">{member.projectRole || 'member'}</span>
+                          <Badge className={getRoleColor((member.publicMetadata?.role as string) || 'member')}>
+                            {getRoleIcon((member.publicMetadata?.role as string) || 'member')}
+                            <span className="ml-1 capitalize">{(member.publicMetadata?.role as string) || 'member'}</span>
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{member.email || 'No email'}</p>
-                        {member.joinedAt && (
+                        <p className="text-sm text-gray-600">{member.emailAddresses?.[0]?.emailAddress || 'No email'}</p>
+                        {member.createdAt && (
                           <p className="text-xs text-gray-500">
-                            Joined {formatDistanceToNow(new Date(member.joinedAt), { addSuffix: true })}
+                            Joined {formatDistanceToNow(new Date(member.createdAt), { addSuffix: true })}
                           </p>
                         )}
                       </div>
@@ -342,7 +322,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 ))}
-                {teamMembers.length === 0 && (
+                {users?.data.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                     <p>No team members yet</p>
@@ -379,14 +359,14 @@ export default function SettingsPage() {
                   color: "border-green-500 bg-green-50 hover:bg-green-100",
                   selected: "ring-2 ring-green-500 border-green-500 bg-green-100",
                 },
-                {
-                  value: "moderator" as const,
-                  label: "Moderator",
-                  description: "Can manage events and moderate content",
-                  icon: <Users className="h-5 w-5 text-blue-600" />,
-                  color: "border-blue-400 bg-blue-50 hover:bg-blue-100",
-                  selected: "ring-2 ring-blue-400 border-blue-400 bg-blue-100",
-                },
+                // {
+                //   value: "moderator" as const,
+                //   label: "Moderator",
+                //   description: "Can manage events and moderate content",
+                //   icon: <Users className="h-5 w-5 text-blue-600" />,
+                //   color: "border-blue-400 bg-blue-50 hover:bg-blue-100",
+                //   selected: "ring-2 ring-blue-400 border-blue-400 bg-blue-100",
+                // },
                 {
                   value: "admin" as const,
                   label: "Admin",

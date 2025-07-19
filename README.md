@@ -30,6 +30,5 @@ Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/ver
 
 Where I left off and whats next:
 
-- Community feed stats need to be dynamic data
-- Auth
-- Email to invite members
+- fix user build errors
+- admin and created by to edit and delete tasks, projects and polls

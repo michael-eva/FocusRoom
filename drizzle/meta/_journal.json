@@ -22,6 +22,20 @@
       "when": 1752635575704,
       "tag": "0002_wild_speed",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1752827555891,
+      "tag": "0003_lying_energizer",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1752827625988,
+      "tag": "0004_high_wrecking_crew",
+      "breakpoints": true
     }
   ]
 }

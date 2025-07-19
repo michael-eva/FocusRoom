@@ -802,7 +802,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 isOpen={isAddTaskDialogOpen}
                 onClose={() => setIsAddTaskDialogOpen(false)}
                 onSubmit={handleCreateTask}
-                teamMembers={allUsers || []}
+                teamMembers={allUsers?.data || []}
             />
 
             <AddResourceDialog

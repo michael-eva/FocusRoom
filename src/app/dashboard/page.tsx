@@ -2,18 +2,21 @@
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 
-import { Bell, User, Music, Guitar, Mic, Calendar, BarChart3, Heart, MessageSquare } from "lucide-react"
+import { Bell, User, Music, Guitar, Mic, Calendar, BarChart3, Heart, MessageSquare, LogOut } from "lucide-react"
 import { CreatePollDialog } from "./community/_components/CreatePollDialog"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { useCallback, useState } from "react"
 import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 import { api } from "~/trpc/react"
 import { CreateEventDialog } from "./community/_components/CreateEventDialog"
+import { useClerk } from "@clerk/nextjs"
 
 export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
+
     const utils = api.useUtils();
 
     // API mutation for creating polls
@@ -39,7 +42,6 @@ export default function Dashboard() {
     // Get current user info (for now using first available user)
     const { data: currentUser } = api.users.getAll.useQuery();
     const currentUserId = currentUser?.[0]?.id || 67; // Use first available user or fallback to 67
-
     // Get recent activity from database (includes polls and events)
     const { data: activityData = [] } = api.activity.getRecentActivity.useQuery(
         { limit: 10 },
@@ -161,7 +163,7 @@ export default function Dashboard() {
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
         return `${Math.floor(diffInSeconds / 86400)}d ago`;
     };
-
+    const { signOut } = useClerk();
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">
@@ -176,9 +178,25 @@ export default function Dashboard() {
                     <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
                         <Bell className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                        <User className="h-5 w-5" />
-                    </Button>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
+                                <User className="h-5 w-5" />
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-48 p-2" align="end">
+                            <div className="space-y-1">
+                                <Button
+                                    variant="ghost"
+                                    className="w-full justify-start gap-2 h-9 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                    onClick={() => signOut()}
+                                >
+                                    <LogOut className="h-4 w-4" />
+                                    Sign Out
+                                </Button>
+                            </div>
+                        </PopoverContent>
+                    </Popover>
                 </div>
             </header>
 

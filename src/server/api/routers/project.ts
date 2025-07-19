@@ -39,7 +39,7 @@ export const projectRouter = createTRPCRouter({
         priority: z.enum(["low", "medium", "high"]).default("medium"),
         deadline: z.date().optional(),
         createdBy: z.number(),
-        teamMemberIds: z.array(z.number()).default([]),
+        teamMemberIds: z.array(z.string()).default([]),
         tasks: z
           .array(
             z.object({
@@ -138,7 +138,7 @@ export const projectRouter = createTRPCRouter({
         priority: z.enum(["low", "medium", "high"]).default("medium"),
         deadline: z.date().optional(),
         createdBy: z.number(),
-        teamMemberIds: z.array(z.number()).default([]),
+        teamMemberIds: z.array(z.string()).default([]),
         tasks: z
           .array(
             z.object({
@@ -670,7 +670,7 @@ export const projectRouter = createTRPCRouter({
           .optional(),
         priority: z.enum(["low", "medium", "high"]).optional(),
         deadline: z.date().optional(),
-        teamMemberIds: z.array(z.number()).optional(),
+        teamMemberIds: z.array(z.string()).optional(),
         tasks: z
           .array(
             z.object({

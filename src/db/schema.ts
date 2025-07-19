@@ -7,18 +7,25 @@ import {
   integer,
   boolean,
   json,
+  pgEnum,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 
+export const invitationStatus = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "revoked",
+]);
+export const userRole = pgEnum("user_role", ["admin", "member"]);
 export const users = pgTable(
   "users",
   {
     id: serial().primaryKey().notNull(),
     name: text(),
     email: text(),
-    role: text().default("member"),
+    role: userRole("role").default("member"),
     invitedAt: timestamp("invited_at", { mode: "string" }),
     invitedBy: integer("invited_by"),
+    invitationStatus: invitationStatus("invitation_status").default("pending"),
     acceptedAt: timestamp("accepted_at", { mode: "string" }),
   },
   (table) => [
@@ -329,7 +336,7 @@ export const projectTeamMembers = pgTable(
   "project_team_members",
   {
     projectId: integer("project_id"),
-    teamMemberId: integer("team_member_id"),
+    teamMemberId: text("team_member_id"),
     role: text().default("member"),
     joinedAt: timestamp("joined_at", { mode: "string" }).defaultNow(),
     invitedBy: integer("invited_by"),

@@ -27,8 +27,8 @@ export default function CommunityPage() {
 
     const { data: currentUser } = api.users.getAll.useQuery();
     const currentUserId = currentUser?.[0]?.id || 1;
-    const currentUserData = currentUser?.find(user => user.id === currentUserId);
-    const isAdmin = currentUserData?.role === "admin";
+    const currentUserData = currentUser?.data.find(user => user.id === currentUserId);
+    const isAdmin = currentUserData?.publicMetadata?.role === "admin";
 
     // Get dynamic stats for community
     const { data: userCount = 0 } = api.users.getCount.useQuery();
@@ -267,11 +267,11 @@ export default function CommunityPage() {
                             Create Event
                         </Button>
                     </div>
-                    
+
                     {/* Mobile: Compact action buttons */}
                     <div className="sm:hidden flex items-center gap-1">
-                        <Button 
-                            variant="outline" 
+                        <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => setIsCreatePollOpen(true)}
                             className="px-2"
@@ -286,7 +286,7 @@ export default function CommunityPage() {
                             <Plus className="h-4 w-4" />
                         </Button>
                     </div>
-                    
+
                     <div className="hidden sm:flex items-center gap-3">
                         <Button variant="ghost" size="icon">
                             <Bell className="h-5 w-5" />

@@ -1,27 +1,41 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import {
+  createTRPCRouter,
+  publicProcedure,
+  protectedProcedure,
+} from "~/server/api/trpc";
 import { users, teamMembers, projectTeamMembers, projects } from "~/db/schema";
 import { db } from "~/db";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
+import { createInvitation } from "~/services/clerk";
+import { client } from "~/lib/clerk";
+import { clerkClient } from "@clerk/nextjs/server";
+import { TRPCError } from "@trpc/server";
 
 export const usersRouter = createTRPCRouter({
+  // Get current user's profile
+  getCurrentUser: protectedProcedure.query(async ({ ctx }) => {
+    // ctx.userId is guaranteed to exist in protected procedures
+    const user = await client.users.getUser(ctx.userId);
+    return user;
+  }),
+
   // Get all users
   getAll: publicProcedure.query(async () => {
-    const allUsers = await db
-      .select({
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-        invitedAt: users.invitedAt,
-        invitedBy: users.invitedBy,
-        acceptedAt: users.acceptedAt,
-      })
-      .from(users)
-      .orderBy(users.name);
+    const users = await client.users.getUserList();
+    return users;
+  }),
 
-    return allUsers;
+  // Get current user if logged in (public procedure example)
+  getCurrentUserIfLoggedIn: publicProcedure.query(async ({ ctx }) => {
+    // ctx.userId might be null in public procedures
+    if (!ctx.userId) {
+      return null;
+    }
+
+    const user = await client.users.getUser(ctx.userId);
+    return user;
   }),
 
   // Get all team members
@@ -127,25 +141,16 @@ export const usersRouter = createTRPCRouter({
     }),
 
   // Get pending invitations for a specific project
-  getPendingInvitations: publicProcedure
-    .input(z.object({ projectId: z.number() }))
-    .query(async ({ input }) => {
-      const pendingUsers = await db
-        .select({
-          id: users.id,
-          name: users.name,
-          email: users.email,
-          role: users.role,
-          invitedAt: users.invitedAt,
-          invitedBy: users.invitedBy,
-          acceptedAt: users.acceptedAt,
-        })
-        .from(users)
-        .where(and(isNull(users.acceptedAt), isNull(users.name)))
-        .orderBy(users.invitedAt);
+  getPendingInvitations: publicProcedure.query(async () => {
+    const invitations = await client.invitations.getInvitationList();
 
-      return pendingUsers;
-    }),
+    // Filter for pending invitations
+    const pendingInvitations = invitations.data.filter(
+      (invitation) => invitation.status === "pending",
+    );
+
+    return pendingInvitations;
+  }),
 
   // Invite a new user to a specific project/focus room
   inviteToProject: publicProcedure
@@ -158,106 +163,53 @@ export const usersRouter = createTRPCRouter({
       }),
     )
     .mutation(async ({ input }) => {
-      // Check if user already exists
-      const user = await db
-        .select()
-        .from(users)
-        .where(eq(users.email, input.email))
-        .limit(1);
-
-      let userId: number;
-
-      if (user.length === 0) {
-        // Create new user
-        const newUser = await db
-          .insert(users)
-          .values({
-            email: input.email,
+      try {
+        // Check if user already exists
+        const invitation = await createInvitation({
+          emailAddress: input.email,
+          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invitation`,
+          notify: true,
+          ignoreExisting: true,
+          publicMetadata: {
             role: input.role,
-            invitedAt: new Date().toISOString(),
-            invitedBy: input.invitedBy,
-          })
-          .returning();
-        userId = newUser[0]!.id;
-      } else {
-        userId = user[0]!.id;
+          },
+        });
+        return invitation;
+      } catch (error) {
+        console.error("Failed to create invitation:", error);
+        throw new Error(
+          "Failed to create invitation. Please check your Clerk configuration.",
+        );
       }
-
-      // Check if team member already exists for this user
-      const teamMember = await db
-        .select()
-        .from(teamMembers)
-        .where(eq(teamMembers.userId, userId))
-        .limit(1);
-
-      let teamMemberId: number;
-
-      if (teamMember.length === 0) {
-        // Create new team member
-        const newTeamMember = await db
-          .insert(teamMembers)
-          .values({
-            userId: userId,
-            email: input.email,
-          })
-          .returning();
-        teamMemberId = newTeamMember[0]!.id;
-      } else {
-        teamMemberId = teamMember[0]!.id;
-      }
-
-      // Check if already a member of this project
-      const existingProjectMember = await db
-        .select()
-        .from(projectTeamMembers)
-        .where(
-          and(
-            eq(projectTeamMembers.projectId, input.projectId),
-            eq(projectTeamMembers.teamMemberId, teamMemberId),
-          ),
-        )
-        .limit(1);
-
-      if (existingProjectMember.length > 0) {
-        throw new Error("User is already a member of this project");
-      }
-
-      // Add to project team
-      const newProjectMember = await db
-        .insert(projectTeamMembers)
-        .values({
-          projectId: input.projectId,
-          teamMemberId: teamMemberId,
-          role: input.role,
-          invitedBy: input.invitedBy,
-        })
-        .returning();
-
-      return newProjectMember[0];
     }),
 
   // Update user role in a specific project
-  updateProjectRole: publicProcedure
+  updateProjectRole: protectedProcedure
     .input(
       z.object({
-        projectId: z.number(),
-        teamMemberId: z.number(),
-        role: z.enum(["admin", "member", "moderator"]),
+        teamMemberId: z.string(),
+        role: z.enum(["admin", "member"]),
       }),
     )
-    .mutation(async ({ input }) => {
-      const updatedMember = await db
-        .update(projectTeamMembers)
-        .set({ role: input.role })
-        .where(
-          and(
-            eq(projectTeamMembers.projectId, input.projectId),
-            eq(projectTeamMembers.teamMemberId, input.teamMemberId),
-          ),
-        )
-        .returning();
+    .mutation(async ({ input, ctx }) => {
+      const currentUser = await client.users.getUser(ctx.userId);
+      console.log("User role:", currentUser.publicMetadata?.role);
 
-      return updatedMember[0];
+      if (currentUser.publicMetadata?.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only admins can update user roles",
+        });
+      }
+      const updatedUser = await client.users.updateUserMetadata(
+        input.teamMemberId,
+        {
+          publicMetadata: {
+            role: input.role,
+          },
+        },
+      );
+      return updatedUser;
     }),
 
   // Accept invitation (complete user profile)
@@ -286,7 +238,7 @@ export const usersRouter = createTRPCRouter({
     .input(
       z.object({
         projectId: z.number(),
-        teamMemberId: z.number(),
+        teamMemberId: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -303,25 +255,27 @@ export const usersRouter = createTRPCRouter({
 
   // Remove user completely (from all projects and users table)
   removeUser: publicProcedure
-    .input(z.object({ userId: z.number() }))
+    .input(z.object({ userId: z.string() }))
     .mutation(async ({ input }) => {
       // Remove from all project teams
       const teamMembersToRemove = await db
         .select({ id: teamMembers.id })
         .from(teamMembers)
-        .where(eq(teamMembers.userId, input.userId));
+        .where(eq(teamMembers.userId, parseInt(input.userId)));
 
       for (const teamMember of teamMembersToRemove) {
         await db
           .delete(projectTeamMembers)
-          .where(eq(projectTeamMembers.teamMemberId, teamMember.id));
+          .where(eq(projectTeamMembers.teamMemberId, teamMember.id.toString()));
       }
 
       // Remove team members
-      await db.delete(teamMembers).where(eq(teamMembers.userId, input.userId));
+      await db
+        .delete(teamMembers)
+        .where(eq(teamMembers.userId, parseInt(input.userId)));
 
       // Remove user
-      await db.delete(users).where(eq(users.id, input.userId));
+      await db.delete(users).where(eq(users.id, parseInt(input.userId)));
       return { success: true };
     }),
 
