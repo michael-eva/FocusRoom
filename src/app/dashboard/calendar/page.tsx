@@ -9,6 +9,7 @@ import { CreateEventDialog, type EventFormData } from "~/app/dashboard/community
 import { EventDetailsDialog } from "~/app/dashboard/calendar/_components/EventDetailsDialog"
 import { EditEventDialog } from "~/app/dashboard/calendar/_components/EditEventDialog"
 import { api } from "~/trpc/react"
+import useCanEdit from "~/hooks/useCanEdit"
 
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -46,6 +47,7 @@ export default function CalendarPage() {
     const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
     const [isEditEventOpen, setIsEditEventOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
+    console.log("selectedEvent", selectedEvent);
 
     const utils = api.useUtils();
 
@@ -60,8 +62,8 @@ export default function CalendarPage() {
     // Get current user info (for now using first available user)
     const { data: currentUser } = api.users.getAll.useQuery();
     const currentUserId = currentUser?.data?.[0]?.id
-    console.log("currentUserId", currentUser?.data?.[0]?.id);
-
+    const canEdit = useCanEdit({ userId: currentUserId, eventId: selectedEvent?.id });
+    console.log("canEdit", canEdit);
     // Get local events for the current month
     const { data: localEvents = [], refetch: refetchLocalEvents, isFetching: localEventsFetching } = api.events.getByMonth.useQuery({
         year,
@@ -71,7 +73,7 @@ export default function CalendarPage() {
         staleTime: 10 * 60 * 1000, // 10 minutes - events don't change that often
         gcTime: 30 * 60 * 1000, // 30 minutes - keep in cache longer
     });
-    console.log("Local events:", localEvents)
+
     // Calendar navigation
     const navigateMonth = (direction: "prev" | "next") => {
         setCurrentDate(prev => {
@@ -89,9 +91,6 @@ export default function CalendarPage() {
     const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
         const startDateTime = new Date(`${eventData.date}T${eventData.startTime}`);
         const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
-        console.log("eventData", { ...eventData, currentUserId })
-        console.log(currentUserId);
-
         try {
             // Create local event
             await createLocalEvent.mutateAsync({
@@ -479,8 +478,8 @@ export default function CalendarPage() {
                 }}
                 onEdit={handleEventEdit}
                 onDelete={handleEventDelete}
-                canEdit={false}
-                canDelete={false}
+                canEdit={canEdit}
+                canDelete={canEdit}
             />
 
             <EditEventDialog
