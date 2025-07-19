@@ -15,7 +15,7 @@ export const eventsRouter = createTRPCRouter({
         endDateTime: z.date(),
         allDay: z.boolean().default(false),
         rsvpLink: z.string().optional(),
-        createdById: z.number().optional(),
+        createdById: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -82,7 +82,7 @@ export const eventsRouter = createTRPCRouter({
       z.object({
         year: z.number(),
         month: z.number(), // 0-11 (JavaScript month format)
-        userId: z.number().optional(), // Add userId to check user RSVP status
+        userId: z.string().optional(), // Add userId to check user RSVP status
       }),
     )
     .query(async ({ input }) => {

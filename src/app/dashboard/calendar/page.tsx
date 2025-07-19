@@ -59,7 +59,8 @@ export default function CalendarPage() {
 
     // Get current user info (for now using first available user)
     const { data: currentUser } = api.users.getAll.useQuery();
-    const currentUserId = currentUser?.[0]?.id || 67; // Use first available user or fallback to 67
+    const currentUserId = currentUser?.data?.[0]?.id
+    console.log("currentUserId", currentUser?.data?.[0]?.id);
 
     // Get local events for the current month
     const { data: localEvents = [], refetch: refetchLocalEvents, isFetching: localEventsFetching } = api.events.getByMonth.useQuery({
@@ -88,6 +89,8 @@ export default function CalendarPage() {
     const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
         const startDateTime = new Date(`${eventData.date}T${eventData.startTime}`);
         const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
+        console.log("eventData", { ...eventData, currentUserId })
+        console.log(currentUserId);
 
         try {
             // Create local event
@@ -476,8 +479,8 @@ export default function CalendarPage() {
                 }}
                 onEdit={handleEventEdit}
                 onDelete={handleEventDelete}
-                canEdit={true}
-                canDelete={true}
+                canEdit={false}
+                canDelete={false}
             />
 
             <EditEventDialog

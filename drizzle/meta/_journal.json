@@ -36,6 +36,20 @@
       "when": 1752827625988,
       "tag": "0004_high_wrecking_crew",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1752903839240,
+      "tag": "0006_calm_forge",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1752904091975,
+      "tag": "0006_lyrical_songbird",
+      "breakpoints": true
     }
   ]
 }
