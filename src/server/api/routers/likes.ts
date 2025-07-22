@@ -1,28 +1,61 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
-import { likes, users, activityLog } from "~/db/schema";
+import { likes, activityLog } from "~/db/schema";
 import { eq, and, count } from "drizzle-orm";
 
 export const likesRouter = createTRPCRouter({
   toggleLike: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
-        targetId: z.number(),
-        targetType: z.enum(["event", "poll", "spotlight"]),
+        clerkUserId: z.string().optional(),
+        userId: z.number().optional(), // For backward compatibility
+        postId: z.number().optional(),
+        pollId: z.number().optional(),
+        spotlightId: z.number().optional(),
+        targetId: z.number().optional(), // For backward compatibility
+        targetType: z.string().optional(), // For backward compatibility
       }),
     )
     .mutation(async ({ input }) => {
+      // Handle backward compatibility
+      const clerkUserId =
+        input.clerkUserId ||
+        (input.userId ? input.userId.toString() : undefined);
+
+      if (!clerkUserId) {
+        throw new Error("clerkUserId is required");
+      }
+
+      // Handle backward compatibility for targetId/targetType
+      let postId = input.postId;
+      let pollId = input.pollId;
+      let spotlightId = input.spotlightId;
+
+      if (input.targetId && input.targetType) {
+        switch (input.targetType) {
+          case "post":
+            postId = input.targetId;
+            break;
+          case "poll":
+            pollId = input.targetId;
+            break;
+          case "spotlight":
+            spotlightId = input.targetId;
+            break;
+        }
+      }
+
       // Check if like already exists
       const existingLike = await db
         .select()
         .from(likes)
         .where(
           and(
-            eq(likes.userId, input.userId),
-            eq(likes.targetId, input.targetId),
-            eq(likes.targetType, input.targetType),
+            eq(likes.clerkUserId, clerkUserId),
+            postId ? eq(likes.postId, postId) : undefined,
+            pollId ? eq(likes.pollId, pollId) : undefined,
+            spotlightId ? eq(likes.spotlightId, spotlightId) : undefined,
           ),
         )
         .limit(1);
@@ -33,27 +66,32 @@ export const likesRouter = createTRPCRouter({
           .delete(likes)
           .where(
             and(
-              eq(likes.userId, input.userId),
-              eq(likes.targetId, input.targetId),
-              eq(likes.targetType, input.targetType),
+              eq(likes.clerkUserId, clerkUserId),
+              postId ? eq(likes.postId, postId) : undefined,
+              pollId ? eq(likes.pollId, pollId) : undefined,
+              spotlightId ? eq(likes.spotlightId, spotlightId) : undefined,
             ),
           );
         return { liked: false };
       } else {
         // Add like
         await db.insert(likes).values({
-          userId: input.userId,
-          targetId: input.targetId,
-          targetType: input.targetType,
+          clerkUserId: clerkUserId,
+          postId: postId,
+          pollId: pollId,
+          spotlightId: spotlightId,
         });
 
         // Log activity
         await db.insert(activityLog).values({
-          userId: input.userId,
-          activityType: "post_liked",
-          targetId: input.targetId,
-          targetType: input.targetType,
-          description: `User liked a ${input.targetType}`,
+          clerkUserId: clerkUserId,
+          action: "post_liked",
+          details: `User liked a ${postId ? "post" : pollId ? "poll" : "spotlight"}`,
+          metadata: {
+            postId: postId,
+            pollId: pollId,
+            spotlightId: spotlightId,
+          },
         });
 
         return { liked: true };
@@ -63,8 +101,9 @@ export const likesRouter = createTRPCRouter({
   getLikesCount: publicProcedure
     .input(
       z.object({
-        targetId: z.number(),
-        targetType: z.enum(["event", "poll", "spotlight"]),
+        postId: z.number().optional(),
+        pollId: z.number().optional(),
+        spotlightId: z.number().optional(),
       }),
     )
     .query(async ({ input }) => {
@@ -73,8 +112,11 @@ export const likesRouter = createTRPCRouter({
         .from(likes)
         .where(
           and(
-            eq(likes.targetId, input.targetId),
-            eq(likes.targetType, input.targetType),
+            input.postId ? eq(likes.postId, input.postId) : undefined,
+            input.pollId ? eq(likes.pollId, input.pollId) : undefined,
+            input.spotlightId
+              ? eq(likes.spotlightId, input.spotlightId)
+              : undefined,
           ),
         );
 
@@ -84,30 +126,34 @@ export const likesRouter = createTRPCRouter({
   getUserLikes: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
-        targetIds: z.array(z.number()).optional(),
-        targetType: z.enum(["event", "poll", "spotlight"]).optional(),
+        clerkUserId: z.string(),
+        postIds: z.array(z.number()).optional(),
+        pollIds: z.array(z.number()).optional(),
       }),
     )
     .query(async ({ input }) => {
-      const conditions = [eq(likes.userId, input.userId)];
+      const conditions = [eq(likes.clerkUserId, input.clerkUserId)];
 
-      if (input.targetIds && input.targetIds.length > 0) {
+      if (input.postIds && input.postIds.length > 0) {
         // For now, just check the first ID - this can be improved later
-        const firstId = input.targetIds[0];
+        const firstId = input.postIds[0];
         if (firstId !== undefined) {
-          conditions.push(eq(likes.targetId, firstId));
+          conditions.push(eq(likes.postId, firstId));
         }
       }
 
-      if (input.targetType) {
-        conditions.push(eq(likes.targetType, input.targetType));
+      if (input.pollIds && input.pollIds.length > 0) {
+        // For now, just check the first ID - this can be improved later
+        const firstId = input.pollIds[0];
+        if (firstId !== undefined) {
+          conditions.push(eq(likes.pollId, firstId));
+        }
       }
 
       const userLikes = await db
         .select({
-          targetId: likes.targetId,
-          targetType: likes.targetType,
+          postId: likes.postId,
+          pollId: likes.pollId,
         })
         .from(likes)
         .where(and(...conditions));
@@ -118,20 +164,41 @@ export const likesRouter = createTRPCRouter({
   checkUserLiked: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
-        targetId: z.number(),
-        targetType: z.enum(["event", "poll", "spotlight"]),
+        clerkUserId: z.string().optional(),
+        userId: z.number().optional(), // For backward compatibility
+        postId: z.number().optional(),
+        pollId: z.number().optional(),
+        spotlightId: z.number().optional(),
+        targetId: z.number().optional(), // For backward compatibility
+        targetType: z.string().optional(), // For backward compatibility
       }),
     )
     .query(async ({ input }) => {
+      // Handle backward compatibility
+      const clerkUserId =
+        input.clerkUserId ||
+        (input.userId ? input.userId.toString() : undefined);
+
+      // Handle backward compatibility for targetId/targetType
+      if (input.targetId && input.targetType === "spotlight") {
+        input.spotlightId = input.targetId;
+      }
+
+      if (!clerkUserId) {
+        return false;
+      }
+
       const result = await db
         .select()
         .from(likes)
         .where(
           and(
-            eq(likes.userId, input.userId),
-            eq(likes.targetId, input.targetId),
-            eq(likes.targetType, input.targetType),
+            eq(likes.clerkUserId, clerkUserId),
+            input.postId ? eq(likes.postId, input.postId) : undefined,
+            input.pollId ? eq(likes.pollId, input.pollId) : undefined,
+            input.spotlightId
+              ? eq(likes.spotlightId, input.spotlightId)
+              : undefined,
           ),
         )
         .limit(1);

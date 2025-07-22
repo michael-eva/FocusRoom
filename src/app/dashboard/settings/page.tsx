@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Bell, User, Plus, Mail, Shield, Users, Settings, Trash2, Edit } from "lucide-react"
 import { api } from "~/trpc/react"
 import { formatDistanceToNow } from "date-fns"
+import { useUser } from "@clerk/nextjs"
 
 export default function SettingsPage() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false)
@@ -24,11 +25,13 @@ export default function SettingsPage() {
   // For now, we'll use project ID 1 as the default focus room
   // In the future, this would come from the current user's context or URL params
   const currentProjectId = 1
-
+  const user = useUser()
   const { data: users, refetch: refetchUsers } = api.users.getAll.useQuery();
   const admins = users?.data.filter((user) => user.publicMetadata.role === "admin");
   const { data: pendingInvitations = [] } = api.users.getPendingInvitations.useQuery()
-
+  if (!user.user?.id) {
+    return <div>Loading...</div>
+  }
   // Mutations
   const inviteMutation = api.users.inviteToProject.useMutation({
     onSuccess: () => {
@@ -61,7 +64,7 @@ export default function SettingsPage() {
         email: inviteEmail.trim(),
         projectId: currentProjectId,
         role: inviteRole,
-        invitedBy: 1, // TODO: Get current user's team member ID
+        invitedBy: user.user?.id,
       })
     } catch (error) {
       console.error("Failed to invite user:", error)
@@ -74,7 +77,8 @@ export default function SettingsPage() {
 
     try {
       await updateRoleMutation.mutateAsync({
-        teamMemberId: editingMember.id,
+        projectId: currentProjectId,
+        clerkUserId: editingMember.clerkUserId,
         role: newRole,
       })
     } catch (error) {
@@ -88,7 +92,7 @@ export default function SettingsPage() {
     try {
       await removeMemberMutation.mutateAsync({
         projectId: currentProjectId,
-        teamMemberId,
+        clerkUserId: teamMemberId,
       })
     } catch (error) {
       console.error("Failed to remove member:", error)

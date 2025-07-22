@@ -5,66 +5,55 @@ import {
   polls,
   pollOptions,
   pollVotes,
-  users,
   activityLog,
   likes,
   comments,
 } from "~/db/schema";
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
+import { client } from "~/lib/clerk";
+import type { User } from "@clerk/nextjs/server";
 
 export const pollsRouter = createTRPCRouter({
   create: publicProcedure
     .input(
       z.object({
-        title: z.string().min(1),
-        content: z.string().optional(),
-        options: z.array(z.string().min(1)).min(2).max(10), // 2-10 options
-        createdById: z.number().optional(),
+        question: z.string().min(1).max(500).optional(),
+        title: z.string().min(1).max(500).optional(), // For backward compatibility
+        content: z.string().min(1).max(500).optional(), // For backward compatibility
+        options: z.array(z.string().min(1).max(200)).min(2).max(10),
+        createdByClerkUserId: z.string().optional(),
+        createdById: z.number().optional(), // For backward compatibility
+        endsAt: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
       try {
-        console.log("=== POLL CREATION START ===");
-        console.log("Creating poll with input:", input);
+        console.log("=== STARTING POLL CREATION ===");
+        console.log("Input:", input);
 
-        // Ensure we have a valid user ID
-        let userId = input.createdById;
-        console.log("Initial userId:", userId);
+        // Handle backward compatibility
+        const question = input.question || input.title || input.content;
+        const createdByClerkUserId =
+          input.createdByClerkUserId ||
+          (input.createdById ? input.createdById.toString() : undefined);
 
-        if (!userId) {
-          console.log("No userId provided, checking for existing users...");
-          // Check if there are any users in the database
-          const existingUsers = await db.select().from(users).limit(1);
-          console.log("Existing users found:", existingUsers.length);
-
-          if (existingUsers.length > 0) {
-            userId = existingUsers[0]!.id;
-            console.log("Using existing user ID:", userId);
-          } else {
-            console.log("No users found, creating default user...");
-            // Create a default user if none exists
-            const defaultUser = await db
-              .insert(users)
-              .values({
-                name: "Default User",
-                email: "default@example.com",
-              })
-              .returning();
-            userId = defaultUser[0]!.id;
-            console.log("Created default user with ID:", userId);
-          }
+        if (!question) {
+          throw new Error("question/title/content is required");
         }
 
-        console.log("Final userId for poll creation:", userId);
+        if (!createdByClerkUserId) {
+          throw new Error("createdByClerkUserId/createdById is required");
+        }
 
         // Create the poll
         console.log("Inserting poll into database...");
         const newPoll = await db
           .insert(polls)
           .values({
-            title: input.title,
-            content: input.content,
-            createdById: userId,
+            question: question,
+            createdByClerkUserId: createdByClerkUserId,
+            endsAt: input.endsAt,
+            isActive: true,
           })
           .returning();
 
@@ -73,9 +62,9 @@ export const pollsRouter = createTRPCRouter({
         console.log("Poll ID:", pollId);
 
         // Create poll options
-        const pollOptionsData = input.options.map((text) => ({
+        const pollOptionsData = input.options.map((optionText) => ({
           pollId,
-          text,
+          optionText,
           votes: 0,
         }));
 
@@ -91,11 +80,10 @@ export const pollsRouter = createTRPCRouter({
         const activityLogResult = await db
           .insert(activityLog)
           .values({
-            userId,
-            activityType: "poll_created",
-            targetId: pollId,
-            targetType: "poll",
-            description: `Created poll: ${input.title}`,
+            clerkUserId: createdByClerkUserId,
+            action: "poll_created",
+            details: `Created poll: ${question}`,
+            metadata: { pollId },
           })
           .returning();
         console.log("Activity logged:", activityLogResult);
@@ -126,44 +114,47 @@ export const pollsRouter = createTRPCRouter({
     const allPolls = await db
       .select({
         id: polls.id,
-        title: polls.title,
-        content: polls.content,
+        question: polls.question,
         createdAt: polls.createdAt,
-        updatedAt: polls.updatedAt,
-        author: {
-          id: users.id,
-          name: users.name,
-          email: users.email,
-        },
-        options: pollOptions,
+        createdByClerkUserId: polls.createdByClerkUserId,
+        endsAt: polls.endsAt,
+        isActive: polls.isActive,
       })
       .from(polls)
-      .leftJoin(users, eq(polls.createdById, users.id))
-      .leftJoin(pollOptions, eq(polls.id, pollOptions.pollId))
       .orderBy(desc(polls.createdAt));
 
-    // Group options by poll
-    const pollsWithOptions = allPolls.reduce((acc, row) => {
-      const existingPoll = acc.find((p) => p.id === row.id);
-      if (existingPoll) {
-        if (row.options) {
-          existingPoll.options.push(row.options);
+    // Fetch user details from Clerk for each poll
+    const pollsWithUsers = await Promise.all(
+      allPolls.map(async (poll) => {
+        let user: User | null = null;
+        if (poll.createdByClerkUserId) {
+          try {
+            user = await client.users.getUser(poll.createdByClerkUserId);
+          } catch (error) {
+            console.error(
+              `Failed to fetch user ${poll.createdByClerkUserId}:`,
+              error,
+            );
+          }
         }
-      } else {
-        acc.push({
-          id: row.id,
-          title: row.title,
-          content: row.content,
-          createdAt: row.createdAt,
-          updatedAt: row.updatedAt,
-          author: row.author,
-          options: row.options ? [row.options] : [],
-        });
-      }
-      return acc;
-    }, [] as any[]);
 
-    return pollsWithOptions;
+        return {
+          ...poll,
+          creator: user
+            ? {
+                id: user.id,
+                name:
+                  `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                  user.emailAddresses[0]?.emailAddress,
+                email: user.emailAddresses[0]?.emailAddress,
+                imageUrl: user.imageUrl,
+              }
+            : null,
+        };
+      }),
+    );
+
+    return pollsWithUsers;
   }),
 
   getById: publicProcedure
@@ -172,38 +163,58 @@ export const pollsRouter = createTRPCRouter({
       const poll = await db
         .select({
           id: polls.id,
-          title: polls.title,
-          content: polls.content,
+          question: polls.question,
           createdAt: polls.createdAt,
-          updatedAt: polls.updatedAt,
-          author: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          },
-          options: pollOptions,
+          createdByClerkUserId: polls.createdByClerkUserId,
+          endsAt: polls.endsAt,
+          isActive: polls.isActive,
         })
         .from(polls)
-        .leftJoin(users, eq(polls.createdById, users.id))
-        .leftJoin(pollOptions, eq(polls.id, pollOptions.pollId))
-        .where(eq(polls.id, input.id));
+        .where(eq(polls.id, input.id))
+        .limit(1);
 
       if (poll.length === 0) {
         return null;
       }
 
-      // Group options
-      const pollWithOptions = {
-        id: poll[0]!.id,
-        title: poll[0]!.title,
-        content: poll[0]!.content,
-        createdAt: poll[0]!.createdAt,
-        updatedAt: poll[0]!.updatedAt,
-        author: poll[0]!.author,
-        options: poll.map((row) => row.options).filter(Boolean),
-      };
+      // Get poll options
+      const options = await db
+        .select({
+          id: pollOptions.id,
+          optionText: pollOptions.optionText,
+          votes: pollOptions.votes,
+        })
+        .from(pollOptions)
+        .where(eq(pollOptions.pollId, input.id));
 
-      return pollWithOptions;
+      // Get creator details from Clerk
+      let creator: any = null;
+      if (poll[0]!.createdByClerkUserId) {
+        try {
+          const user = await client.users.getUser(
+            poll[0]!.createdByClerkUserId,
+          );
+          creator = {
+            id: user.id,
+            name:
+              `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+              user.emailAddresses[0]?.emailAddress,
+            email: user.emailAddresses[0]?.emailAddress,
+            imageUrl: user.imageUrl,
+          };
+        } catch (error) {
+          console.error(
+            `Failed to fetch user ${poll[0]!.createdByClerkUserId}:`,
+            error,
+          );
+        }
+      }
+
+      return {
+        ...poll[0]!,
+        creator,
+        options,
+      };
     }),
 
   vote: publicProcedure
@@ -211,7 +222,7 @@ export const pollsRouter = createTRPCRouter({
       z.object({
         pollId: z.number(),
         optionId: z.number(),
-        userId: z.number(),
+        clerkUserId: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -222,7 +233,7 @@ export const pollsRouter = createTRPCRouter({
         .where(
           and(
             eq(pollVotes.pollId, input.pollId),
-            eq(pollVotes.userId, input.userId),
+            eq(pollVotes.clerkUserId, input.clerkUserId),
           ),
         )
         .limit(1);
@@ -235,7 +246,7 @@ export const pollsRouter = createTRPCRouter({
       await db.insert(pollVotes).values({
         pollId: input.pollId,
         optionId: input.optionId,
-        userId: input.userId,
+        clerkUserId: input.clerkUserId,
       });
 
       // Update the option vote count using SQL expression
@@ -246,11 +257,10 @@ export const pollsRouter = createTRPCRouter({
 
       // Log the activity
       await db.insert(activityLog).values({
-        userId: input.userId,
-        activityType: "poll_voted",
-        targetId: input.pollId,
-        targetType: "poll",
-        description: "Voted on a poll",
+        clerkUserId: input.clerkUserId,
+        action: "poll_voted",
+        details: "Voted on a poll",
+        metadata: { pollId: input.pollId, optionId: input.optionId },
       });
 
       return { success: true };
@@ -260,14 +270,14 @@ export const pollsRouter = createTRPCRouter({
     .input(
       z.object({
         id: z.number(),
-        userId: z.number().optional(), // Add userId for ownership validation
+        clerkUserId: z.string().optional(), // Changed to string for Clerk user ID
       }),
     )
     .mutation(async ({ input }) => {
       try {
         // Check if poll exists and get its creator
         const poll = await db
-          .select({ createdById: polls.createdById })
+          .select({ createdByClerkUserId: polls.createdByClerkUserId })
           .from(polls)
           .where(eq(polls.id, input.id))
           .limit(1);
@@ -277,26 +287,14 @@ export const pollsRouter = createTRPCRouter({
         }
 
         // Check ownership and admin status
-        if (input.userId) {
-          // Get the current user's role
-          const currentUser = await db
-            .select({ role: users.role })
-            .from(users)
-            .where(eq(users.id, input.userId))
-            .limit(1);
+        if (input.clerkUserId) {
+          // For now, allow deletion if user ID matches the creator
+          // In a real app, you'd check Clerk user roles
+          const isOwner = poll[0]!.createdByClerkUserId === input.clerkUserId;
 
-          if (currentUser.length === 0) {
-            throw new Error("User not found");
-          }
-
-          const isAdmin = currentUser[0]!.role === "admin";
-          const isOwner = poll[0]!.createdById === input.userId;
-
-          // Allow deletion if user is admin OR if user is the owner
-          if (!isAdmin && !isOwner) {
-            throw new Error(
-              "You can only delete polls that you created, unless you are an admin",
-            );
+          // Allow deletion if user is the owner
+          if (!isOwner) {
+            throw new Error("You can only delete polls that you created");
           }
         }
 
@@ -325,27 +323,15 @@ export const pollsRouter = createTRPCRouter({
           .delete(activityLog)
           .where(
             and(
-              eq(activityLog.targetId, input.id),
-              eq(activityLog.targetType, "poll"),
+              sql`${activityLog.metadata}->>'pollId' = ${input.id.toString()}`,
             ),
           );
 
         // 5. Delete likes that reference this poll
-        await db
-          .delete(likes)
-          .where(
-            and(eq(likes.targetId, input.id), eq(likes.targetType, "poll")),
-          );
+        await db.delete(likes).where(eq(likes.pollId, input.id));
 
         // 6. Delete comments that reference this poll
-        await db
-          .delete(comments)
-          .where(
-            and(
-              eq(comments.targetId, input.id),
-              eq(comments.targetType, "poll"),
-            ),
-          );
+        await db.delete(comments).where(eq(comments.pollId, input.id));
 
         // 7. Finally delete the poll
         await db.delete(polls).where(eq(polls.id, input.id));

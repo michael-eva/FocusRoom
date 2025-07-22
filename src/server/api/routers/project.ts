@@ -76,7 +76,7 @@ export const projectRouter = createTRPCRouter({
           status: input.status,
           priority: input.priority,
           deadline: input.deadline?.toISOString(),
-          createdBy: input.createdBy,
+          createdBy: String(input.createdBy),
           progress: 0,
           totalTasks: input.tasks.length,
           completedTasks: 0,
@@ -89,7 +89,7 @@ export const projectRouter = createTRPCRouter({
       if (input.teamMemberIds.length > 0) {
         const teamMemberData = input.teamMemberIds.map((teamMemberId) => ({
           projectId,
-          teamMemberId,
+          clerkUserId: String(teamMemberId),
           role: "member" as const,
         }));
 
@@ -105,7 +105,9 @@ export const projectRouter = createTRPCRouter({
           priority: task.priority,
           deadline: task.deadline?.toISOString(),
           projectId,
-          assigneeId: task.assigneeId,
+          assigneeClerkUserId: task.assigneeId
+            ? String(task.assigneeId)
+            : undefined,
         }));
 
         await db.insert(tasks).values(taskData);
@@ -175,7 +177,7 @@ export const projectRouter = createTRPCRouter({
           status: "draft",
           priority: input.priority,
           deadline: input.deadline?.toISOString(),
-          createdBy: input.createdBy,
+          createdBy: String(input.createdBy),
           progress: 0,
           totalTasks: input.tasks.length,
           completedTasks: 0,
@@ -188,7 +190,7 @@ export const projectRouter = createTRPCRouter({
       if (input.teamMemberIds.length > 0) {
         const teamMemberData = input.teamMemberIds.map((teamMemberId) => ({
           projectId,
-          teamMemberId,
+          clerkUserId: String(teamMemberId),
           role: "member" as const,
         }));
 
@@ -204,7 +206,9 @@ export const projectRouter = createTRPCRouter({
           priority: task.priority,
           deadline: task.deadline?.toISOString(),
           projectId,
-          assigneeId: task.assigneeId,
+          assigneeClerkUserId: task.assigneeId
+            ? String(task.assigneeId)
+            : undefined,
         }));
 
         await db.insert(tasks).values(taskData);
@@ -250,7 +254,9 @@ export const projectRouter = createTRPCRouter({
           priority: input.priority,
           deadline: input.deadline?.toISOString(),
           projectId: input.projectId,
-          assigneeId: input.assigneeId,
+          assigneeClerkUserId: input.assigneeId
+            ? String(input.assigneeId)
+            : undefined,
         })
         .returning();
 
@@ -314,7 +320,9 @@ export const projectRouter = createTRPCRouter({
       const updatedTask = await db
         .update(tasks)
         .set({
-          assigneeId: input.assigneeId,
+          assigneeClerkUserId: input.assigneeId
+            ? String(input.assigneeId)
+            : undefined,
           deadline: input.deadline?.toISOString(),
         })
         .where(eq(tasks.id, input.taskId))
@@ -425,7 +433,9 @@ export const projectRouter = createTRPCRouter({
         status: input.status,
         priority: input.priority,
         deadline: input.deadline,
-        assigneeId: input.assigneeId,
+        assigneeClerkUserId: input.assigneeId
+          ? String(input.assigneeId)
+          : undefined,
       };
 
       // Set completedAt when marking as completed
@@ -492,7 +502,7 @@ export const projectRouter = createTRPCRouter({
           description: input.description,
           taskId: input.taskId,
           resourceId: input.resourceId,
-          userId: input.userId,
+          clerkUserId: input.userId ? String(input.userId) : undefined,
           timestamp: new Date().toISOString(),
         })
         .returning();
@@ -732,7 +742,7 @@ export const projectRouter = createTRPCRouter({
         if (newTeamMemberIds.length > 0) {
           const teamMemberData = newTeamMemberIds.map((teamMemberId) => ({
             projectId,
-            teamMemberId,
+            clerkUserId: String(teamMemberId),
             role: "member" as const,
           }));
 
@@ -754,7 +764,9 @@ export const projectRouter = createTRPCRouter({
             priority: task.priority,
             deadline: task.deadline?.toISOString(),
             projectId,
-            assigneeId: task.assigneeId,
+            assigneeClerkUserId: task.assigneeId
+              ? String(task.assigneeId)
+              : undefined,
           }));
 
           await db.insert(tasks).values(taskData);

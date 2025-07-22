@@ -92,7 +92,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
     const { data: project, isLoading, refetch } = api.project.getProjectById.useQuery({ id });
     const { data: allUsers } = api.users.getAll.useQuery();
-    const { data: allTeamMembers } = api.users.getAllTeamMembers.useQuery();
+    const { data: allTeamMembers } = api.users.getAllTeamMembers.useQuery({ projectId: parseInt(id) });
     const { data: currentUser } = api.users.getAll.useQuery();
     const utils = api.useUtils()
 
@@ -506,9 +506,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                     <div className="flex items-center gap-3">
                                         <div className="flex -space-x-1 sm:-space-x-2">
                                             {project.teamMembers.slice(0, 4).map((member) => (
-                                                <Avatar key={member?.id} className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-white shadow-sm">
+                                                <Avatar key={member?.clerkUserId} className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-white shadow-sm">
                                                     <AvatarFallback className="bg-orange-500 text-white text-xs font-medium">
-                                                        {member?.avatar || (member?.name?.charAt(0) || "?")}
+                                                        {(member?.clerkUserId?.charAt(0) || "?")}
                                                     </AvatarFallback>
                                                 </Avatar>
                                             ))}
@@ -639,14 +639,14 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
                                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-gray-100 gap-3 sm:gap-6">
                                                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                                                                {task.assignee ? (
+                                                                {task.assigneeClerkUserId ? (
                                                                     <div className="flex items-center gap-2">
                                                                         <Avatar className="w-5 h-5 sm:w-6 sm:h-6">
                                                                             <AvatarFallback className="bg-orange-500 text-white text-xs">
-                                                                                {task.assignee.avatar || task.assignee.name?.charAt(0)}
+                                                                                {task.assigneeClerkUserId?.charAt(0)}
                                                                             </AvatarFallback>
                                                                         </Avatar>
-                                                                        <span className="text-xs sm:text-sm text-gray-600 truncate">{task.assignee.name}</span>
+                                                                        <span className="text-xs sm:text-sm text-gray-600 truncate">{task.assigneeClerkUserId}</span>
                                                                     </div>
                                                                 ) : (
                                                                     <Button

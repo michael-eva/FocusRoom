@@ -1,36 +1,29 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
-import { activityLog, users, polls, events } from "~/db/schema";
+import { activityLog, polls, events } from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { client } from "~/lib/clerk";
+import type { User } from "@clerk/nextjs/server";
 
 export const activityRouter = createTRPCRouter({
   logActivity: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
-        activityType: z.enum([
-          "poll_created",
-          "poll_voted",
-          "event_created",
-          "event_rsvp",
-          "post_liked",
-          "comment_created",
-        ]),
-        targetId: z.number().optional(),
-        targetType: z.enum(["poll", "event"]).optional(),
-        description: z.string().optional(),
+        clerkUserId: z.string(),
+        action: z.string(),
+        details: z.string().optional(),
+        metadata: z.record(z.any()).optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const newActivity = await db
         .insert(activityLog)
         .values({
-          userId: input.userId,
-          activityType: input.activityType,
-          targetId: input.targetId,
-          targetType: input.targetType,
-          description: input.description,
+          clerkUserId: input.clerkUserId,
+          action: input.action,
+          details: input.details,
+          metadata: input.metadata,
         })
         .returning();
 
@@ -48,36 +41,69 @@ export const activityRouter = createTRPCRouter({
       const activities = await db
         .select({
           id: activityLog.id,
-          activityType: activityLog.activityType,
-          targetId: activityLog.targetId,
-          targetType: activityLog.targetType,
-          description: activityLog.description,
-          createdAt: activityLog.createdAt,
-          user: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          },
-          // Join with polls for poll-related activities
-          poll: polls,
-          // Join with events for event-related activities
-          event: events,
+          action: activityLog.action,
+          details: activityLog.details,
+          timestamp: activityLog.timestamp,
+          metadata: activityLog.metadata,
+          clerkUserId: activityLog.clerkUserId,
         })
         .from(activityLog)
-        .leftJoin(users, eq(activityLog.userId, users.id))
-        .leftJoin(polls, eq(activityLog.targetId, polls.id))
-        .leftJoin(events, eq(activityLog.targetId, events.id))
-        .orderBy(desc(activityLog.createdAt))
+        .orderBy(desc(activityLog.timestamp))
         .limit(input.limit)
         .offset(input.offset);
 
-      return activities;
+      // Fetch user data from Clerk for each activity
+      const activitiesWithUsers = await Promise.all(
+        activities.map(async (activity) => {
+          let user: User | null = null;
+          if (activity.clerkUserId) {
+            try {
+              // Skip test user IDs that don't exist in Clerk
+              if (
+                activity.clerkUserId === "1" ||
+                activity.clerkUserId === "67"
+              ) {
+                console.log(`Skipping test user ID: ${activity.clerkUserId}`);
+                user = null;
+              } else {
+                user = await client.users.getUser(activity.clerkUserId);
+              }
+            } catch (error) {
+              console.error(
+                `Failed to fetch user ${activity.clerkUserId}:`,
+                error,
+              );
+              user = null;
+            }
+          }
+
+          return {
+            id: activity.id,
+            action: activity.action,
+            details: activity.details,
+            timestamp: activity.timestamp,
+            metadata: activity.metadata,
+            clerkUserId: activity.clerkUserId,
+            user: user
+              ? {
+                  id: user.id,
+                  name:
+                    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                    user.emailAddresses[0]?.emailAddress,
+                  email: user.emailAddresses[0]?.emailAddress,
+                }
+              : null,
+          };
+        }),
+      );
+
+      return activitiesWithUsers;
     }),
 
   getUserActivity: publicProcedure
     .input(
       z.object({
-        userId: z.number(),
+        clerkUserId: z.string(),
         limit: z.number().default(10),
         offset: z.number().default(0),
       }),
@@ -86,24 +112,39 @@ export const activityRouter = createTRPCRouter({
       const activities = await db
         .select({
           id: activityLog.id,
-          activityType: activityLog.activityType,
-          targetId: activityLog.targetId,
-          targetType: activityLog.targetType,
-          description: activityLog.description,
-          createdAt: activityLog.createdAt,
-          user: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          },
+          action: activityLog.action,
+          details: activityLog.details,
+          timestamp: activityLog.timestamp,
+          metadata: activityLog.metadata,
+          clerkUserId: activityLog.clerkUserId,
         })
         .from(activityLog)
-        .leftJoin(users, eq(activityLog.userId, users.id))
-        .where(eq(activityLog.userId, input.userId))
-        .orderBy(desc(activityLog.createdAt))
+        .where(eq(activityLog.clerkUserId, input.clerkUserId))
+        .orderBy(desc(activityLog.timestamp))
         .limit(input.limit)
         .offset(input.offset);
 
-      return activities;
+      // Fetch user data from Clerk
+      let user: User | null = null;
+      try {
+        user = await client.users.getUser(input.clerkUserId);
+      } catch (error) {
+        console.error(`Failed to fetch user ${input.clerkUserId}:`, error);
+      }
+
+      const activitiesWithUser = activities.map((activity) => ({
+        ...activity,
+        user: user
+          ? {
+              id: user.id,
+              name:
+                `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                user.emailAddresses[0]?.emailAddress,
+              email: user.emailAddresses[0]?.emailAddress,
+            }
+          : null,
+      }));
+
+      return activitiesWithUser;
     }),
 });

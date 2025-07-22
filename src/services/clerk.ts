@@ -8,6 +8,7 @@ interface CreateInvitationParams {
   ignoreExisting?: boolean;
   publicMetadata: {
     role: string;
+    projectId: number;
   };
 }
 

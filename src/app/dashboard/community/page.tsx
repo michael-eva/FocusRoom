@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react"
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
-import { Card, CardContent, CardHeader } from "~/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Textarea } from "~/components/ui/textarea"
@@ -13,8 +13,7 @@ import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { CreateEventDialog } from "./_components/CreateEventDialog"
 import { RSVPDialog } from "./_components/RSVPDialog"
 import { api } from "~/trpc/react"
-
-
+import { useUser } from "@clerk/nextjs"
 
 export default function CommunityPage() {
     const [newComment, setNewComment] = useState("")
@@ -25,10 +24,9 @@ export default function CommunityPage() {
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
     const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
 
-    const { data: currentUser } = api.users.getAll.useQuery();
-    const currentUserId = currentUser?.[0]?.id || 1;
-    const currentUserData = currentUser?.data.find(user => user.id === currentUserId);
-    const isAdmin = currentUserData?.publicMetadata?.role === "admin";
+    const { user } = useUser();
+    const currentUserId = user?.id || "";
+    const isAdmin = user?.publicMetadata?.role === "admin";
 
     // Get dynamic stats for community
     const { data: userCount = 0 } = api.users.getCount.useQuery();
@@ -46,18 +44,25 @@ export default function CommunityPage() {
             gcTime: 15 * 60 * 1000, // 15 minutes
         }
     );
+
     // Get comments for the active post
+    const activePost = feedPosts.find(p => p.id === activeCommentPost);
     const { data: postComments = [] } = api.comments.getComments.useQuery(
         {
-            targetId: activeCommentPost || 0,
-            targetType: activeCommentPost ? (feedPosts.find(p => p.id === activeCommentPost)?.type as "event" | "poll") || "event" : "event",
+            eventId: activePost?.type === "event" ? activeCommentPost! : undefined,
+            pollId: activePost?.type === "poll" ? activeCommentPost! : undefined,
             limit: 50,
         },
         {
-            enabled: !!activeCommentPost,
+            enabled: !!activeCommentPost && !!activePost,
             staleTime: 2 * 60 * 1000, // 2 minutes
         }
     );
+
+    // Debug logging
+    console.log("Active comment post:", activeCommentPost);
+    console.log("Feed posts:", feedPosts.map(p => ({ id: p.id, type: p.type, comments: p.comments })));
+    console.log("Post comments:", postComments);
 
     // API mutations
     const createLocalEvent = api.events.create.useMutation();
@@ -72,9 +77,10 @@ export default function CommunityPage() {
     const handleLike = async (postId: number, targetType: "event" | "poll") => {
         try {
             await toggleLike.mutateAsync({
-                userId: currentUserId,
-                targetId: postId,
-                targetType,
+                clerkUserId: currentUserId,
+                postId: targetType === "event" ? postId : undefined,
+                pollId: targetType === "poll" ? postId : undefined,
+                spotlightId: undefined,
             });
 
             // Invalidate and refetch the feed to show updated like status
@@ -101,7 +107,7 @@ export default function CommunityPage() {
         try {
             await createRSVP.mutateAsync({
                 eventId: selectedEventId,
-                userId: currentUserId,
+                clerkUserId: currentUserId,
                 status,
             });
 
@@ -118,14 +124,14 @@ export default function CommunityPage() {
             await votePoll.mutateAsync({
                 pollId: postId,
                 optionId: optionId,
-                userId: currentUserId,
+                clerkUserId: currentUserId,
             });
 
             // Refresh the feed to show updated vote counts
             await refetchFeed();
         } catch (error) {
             console.error("Failed to vote:", error);
-            alert("You have already voted on this poll or there was an error.");
+            alert("Failed to vote. Please try again.");
         }
     }
 
@@ -133,9 +139,9 @@ export default function CommunityPage() {
         if (newComment.trim()) {
             try {
                 await createComment.mutateAsync({
-                    userId: currentUserId,
-                    targetId: postId,
-                    targetType,
+                    clerkUserId: currentUserId,
+                    eventId: targetType === "event" ? postId : undefined,
+                    pollId: targetType === "poll" ? postId : undefined,
                     content: newComment,
                 });
 
@@ -152,19 +158,15 @@ export default function CommunityPage() {
 
     const handleCreateEvent = useCallback(async (eventData: any) => {
         try {
-            const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
-            const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
+            const eventDate = new Date(`${eventData.date}T${eventData.time}`).toISOString();
 
             // Create the event in the database
             await createLocalEvent.mutateAsync({
                 title: eventData.title,
                 description: eventData.description,
                 location: eventData.location,
-                startDateTime,
-                endDateTime,
-                allDay: false,
-                rsvpLink: eventData.rsvpLink,
-                createdById: currentUserId,
+                eventDate: eventDate,
+                createdByClerkUserId: currentUserId,
             });
 
             // Refresh the feed
@@ -180,15 +182,14 @@ export default function CommunityPage() {
             console.error("Failed to create event:", error);
             alert("Failed to create event. Please try again.");
         }
-    }, [createLocalEvent, refetchFeed]);
+    }, [createLocalEvent, refetchFeed, currentUserId]);
 
     const handleCreatePoll = async (pollData: any) => {
         try {
             await createPoll.mutateAsync({
-                title: pollData.title,
-                content: pollData.description,
+                question: pollData.title,
                 options: pollData.options,
-                createdById: currentUserId,
+                createdByClerkUserId: currentUserId,
             });
 
             // Refresh the feed
@@ -209,7 +210,7 @@ export default function CommunityPage() {
         try {
             await deletePoll.mutateAsync({
                 id: pollId,
-                userId: currentUserId
+                clerkUserId: currentUserId
             });
 
             // Refresh the feed to show updated data
@@ -244,259 +245,187 @@ export default function CommunityPage() {
 
     return (
         <>
-            <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-                    <SidebarTrigger />
-                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
-                        <span className="hidden sm:inline">Community Feed</span>
-                        <span className="sm:hidden">Community</span>
-                    </h1>
-                </div>
-                <div className="flex items-center gap-1 sm:gap-3 flex-shrink-0">
-                    {/* Mobile: Show only essential buttons */}
-                    <div className="hidden sm:flex items-center gap-3">
-                        <Button variant="outline" onClick={() => setIsCreatePollOpen(true)}>
-                            <BarChart3 className="h-4 w-4 mr-2" />
-                            Create Poll
-                        </Button>
-                        <Button
-                            className="bg-orange-500 hover:bg-orange-600 text-white"
-                            onClick={() => setIsCreateEventOpen(true)}
-                        >
+            <main className="flex-1 space-y-6 p-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">Community</h1>
+                        <p className="text-muted-foreground">
+                            Connect with your team, share updates, and stay engaged
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <SidebarTrigger />
+                        <Button onClick={() => setIsCreateEventOpen(true)}>
                             <Plus className="h-4 w-4 mr-2" />
                             Create Event
                         </Button>
-                    </div>
-
-                    {/* Mobile: Compact action buttons */}
-                    <div className="sm:hidden flex items-center gap-1">
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setIsCreatePollOpen(true)}
-                            className="px-2"
-                        >
-                            <BarChart3 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            size="sm"
-                            className="bg-orange-500 hover:bg-orange-600 text-white px-2"
-                            onClick={() => setIsCreateEventOpen(true)}
-                        >
-                            <Plus className="h-4 w-4" />
-                        </Button>
-                    </div>
-
-                    <div className="hidden sm:flex items-center gap-3">
-                        <Button variant="ghost" size="icon">
-                            <Bell className="h-5 w-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon">
-                            <User className="h-5 w-5" />
+                        <Button onClick={() => setIsCreatePollOpen(true)} variant="outline">
+                            <BarChart3 className="h-4 w-4 mr-2" />
+                            Create Poll
                         </Button>
                     </div>
                 </div>
-            </header>
 
-            {/* Main Content */}
-            <main className="flex-1 p-4 sm:p-6 bg-gray-50">
-                <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
-                    {/* Community Stats - Condensed for mobile */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                        <Card>
-                            <CardContent className="p-3 sm:p-4 text-center">
-                                <Users className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-blue-500" />
-                                <p className="text-xl sm:text-2xl font-bold">{userCount}</p>
-                                <p className="text-xs sm:text-sm text-gray-600">Members</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardContent className="p-3 sm:p-4 text-center">
-                                <Calendar className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-green-500" />
-                                <p className="text-xl sm:text-2xl font-bold">{feedPosts.filter(post => post.type === 'event').length}</p>
-                                <p className="text-xs sm:text-sm text-gray-600">Events This Month</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardContent className="p-3 sm:p-4 text-center">
-                                <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-purple-500" />
-                                <p className="text-xl sm:text-2xl font-bold">{commentCount}</p>
-                                <p className="text-xs sm:text-sm text-gray-600">Active Discussions</p>
-                            </CardContent>
-                        </Card>
-                        <Card>
-                            <CardContent className="p-3 sm:p-4 text-center">
-                                <BarChart3 className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1 sm:mb-2 text-orange-500" />
-                                <p className="text-xl sm:text-2xl font-bold">{pollCount}</p>
-                                <p className="text-xs sm:text-sm text-gray-600">Active Polls</p>
-                            </CardContent>
-                        </Card>
+                {/* Stats Cards */}
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                            <Users className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{userCount}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Active community members
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Active Polls</CardTitle>
+                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{pollCount}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Ongoing discussions
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Comments</CardTitle>
+                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">{commentCount}</div>
+                            <p className="text-xs text-muted-foreground">
+                                Community engagement
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
+                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-2xl font-bold">
+                                {feedPosts.filter(post => post.type === "event").length}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Scheduled activities
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+
+                {/* Feed */}
+                <div className="space-y-6">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-semibold">Recent Activity</h2>
+                        <Button variant="outline" size="sm" onClick={() => refetchFeed()}>
+                            Refresh
+                        </Button>
                     </div>
 
-                    {/* Feed Posts */}
-                    <div className="space-y-4 sm:space-y-6">
+                    <div className="space-y-4">
                         {feedPosts.map((post) => (
-                            <Card key={post.id} className="hover:shadow-md transition-shadow">
-                                <CardHeader className="pb-4">
-                                    <div className="flex items-start gap-3">
-                                        <Avatar>
-                                            <AvatarFallback className="bg-orange-500 text-white">
-                                                {post.author?.name?.split(' ').map(n => n[0]).join('') || 'U'}
-                                            </AvatarFallback>
-                                        </Avatar>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <h3 className="font-semibold text-gray-800">{post.author?.name || 'Unknown User'}</h3>
-                                                <Badge variant="secondary">
-                                                    {post.author?.name === 'Pack Music Admin' ? 'admin' : 'member'}
-                                                </Badge>
-                                                <span className="text-sm text-gray-500">
-                                                    {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-                                                </span>
+                            <Card key={post.id} className="overflow-hidden">
+                                <CardContent className="p-6">
+                                    {/* Post Header */}
+                                    <div className="flex items-start justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <Avatar className="w-10 h-10">
+                                                <AvatarFallback className="bg-orange-500 text-white">
+                                                    {post.author?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-medium">{post.author?.name || 'Unknown User'}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : 'just now'}
+                                                </p>
                                             </div>
-                                            <h2 className="text-lg font-semibold text-gray-800 mt-1">{post.title}</h2>
                                         </div>
-                                        {/* Delete button in header for polls and events - show for owner or admin */}
-                                        {(post.type === "poll" || post.type === "event") && (post.author?.id === currentUserId || isAdmin) && (
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => post.type === "poll" ? handleDeletePoll(post.id) : handleDeleteEvent(post.id)}
-                                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                        <Badge variant={post.type === "event" ? "default" : "secondary"}>
+                                            {post.type === "event" ? "Event" : "Poll"}
+                                        </Badge>
+                                    </div>
+
+                                    {/* Post Content */}
+                                    <div className="mb-4">
+                                        <h3 className="text-lg font-semibold mb-2">{post.title}</h3>
+                                        <p className="text-muted-foreground">{post.content}</p>
+
+                                        {/* Event-specific details */}
+                                        {post.type === "event" && 'eventDetails' in post && post.eventDetails && (
+                                            <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                                <div className="grid grid-cols-2 gap-4 text-sm">
+                                                    <div>
+                                                        <span className="font-medium">Date:</span> {post.eventDetails.date}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium">Time:</span> {post.eventDetails.time}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium">Location:</span> {post.eventDetails.location}
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium">RSVPs:</span> {'rsvps' in post ? post.rsvps || 0 : 0}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Poll-specific details */}
+                                        {post.type === "poll" && 'options' in post && post.options && Array.isArray(post.options) && (
+                                            <div className="mt-3 space-y-2">
+                                                {post.options.map((option: any) => {
+                                                    const totalVotes = post.options?.reduce((sum: number, opt: any) => sum + (opt.votes || 0), 0) || 0;
+                                                    const percentage = totalVotes > 0 ? Math.round((option.votes || 0) / totalVotes * 100) : 0;
+                                                    const hasVoted = 'userVote' in post && post.userVote?.optionId === option.id;
+
+                                                    return (
+                                                        <div key={option.id} className="relative">
+                                                            <button
+                                                                onClick={() => handleVote(post.id, option.id)}
+                                                                className={`w-full p-3 text-left rounded-lg border transition-all ${hasVoted
+                                                                    ? 'bg-orange-100 border-orange-300'
+                                                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                                                    }`}
+                                                            >
+                                                                <div className="flex justify-between items-center">
+                                                                    <span className="font-medium">{option.optionText}</span>
+                                                                    <span className="text-sm text-muted-foreground">
+                                                                        {option.votes || 0} votes ({percentage}%)
+                                                                    </span>
+                                                                </div>
+                                                                <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+                                                                    <div
+                                                                        className="bg-orange-500 h-2 rounded-full transition-all"
+                                                                        style={{ width: `${percentage}%` }}
+                                                                    />
+                                                                </div>
+                                                            </button>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
                                         )}
                                     </div>
-                                </CardHeader>
 
-                                <CardContent className="space-y-4">
-                                    <p className="text-gray-700">{post.content}</p>
-
-                                    {/* Event Details */}
-                                    {post.type === "event" && 'eventDetails' in post && post.eventDetails && (
-                                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                                <div className="flex items-center gap-2">
-                                                    <Calendar className="h-4 w-4 text-blue-600" />
-                                                    <div>
-                                                        <p className="text-sm font-medium">Date & Time</p>
-                                                        <p className="text-sm text-gray-600">
-                                                            {post.eventDetails.date ? new Date(post.eventDetails.date).toLocaleDateString() : 'TBD'} at {post.eventDetails.time || 'TBD'}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm font-medium">Location</p>
-                                                    <p className="text-sm text-gray-600">{post.eventDetails.location}</p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Users className="h-4 w-4 text-blue-600" />
-                                                    <div>
-                                                        <p className="text-sm font-medium">RSVPs</p>
-                                                        <p className="text-sm text-gray-600">{'rsvps' in post ? post.rsvps : 0} attending</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            {/* RSVP Status Indicator */}
-                                            {'userHasRSVPd' in post && post.userHasRSVPd && (
-                                                <div className="mt-3 pt-3 border-t border-blue-200">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-medium text-gray-700">Your RSVP:</span>
-                                                        <Badge
-                                                            variant={
-                                                                (post as any).userRSVPStatus === "attending"
-                                                                    ? "default"
-                                                                    : (post as any).userRSVPStatus === "maybe"
-                                                                        ? "secondary"
-                                                                        : "destructive"
-                                                            }
-                                                            className={
-                                                                (post as any).userRSVPStatus === "attending"
-                                                                    ? "bg-green-100 text-green-800"
-                                                                    : (post as any).userRSVPStatus === "maybe"
-                                                                        ? "bg-yellow-100 text-yellow-800"
-                                                                        : "bg-red-100 text-red-800"
-                                                            }
-                                                        >
-                                                            {(post as any).userRSVPStatus === "attending"
-                                                                ? "Attending"
-                                                                : (post as any).userRSVPStatus === "maybe"
-                                                                    ? "Maybe"
-                                                                    : "Not Attending"
-                                                            }
-                                                        </Badge>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {/* Poll Options */}
-                                    {post.type === "poll" && 'pollOptions' in post && post.pollOptions && (
-                                        <div className="space-y-3">
-                                            {post.pollOptions.map((option) => {
-                                                const totalVotes = 'totalVotes' in post ? post.totalVotes : 0;
-                                                const percentage = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-                                                const userVotedForThis = 'userVotedOptionId' in post && post.userVotedOptionId === option.id;
-                                                return (
-                                                    <div key={option.id} className="space-y-2">
-                                                        <div className="flex justify-between items-center">
-                                                            <Button
-                                                                variant={
-                                                                    'userHasVoted' in post && post.userHasVoted
-                                                                        ? userVotedForThis
-                                                                            ? "default"
-                                                                            : "secondary"
-                                                                        : "outline"
-                                                                }
-                                                                className={`flex-1 justify-start ${userVotedForThis ? "bg-orange-500 hover:bg-orange-600" : ""
-                                                                    }`}
-                                                                onClick={() => !('userHasVoted' in post && post.userHasVoted) && handleVote(post.id, option.id)}
-                                                                disabled={'userHasVoted' in post && post.userHasVoted}
-                                                            >
-                                                                {option.text}
-                                                                {userVotedForThis && (
-                                                                    <Badge className="ml-2 bg-white text-orange-600 text-xs">
-                                                                        Your Vote
-                                                                    </Badge>
-                                                                )}
-                                                            </Button>
-                                                            <span className="text-sm text-gray-600 ml-2">{option.votes} votes</span>
-                                                        </div>
-                                                        {'userHasVoted' in post && post.userHasVoted && (
-                                                            <div className="w-full bg-gray-200 rounded-full h-2">
-                                                                <div
-                                                                    className="bg-orange-500 h-2 rounded-full transition-all duration-300"
-                                                                    style={{ width: `${percentage}%` }}
-                                                                ></div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )
-                                            })}
-                                            <p className="text-sm text-gray-600 text-center">Total votes: {'totalVotes' in post ? post.totalVotes : 0}</p>
-                                        </div>
-                                    )}
-
-                                    {/* Post Actions */}
-                                    <div className="flex items-center gap-4 pt-4 border-t">
+                                    {/* Action Buttons */}
+                                    <div className="flex items-center gap-2 mb-4">
                                         <Button
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleLike(post.id, post.type as "event" | "poll")}
-                                            className={'userHasLiked' in post && post.userHasLiked ? "text-orange-600" : ""}
+                                            className={post.userHasLiked ? "text-orange-600" : ""}
                                         >
                                             <ThumbsUp className="h-4 w-4 mr-1" />
-                                            {(() => {
-                                                console.log(`Post ${post.id} like data:`, {
-                                                    likes: post.likes,
-                                                    userHasLiked: post.userHasLiked,
-                                                    hasLikesProperty: 'likes' in post
-                                                });
-                                                return 'likes' in post ? post.likes : 0;
-                                            })()}
+                                            {post.likes || 0}
                                         </Button>
 
                                         <Button
@@ -505,44 +434,23 @@ export default function CommunityPage() {
                                             onClick={() => setActiveCommentPost(activeCommentPost === post.id ? null : post.id)}
                                         >
                                             <MessageSquare className="h-4 w-4 mr-1" />
-                                            {(() => {
-                                                console.log(`Post ${post.id} comment data:`, {
-                                                    comments: post.comments,
-                                                    hasCommentsProperty: 'comments' in post
-                                                });
-                                                return 'comments' in post ? post.comments : 0;
-                                            })()}
+                                            {post.comments || 0}
                                         </Button>
 
                                         {post.type === "event" && (
                                             <Button
-                                                variant={'userHasRSVPd' in post && post.userHasRSVPd ? "default" : "outline"}
+                                                variant="ghost"
                                                 size="sm"
                                                 onClick={() => handleRSVP(post.id)}
-                                                className={
-                                                    'userHasRSVPd' in post && post.userHasRSVPd
-                                                        ? post.userRSVPStatus === "attending"
-                                                            ? "bg-green-600 hover:bg-green-700"
-                                                            : post.userRSVPStatus === "maybe"
-                                                                ? "bg-yellow-600 hover:bg-yellow-700"
-                                                                : "bg-red-600 hover:bg-red-700"
-                                                        : ""
-                                                }
+                                                className={'userHasRSVPd' in post && post.userHasRSVPd ? "text-green-600" : ""}
                                             >
-                                                <Users className="h-4 w-4 mr-1" />
-                                                {'userHasRSVPd' in post && post.userHasRSVPd
-                                                    ? post.userRSVPStatus === "attending"
-                                                        ? "Attending"
-                                                        : post.userRSVPStatus === "maybe"
-                                                            ? "Maybe"
-                                                            : "Not Attending"
-                                                    : "RSVP"
-                                                }
+                                                <Calendar className="h-4 w-4 mr-1" />
+                                                RSVP
                                             </Button>
                                         )}
 
-                                        {/* Delete button for polls and events - show for owner or admin */}
-                                        {(post.type === "poll" || post.type === "event") && (post.author?.id === currentUserId || isAdmin) && (
+                                        {/* Delete button for admins or post creators */}
+                                        {(isAdmin || post.createdByClerkUserId === currentUserId) && (
                                             <Button
                                                 variant="ghost"
                                                 size="sm"
@@ -567,7 +475,7 @@ export default function CommunityPage() {
                                                 <div key={comment.id} className="flex gap-3">
                                                     <Avatar className="w-8 h-8">
                                                         <AvatarFallback className="bg-gray-500 text-white text-xs">
-                                                            {comment.user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+                                                            {comment.user?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                                                         </AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex-1">
@@ -575,7 +483,7 @@ export default function CommunityPage() {
                                                             <div className="flex items-center gap-2 mb-1">
                                                                 <span className="font-medium text-sm">{comment.user?.name || 'Unknown User'}</span>
                                                                 <span className="text-xs text-gray-500">
-                                                                    {comment.createdAt ? formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true }) : 'just now'}
+                                                                    {comment.timestamp ? formatDistanceToNow(new Date(comment.timestamp), { addSuffix: true }) : 'just now'}
                                                                 </span>
                                                             </div>
                                                             <p className="text-sm text-gray-700">{comment.content}</p>

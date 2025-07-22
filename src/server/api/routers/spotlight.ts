@@ -22,27 +22,10 @@ export const spotlightRouter = createTRPCRouter({
     const links = spotlight.links;
     const stats = spotlight.stats;
 
-    // Get likes count
-    const likesResult = await db
-      .select({ count: count() })
-      .from(likes)
-      .where(
-        and(
-          eq(likes.targetId, spotlight.id),
-          eq(likes.targetType, "spotlight"),
-        ),
-      );
-
-    // Get comments count
-    const commentsResult = await db
-      .select({ count: count() })
-      .from(comments)
-      .where(
-        and(
-          eq(comments.targetId, spotlight.id),
-          eq(comments.targetType, "spotlight"),
-        ),
-      );
+    // Note: Current schema doesn't support likes/comments on spotlights directly
+    // These would need to be implemented differently or the schema would need to be updated
+    const likesResult = { count: 0 };
+    const commentsResult = { count: 0 };
 
     return {
       id: spotlight.id,
@@ -101,27 +84,10 @@ export const spotlightRouter = createTRPCRouter({
       const links = spotlightData.links;
       const stats = spotlightData.stats;
 
-      // Get likes count
-      const likesResult = await db
-        .select({ count: count() })
-        .from(likes)
-        .where(
-          and(
-            eq(likes.targetId, spotlightData.id),
-            eq(likes.targetType, "spotlight"),
-          ),
-        );
-
-      // Get comments count
-      const commentsResult = await db
-        .select({ count: count() })
-        .from(comments)
-        .where(
-          and(
-            eq(comments.targetId, spotlightData.id),
-            eq(comments.targetType, "spotlight"),
-          ),
-        );
+      // Note: Current schema doesn't support likes/comments on spotlights directly
+      // These would need to be implemented differently or the schema would need to be updated
+      const likesResult = { count: 0 };
+      const commentsResult = { count: 0 };
 
       return {
         id: spotlightData.id,
@@ -171,7 +137,7 @@ export const spotlightRouter = createTRPCRouter({
             upcomingShows: z.string().optional(),
           })
           .optional(),
-        createdById: z.number().optional(),
+        createdByClerkUserId: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -230,7 +196,7 @@ export const spotlightRouter = createTRPCRouter({
         links: input.links || null,
         stats: input.stats || null,
         isCurrent: true,
-        createdById: input.createdById || null,
+        createdByClerkUserId: input.createdByClerkUserId || null,
       };
 
       console.log("🔍 Final spotlightValues:", spotlightValues);

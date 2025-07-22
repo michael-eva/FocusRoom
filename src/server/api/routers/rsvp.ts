@@ -1,15 +1,17 @@
 import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
-import { eventRsvps, events, users, activityLog } from "~/db/schema";
+import { eventRsvps, events, activityLog } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
+import { client } from "~/lib/clerk";
+import type { User } from "@clerk/nextjs/server";
 
 export const rsvpRouter = createTRPCRouter({
   create: publicProcedure
     .input(
       z.object({
         eventId: z.number(),
-        userId: z.number(),
+        clerkUserId: z.string(),
         status: z.enum(["attending", "maybe", "declined"]),
       }),
     )
@@ -21,7 +23,7 @@ export const rsvpRouter = createTRPCRouter({
         .where(
           and(
             eq(eventRsvps.eventId, input.eventId),
-            eq(eventRsvps.userId, input.userId),
+            eq(eventRsvps.clerkUserId, input.clerkUserId),
           ),
         )
         .limit(1);
@@ -32,18 +34,17 @@ export const rsvpRouter = createTRPCRouter({
           .update(eventRsvps)
           .set({
             status: input.status,
-            updatedAt: new Date().toISOString(),
+            rsvpDate: new Date().toISOString(),
           })
           .where(eq(eventRsvps.id, existingRSVP[0]!.id))
           .returning();
 
         // Log the activity
         await db.insert(activityLog).values({
-          userId: input.userId,
-          activityType: "event_rsvp",
-          targetId: input.eventId,
-          targetType: "event",
-          description: `Updated RSVP to: ${input.status}`,
+          clerkUserId: input.clerkUserId,
+          action: "event_rsvp",
+          details: `Updated RSVP to: ${input.status}`,
+          metadata: { eventId: input.eventId },
         });
 
         return updatedRSVP[0];
@@ -53,18 +54,17 @@ export const rsvpRouter = createTRPCRouter({
           .insert(eventRsvps)
           .values({
             eventId: input.eventId,
-            userId: input.userId,
+            clerkUserId: input.clerkUserId,
             status: input.status,
           })
           .returning();
 
         // Log the activity
         await db.insert(activityLog).values({
-          userId: input.userId,
-          activityType: "event_rsvp",
-          targetId: input.eventId,
-          targetType: "event",
-          description: `RSVP'd: ${input.status}`,
+          clerkUserId: input.clerkUserId,
+          action: "event_rsvp",
+          details: `RSVP'd: ${input.status}`,
+          metadata: { eventId: input.eventId },
         });
 
         return newRSVP[0];
@@ -78,26 +78,49 @@ export const rsvpRouter = createTRPCRouter({
         .select({
           id: eventRsvps.id,
           status: eventRsvps.status,
-          createdAt: eventRsvps.createdAt,
-          updatedAt: eventRsvps.updatedAt,
-          user: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          },
+          rsvpDate: eventRsvps.rsvpDate,
+          notes: eventRsvps.notes,
+          clerkUserId: eventRsvps.clerkUserId,
         })
         .from(eventRsvps)
-        .leftJoin(users, eq(eventRsvps.userId, users.id))
         .where(eq(eventRsvps.eventId, input.eventId));
 
-      return rsvps;
+      // Fetch user details from Clerk for each RSVP
+      const rsvpsWithUsers = await Promise.all(
+        rsvps.map(async (rsvp) => {
+          let user: User | null = null;
+          if (rsvp.clerkUserId) {
+            try {
+              user = await client.users.getUser(rsvp.clerkUserId);
+            } catch (error) {
+              console.error(`Failed to fetch user ${rsvp.clerkUserId}:`, error);
+            }
+          }
+
+          return {
+            ...rsvp,
+            user: user
+              ? {
+                  id: user.id,
+                  name:
+                    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                    user.emailAddresses[0]?.emailAddress,
+                  email: user.emailAddresses[0]?.emailAddress,
+                  imageUrl: user.imageUrl,
+                }
+              : null,
+          };
+        }),
+      );
+
+      return rsvpsWithUsers;
     }),
 
   getUserRSVP: publicProcedure
     .input(
       z.object({
         eventId: z.number(),
-        userId: z.number(),
+        clerkUserId: z.string(),
       }),
     )
     .query(async ({ input }) => {
@@ -107,7 +130,7 @@ export const rsvpRouter = createTRPCRouter({
         .where(
           and(
             eq(eventRsvps.eventId, input.eventId),
-            eq(eventRsvps.userId, input.userId),
+            eq(eventRsvps.clerkUserId, input.clerkUserId),
           ),
         )
         .limit(1);
@@ -119,7 +142,7 @@ export const rsvpRouter = createTRPCRouter({
     .input(
       z.object({
         eventId: z.number(),
-        userId: z.number(),
+        clerkUserId: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -128,7 +151,7 @@ export const rsvpRouter = createTRPCRouter({
         .where(
           and(
             eq(eventRsvps.eventId, input.eventId),
-            eq(eventRsvps.userId, input.userId),
+            eq(eventRsvps.clerkUserId, input.clerkUserId),
           ),
         );
 

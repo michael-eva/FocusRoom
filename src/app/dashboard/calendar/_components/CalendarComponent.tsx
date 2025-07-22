@@ -9,17 +9,17 @@ import { api } from '~/trpc/react';
 
 interface Event {
   id: number;
-  title: string;
+  title: string | null;
   description: string | null;
   location: string | null;
-  startDateTime: string;
-  endDateTime: string;
-  allDay: boolean | null;
-  rsvpLink: string | null;
-  createdById: number | null;
+  eventDate: string | null;
+  maxAttendees: number | null;
+  isVirtual: boolean | null;
+  virtualLink: string | null;
+  eventType: string | null;
+  createdByClerkUserId: string | null;
   createdAt: string | null;
   updatedAt: string | null;
-  googleEventId: string | null;
   userRSVP?: {
     id: number;
     eventId: number;
@@ -55,8 +55,15 @@ export default function CalendarComponent({
   const { data: events = [], isLoading } = api.events.getByMonth.useQuery({
     year,
     month,
-    userId,
+    userId: userId?.toString(),
   });
+
+  const mappedEvents = events.map((event: any) => ({
+    ...event,
+    eventDate: event.eventDate || event.startDateTime || null,
+    virtualLink: event.virtualLink || event.rsvpLink || null,
+    // add other mappings as needed
+  }));
 
   // Get upcoming events
   const { data: upcomingEvents = [] } = api.events.getUpcoming.useQuery({
@@ -90,8 +97,9 @@ export default function CalendarComponent({
   };
 
   const getEventsForDate = (date: Date): Event[] => {
-    return events.filter(event => {
-      const eventDate = new Date(event.startDateTime);
+    return mappedEvents.filter(event => {
+      if (!event.eventDate) return false;
+      const eventDate = new Date(event.eventDate);
       return eventDate.toDateString() === date.toDateString();
     });
   };
@@ -232,7 +240,7 @@ export default function CalendarComponent({
                       >
                         <div className="flex items-center justify-between">
                           <span className="truncate flex-1">
-                            {event.allDay ? event.title : `${formatTime(event.startDateTime)} ${event.title}`}
+                            {event.title}
                           </span>
                           {event.userRSVP && (
                             <span className="ml-1 text-xs font-medium">
@@ -295,13 +303,9 @@ export default function CalendarComponent({
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {event.allDay ? (
-                          <span>All day • {formatDate(event.startDateTime)}</span>
-                        ) : (
-                          <span>
-                            {formatDate(event.startDateTime)} • {formatTime(event.startDateTime)}
-                          </span>
-                        )}
+                        <span>
+                          {event.eventDate ? `${formatDate(event.eventDate)} • ${formatTime(event.eventDate)}` : "No date"}
+                        </span>
                       </div>
 
                       {event.location && (
@@ -315,19 +319,19 @@ export default function CalendarComponent({
 
                   <div className="flex flex-col items-end gap-2">
                     <Badge variant="secondary" className="text-xs">
-                      {event.allDay ? 'All Day' : 'Scheduled'}
+                      {event.eventDate ? 'Scheduled' : 'No Date'}
                     </Badge>
 
-                    {event.rsvpLink && (
+                    {event.virtualLink && (
                       <a
-                        href={event.rsvpLink}
+                        href={event.virtualLink}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <Users className="h-3 w-3" />
-                        RSVP
+                        Join
                       </a>
                     )}
                   </div>

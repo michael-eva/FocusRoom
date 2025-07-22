@@ -5,25 +5,29 @@ import {
   events,
   polls,
   pollOptions,
-  users,
   pollVotes,
   likes,
   comments,
   eventRsvps,
 } from "~/db/schema";
 import { eq, desc, sql, and, inArray } from "drizzle-orm";
+import { client } from "~/lib/clerk";
+import type { User } from "@clerk/nextjs/server";
 
 export const feedRouter = createTRPCRouter({
   getFeed: publicProcedure
     .input(
-      z.object({
-        limit: z.number().default(20),
-        offset: z.number().default(0),
-        userId: z.number().optional(), // Add userId to check user interactions
-      }),
+      z
+        .object({
+          limit: z.number().default(20),
+          offset: z.number().default(0),
+          userId: z.string().optional(), // Changed to string for Clerk user ID
+        })
+        .optional()
+        .default({}),
     )
     .query(async ({ input }) => {
-      // Get events with author info and RSVP data
+      // Get events with RSVP data
       const eventsData = await db
         .select({
           id: events.id,
@@ -31,44 +35,30 @@ export const feedRouter = createTRPCRouter({
           title: events.title,
           content: events.description,
           location: events.location,
-          startDateTime: events.startDateTime,
-          endDateTime: events.endDateTime,
-          rsvpLink: events.rsvpLink,
+          eventDate: events.eventDate,
           createdAt: events.createdAt,
           updatedAt: events.updatedAt,
-          author: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          },
+          createdByClerkUserId: events.createdByClerkUserId,
           userRSVP: eventRsvps,
         })
         .from(events)
-        .leftJoin(users, eq(events.createdById, users.id))
         .leftJoin(eventRsvps, eq(events.id, eventRsvps.eventId))
         .orderBy(desc(events.createdAt))
         .limit(input.limit)
         .offset(input.offset);
 
-      // Get polls with author info, options, and vote data
+      // Get polls with options and vote data
       const pollsData = await db
         .select({
           id: polls.id,
           type: sql`'poll'`.as("type"),
-          title: polls.title,
-          content: polls.content,
+          question: polls.question,
           createdAt: polls.createdAt,
-          updatedAt: polls.updatedAt,
-          author: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-          },
+          createdByClerkUserId: polls.createdByClerkUserId,
           options: pollOptions,
           userVote: pollVotes,
         })
         .from(polls)
-        .leftJoin(users, eq(polls.createdById, users.id))
         .leftJoin(pollOptions, eq(polls.id, pollOptions.pollId))
         .leftJoin(pollVotes, eq(polls.id, pollVotes.pollId))
         .orderBy(desc(polls.createdAt))
@@ -85,7 +75,7 @@ export const feedRouter = createTRPCRouter({
           if (
             row.userVote &&
             input.userId &&
-            row.userVote.userId === input.userId
+            row.userVote.clerkUserId === input.userId
           ) {
             existingPoll.userVote = row.userVote;
           }
@@ -93,16 +83,14 @@ export const feedRouter = createTRPCRouter({
           acc.push({
             id: row.id,
             type: row.type,
-            title: row.title,
-            content: row.content,
+            question: row.question,
             createdAt: row.createdAt,
-            updatedAt: row.updatedAt,
-            author: row.author,
+            createdByClerkUserId: row.createdByClerkUserId,
             options: row.options ? [row.options] : [],
             userVote:
               row.userVote &&
               input.userId &&
-              row.userVote.userId === input.userId
+              row.userVote.clerkUserId === input.userId
                 ? row.userVote
                 : null,
           });
@@ -117,7 +105,7 @@ export const feedRouter = createTRPCRouter({
           if (
             row.userRSVP &&
             input.userId &&
-            row.userRSVP.userId === input.userId
+            row.userRSVP.clerkUserId === input.userId
           ) {
             existingEvent.userRSVP = row.userRSVP;
           }
@@ -128,16 +116,14 @@ export const feedRouter = createTRPCRouter({
             title: row.title,
             content: row.content,
             location: row.location,
-            startDateTime: row.startDateTime,
-            endDateTime: row.endDateTime,
-            rsvpLink: row.rsvpLink,
+            eventDate: row.eventDate,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
-            author: row.author,
+            createdByClerkUserId: row.createdByClerkUserId,
             userRSVP:
               row.userRSVP &&
               input.userId &&
-              row.userRSVP.userId === input.userId
+              row.userRSVP.clerkUserId === input.userId
                 ? row.userRSVP
                 : null,
           });
@@ -151,37 +137,26 @@ export const feedRouter = createTRPCRouter({
         eventIds.length > 0
           ? await db
               .select({
-                targetId: likes.targetId,
+                targetId: likes.postId,
                 count: sql<number>`count(*)`.as("count"),
               })
               .from(likes)
-              .where(
-                and(
-                  eq(likes.targetType, "event"),
-                  inArray(likes.targetId, eventIds),
-                ),
-              )
-              .groupBy(likes.targetId)
+              .where(and(inArray(likes.postId, eventIds)))
+              .groupBy(likes.postId)
           : [];
 
       const eventComments =
         eventIds.length > 0
           ? await db
               .select({
-                targetId: comments.targetId,
+                targetId: comments.eventId,
                 count: sql<number>`count(*)`.as("count"),
               })
               .from(comments)
-              .where(
-                and(
-                  eq(comments.targetType, "event"),
-                  inArray(comments.targetId, eventIds),
-                ),
-              )
-              .groupBy(comments.targetId)
+              .where(and(inArray(comments.eventId, eventIds)))
+              .groupBy(comments.eventId)
           : [];
 
-      // Get RSVP counts for events
       const eventRSVPs =
         eventIds.length > 0
           ? await db
@@ -190,28 +165,22 @@ export const feedRouter = createTRPCRouter({
                 count: sql<number>`count(*)`.as("count"),
               })
               .from(eventRsvps)
-              .where(
-                and(
-                  eq(eventRsvps.status, "attending"),
-                  inArray(eventRsvps.eventId, eventIds),
-                ),
-              )
+              .where(and(inArray(eventRsvps.eventId, eventIds)))
               .groupBy(eventRsvps.eventId)
           : [];
 
-      // Get user likes for events
+      // Get user's likes for events
       const userEventLikes =
         input.userId && eventIds.length > 0
           ? await db
               .select({
-                targetId: likes.targetId,
+                targetId: likes.postId,
               })
               .from(likes)
               .where(
                 and(
-                  eq(likes.targetType, "event"),
-                  eq(likes.userId, input.userId),
-                  inArray(likes.targetId, eventIds),
+                  eq(likes.clerkUserId, input.userId),
+                  inArray(likes.postId, eventIds),
                 ),
               )
           : [];
@@ -234,17 +203,21 @@ export const feedRouter = createTRPCRouter({
           title: event.title,
           content: event.content,
           eventDetails: {
-            date: new Date(event.startDateTime).toISOString().split("T")[0],
-            time: new Date(event.startDateTime).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            }),
+            date: event.eventDate
+              ? new Date(event.eventDate).toISOString().split("T")[0]
+              : "",
+            time: event.eventDate
+              ? new Date(event.eventDate).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "",
             location: event.location || "Location TBD",
-            rsvpLink: event.rsvpLink || "#",
+            rsvpLink: "#", // Not in new schema
           },
           createdAt: event.createdAt,
           updatedAt: event.updatedAt,
-          author: event.author,
+          createdByClerkUserId: event.createdByClerkUserId,
           likes: likeCount,
           comments: commentCount,
           rsvps: rsvpCount,
@@ -260,49 +233,38 @@ export const feedRouter = createTRPCRouter({
         pollIds.length > 0
           ? await db
               .select({
-                targetId: likes.targetId,
+                targetId: likes.pollId,
                 count: sql<number>`count(*)`.as("count"),
               })
               .from(likes)
-              .where(
-                and(
-                  eq(likes.targetType, "poll"),
-                  inArray(likes.targetId, pollIds),
-                ),
-              )
-              .groupBy(likes.targetId)
+              .where(and(inArray(likes.pollId, pollIds)))
+              .groupBy(likes.pollId)
           : [];
 
       const pollComments =
         pollIds.length > 0
           ? await db
               .select({
-                targetId: comments.targetId,
+                targetId: comments.pollId,
                 count: sql<number>`count(*)`.as("count"),
               })
               .from(comments)
-              .where(
-                and(
-                  eq(comments.targetType, "poll"),
-                  inArray(comments.targetId, pollIds),
-                ),
-              )
-              .groupBy(comments.targetId)
+              .where(and(inArray(comments.pollId, pollIds)))
+              .groupBy(comments.pollId)
           : [];
 
-      // Get user likes for polls
+      // Get user's likes for polls
       const userPollLikes =
         input.userId && pollIds.length > 0
           ? await db
               .select({
-                targetId: likes.targetId,
+                targetId: likes.pollId,
               })
               .from(likes)
               .where(
                 and(
-                  eq(likes.targetType, "poll"),
-                  eq(likes.userId, input.userId),
-                  inArray(likes.targetId, pollIds),
+                  eq(likes.clerkUserId, input.userId),
+                  inArray(likes.pollId, pollIds),
                 ),
               )
           : [];
@@ -318,34 +280,79 @@ export const feedRouter = createTRPCRouter({
         return {
           id: poll.id,
           type: poll.type,
-          title: poll.title,
-          content: poll.content,
-          pollOptions: poll.options.map((option: any) => ({
-            id: option.id,
-            text: option.text,
-            votes: option.votes,
-          })),
+          title: poll.question,
+          content: poll.question,
           createdAt: poll.createdAt,
-          updatedAt: poll.updatedAt,
-          author: poll.author,
+          updatedAt: poll.createdAt, // Use createdAt since updatedAt doesn't exist
+          createdByClerkUserId: poll.createdByClerkUserId,
+          options: poll.options,
+          userVote: poll.userVote,
           likes: likeCount,
           comments: commentCount,
-          totalVotes: poll.options.reduce(
-            (sum: number, option: any) => sum + option.votes,
-            0,
-          ),
-          userHasVoted: !!poll.userVote,
-          userVotedOptionId: poll.userVote?.optionId || null,
           userHasLiked,
         };
       });
 
+      // Fetch user data from Clerk for all events and polls
+      const allUserIds = [
+        ...new Set([
+          ...transformedEvents
+            .map((e) => e.createdByClerkUserId)
+            .filter(Boolean),
+          ...transformedPolls
+            .map((p) => p.createdByClerkUserId)
+            .filter(Boolean),
+        ]),
+      ];
+
+      const userDataMap = new Map<string, any>();
+
+      for (const userId of allUserIds) {
+        if (userId) {
+          try {
+            // Skip test user IDs that don't exist in Clerk
+            if (userId === "1" || userId === "67") {
+              console.log(`Skipping test user ID: ${userId}`);
+              continue;
+            }
+
+            const user = await client.users.getUser(userId);
+            userDataMap.set(userId, {
+              id: user.id,
+              name:
+                `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                user.emailAddresses[0]?.emailAddress,
+              email: user.emailAddresses[0]?.emailAddress,
+              imageUrl: user.imageUrl,
+            });
+          } catch (error) {
+            console.error(`Failed to fetch user ${userId}:`, error);
+            // Continue without user data
+          }
+        }
+      }
+
+      // Add author data to events and polls
+      const eventsWithAuthors = transformedEvents.map((event) => ({
+        ...event,
+        author: event.createdByClerkUserId
+          ? userDataMap.get(event.createdByClerkUserId)
+          : null,
+      }));
+
+      const pollsWithAuthors = transformedPolls.map((poll) => ({
+        ...poll,
+        author: poll.createdByClerkUserId
+          ? userDataMap.get(poll.createdByClerkUserId)
+          : null,
+      }));
+
       // Combine and sort by creation date
-      const combinedFeed = [...transformedEvents, ...transformedPolls].sort(
+      const combinedFeed = [...eventsWithAuthors, ...pollsWithAuthors].sort(
         (a, b) =>
           new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
       );
 
-      return combinedFeed;
+      return combinedFeed.slice(0, input.limit);
     }),
 });

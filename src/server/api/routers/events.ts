@@ -11,38 +11,46 @@ export const eventsRouter = createTRPCRouter({
         title: z.string().min(1),
         description: z.string().optional(),
         location: z.string().optional(),
-        startDateTime: z.date(),
-        endDateTime: z.date(),
+        startDateTime: z.date().optional().nullable(),
+        endDateTime: z.date().optional().nullable(),
+        eventDate: z.string().optional(), // For new schema
         allDay: z.boolean().default(false),
         rsvpLink: z.string().optional(),
-        createdById: z.string().optional(),
+        createdById: z.union([z.string(), z.number()]).optional(), // Handle both string and number
+        createdByClerkUserId: z.string().optional(), // For new schema
       }),
     )
     .mutation(async ({ input }) => {
+      // Handle backward compatibility
+      const createdByClerkUserId =
+        input.createdByClerkUserId ||
+        (input.createdById ? input.createdById.toString() : undefined);
+      const eventDate =
+        input.eventDate ||
+        (input.startDateTime ? input.startDateTime.toISOString() : undefined);
+
+      if (!createdByClerkUserId) {
+        throw new Error("createdByClerkUserId/createdById is required");
+      }
+
       const newEvent = await db
         .insert(events)
         .values({
           title: input.title,
           description: input.description,
           location: input.location,
-          startDateTime: input.startDateTime.toISOString(),
-          endDateTime: input.endDateTime.toISOString(),
-          allDay: input.allDay,
-          rsvpLink: input.rsvpLink,
-          createdById: input.createdById,
+          eventDate: eventDate,
+          createdByClerkUserId: createdByClerkUserId,
         })
         .returning();
 
       // Log the activity
-      if (input.createdById) {
-        await db.insert(activityLog).values({
-          userId: input.createdById,
-          activityType: "event_created",
-          targetId: newEvent[0]!.id,
-          targetType: "event",
-          description: `Created event: ${input.title}`,
-        });
-      }
+      await db.insert(activityLog).values({
+        clerkUserId: createdByClerkUserId,
+        action: "event_created",
+        details: `Created event: ${input.title}`,
+        metadata: { eventId: newEvent[0]!.id },
+      });
 
       return newEvent[0];
     }),
@@ -51,7 +59,7 @@ export const eventsRouter = createTRPCRouter({
     const allEvents = await db
       .select()
       .from(events)
-      .orderBy(desc(events.startDateTime));
+      .orderBy(desc(events.eventDate || events.createdAt));
     return allEvents;
   }),
 
@@ -68,11 +76,15 @@ export const eventsRouter = createTRPCRouter({
         .from(events)
         .where(
           and(
-            gte(events.startDateTime, input.startDate.toISOString()),
-            lte(events.startDateTime, input.endDate.toISOString()),
+            events.eventDate
+              ? gte(events.eventDate, input.startDate.toISOString())
+              : undefined,
+            events.eventDate
+              ? lte(events.eventDate, input.endDate.toISOString())
+              : undefined,
           ),
         )
-        .orderBy(events.startDateTime);
+        .orderBy(events.eventDate || events.createdAt);
 
       return eventsInRange;
     }),
@@ -98,11 +110,12 @@ export const eventsRouter = createTRPCRouter({
           title: events.title,
           description: events.description,
           location: events.location,
-          startDateTime: events.startDateTime,
-          endDateTime: events.endDateTime,
-          allDay: events.allDay,
-          rsvpLink: events.rsvpLink,
-          createdById: events.createdById,
+          eventDate: events.eventDate,
+          maxAttendees: events.maxAttendees,
+          isVirtual: events.isVirtual,
+          virtualLink: events.virtualLink,
+          eventType: events.eventType,
+          createdByClerkUserId: events.createdByClerkUserId,
           createdAt: events.createdAt,
           updatedAt: events.updatedAt,
           userRSVP: eventRsvps,
@@ -111,11 +124,15 @@ export const eventsRouter = createTRPCRouter({
         .leftJoin(eventRsvps, eq(events.id, eventRsvps.eventId))
         .where(
           and(
-            gte(events.startDateTime, startDate.toISOString()),
-            lte(events.startDateTime, endDate.toISOString()),
+            events.eventDate
+              ? gte(events.eventDate, startDate.toISOString())
+              : undefined,
+            events.eventDate
+              ? lte(events.eventDate, endDate.toISOString())
+              : undefined,
           ),
         )
-        .orderBy(events.startDateTime);
+        .orderBy(events.eventDate || events.createdAt);
 
       // Group events by ID and collect RSVP data
       const eventsWithRSVPs = eventsInMonth.reduce((acc, row) => {
@@ -124,7 +141,7 @@ export const eventsRouter = createTRPCRouter({
           if (
             row.userRSVP &&
             input.userId &&
-            row.userRSVP.userId === input.userId
+            row.userRSVP.clerkUserId === input.userId
           ) {
             existingEvent.userRSVP = row.userRSVP;
           }
@@ -134,17 +151,18 @@ export const eventsRouter = createTRPCRouter({
             title: row.title,
             description: row.description,
             location: row.location,
-            startDateTime: row.startDateTime,
-            endDateTime: row.endDateTime,
-            allDay: row.allDay,
-            rsvpLink: row.rsvpLink,
-            createdById: row.createdById,
+            eventDate: row.eventDate,
+            maxAttendees: row.maxAttendees,
+            isVirtual: row.isVirtual,
+            virtualLink: row.virtualLink,
+            eventType: row.eventType,
+            createdByClerkUserId: row.createdByClerkUserId,
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             userRSVP:
               row.userRSVP &&
               input.userId &&
-              row.userRSVP.userId === input.userId
+              row.userRSVP.clerkUserId === input.userId
                 ? row.userRSVP
                 : null,
           });
@@ -152,7 +170,40 @@ export const eventsRouter = createTRPCRouter({
         return acc;
       }, [] as any[]);
 
-      return eventsWithRSVPs;
+      // Map to backward compatible format for calendar component
+      const backwardCompatibleEvents = eventsWithRSVPs.map((event) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        location: event.location,
+        startDateTime:
+          event.eventDate || event.createdAt || new Date().toISOString(),
+        endDateTime:
+          event.eventDate || event.createdAt || new Date().toISOString(), // Use same as start for now
+        allDay: false, // Default to false since we don't have this field in new schema
+        rsvpLink: null, // Not in new schema
+        createdById: null, // Keep as null since Clerk IDs are strings, not numbers
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt,
+        googleEventId: null, // Not in new schema
+        userRSVP: event.userRSVP
+          ? {
+              id: event.userRSVP.id,
+              eventId: event.userRSVP.eventId || 0,
+              userId: event.userRSVP.clerkUserId
+                ? parseInt(event.userRSVP.clerkUserId)
+                : 0, // Convert string to number for compatibility
+              status: event.userRSVP.status as
+                | "attending"
+                | "maybe"
+                | "declined",
+              createdAt: event.userRSVP.rsvpDate || new Date().toISOString(),
+              updatedAt: event.userRSVP.rsvpDate || new Date().toISOString(),
+            }
+          : null,
+      }));
+
+      return backwardCompatibleEvents;
     }),
 
   getById: publicProcedure
@@ -174,28 +225,20 @@ export const eventsRouter = createTRPCRouter({
         title: z.string().min(1).optional(),
         description: z.string().optional(),
         location: z.string().optional(),
-        startDateTime: z.date().optional(),
-        endDateTime: z.date().optional(),
-        allDay: z.boolean().optional(),
-        rsvpLink: z.string().optional(),
+        eventDate: z.string().optional(),
+        maxAttendees: z.number().optional(),
+        isVirtual: z.boolean().optional(),
+        virtualLink: z.string().optional(),
+        eventType: z.string().optional(),
       }),
     )
     .mutation(async ({ input }) => {
       const { id, ...updateData } = input;
 
-      // Convert Date objects to ISO strings
       const processedUpdateData: any = {
         ...updateData,
         updatedAt: new Date().toISOString(),
       };
-
-      if (updateData.startDateTime) {
-        processedUpdateData.startDateTime =
-          updateData.startDateTime.toISOString();
-      }
-      if (updateData.endDateTime) {
-        processedUpdateData.endDateTime = updateData.endDateTime.toISOString();
-      }
 
       const updatedEvent = await db
         .update(events)
@@ -220,8 +263,12 @@ export const eventsRouter = createTRPCRouter({
       const upcomingEvents = await db
         .select()
         .from(events)
-        .where(gte(events.startDateTime, now.toISOString()))
-        .orderBy(events.startDateTime)
+        .where(
+          events.eventDate
+            ? gte(events.eventDate, now.toISOString())
+            : undefined,
+        )
+        .orderBy(events.eventDate || events.createdAt)
         .limit(input.limit);
 
       return upcomingEvents;

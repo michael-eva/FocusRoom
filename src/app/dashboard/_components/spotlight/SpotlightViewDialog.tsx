@@ -229,28 +229,31 @@ export function SpotlightViewDialog({
               <p className="text-gray-700 leading-relaxed text-sm sm:text-base">{spotlight.description}</p>
 
               {/* Stats */}
-              {(spotlight.stats as SpotlightStats) && (
-                <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-lg sm:text-2xl font-bold text-orange-600">
-                      {(spotlight.stats as SpotlightStats).monthlyListeners || "N/A"}
+              {spotlight.stats && (() => {
+                const stats = typeof spotlight.stats === 'string' ? JSON.parse(spotlight.stats) : spotlight.stats;
+                return (
+                  <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <div className="text-center">
+                      <div className="text-lg sm:text-2xl font-bold text-orange-600">
+                        {stats.monthlyListeners || "N/A"}
+                      </div>
+                      <div className="text-xs sm:text-sm text-gray-600">Monthly Listeners</div>
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-600">Monthly Listeners</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg sm:text-2xl font-bold text-orange-600">
-                      {(spotlight.stats as SpotlightStats).followers || "N/A"}
+                    <div className="text-center">
+                      <div className="text-lg sm:text-2xl font-bold text-orange-600">
+                        {stats.followers || "N/A"}
+                      </div>
+                      <div className="text-xs sm:text-sm text-gray-600">Followers</div>
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-600">Followers</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-lg sm:text-2xl font-bold text-orange-600">
-                      {(spotlight.stats as SpotlightStats).upcomingShows || "N/A"}
+                    <div className="text-center">
+                      <div className="text-lg sm:text-2xl font-bold text-orange-600">
+                        {stats.upcomingShows || "N/A"}
+                      </div>
+                      <div className="text-xs sm:text-sm text-gray-600">Upcoming Shows</div>
                     </div>
-                    <div className="text-xs sm:text-sm text-gray-600">Upcoming Shows</div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* External Links */}
               {Array.isArray(spotlight.links) && spotlight.links.length > 0 && (
@@ -364,7 +367,7 @@ export function SpotlightViewDialog({
                                 {comment.user?.name || "Anonymous"}
                               </span>
                               <span className="text-xs text-gray-500">
-                                {new Date(comment.createdAt || new Date()).toLocaleDateString()}
+                                {new Date(comment.timestamp || new Date()).toLocaleDateString()}
                               </span>
                             </div>
                             <p className="text-sm text-gray-700">{comment.content}</p>

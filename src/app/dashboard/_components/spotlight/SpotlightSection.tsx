@@ -89,7 +89,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
     const handleUpdateSpotlight = (newSpotlight: SpotlightFormData) => {
         createSpotlight.mutate({
             ...newSpotlight,
-            createdById: 1,
+            createdByClerkUserId: "user_307X7xFUKdlDFM4ZP6EP19J6qsC",
         })
         setIsManagementOpen(false)
     }
@@ -393,7 +393,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                                             {comment.user?.name || 'Anonymous'}
                                                         </span>
                                                         <span className="text-xs text-gray-500">
-                                                            {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : "Recently"}
+                                                            {comment.timestamp ? new Date(comment.timestamp).toLocaleDateString() : "Recently"}
                                                         </span>
                                                     </div>
                                                     <p className="text-gray-700 text-sm">{comment.content}</p>

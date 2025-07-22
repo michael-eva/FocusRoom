@@ -4,7 +4,7 @@ import {
   publicProcedure,
   protectedProcedure,
 } from "~/server/api/trpc";
-import { users, teamMembers, projectTeamMembers, projects } from "~/db/schema";
+import { projectTeamMembers, projects } from "~/db/schema";
 import { db } from "~/db";
 import { eq, and, isNull, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
@@ -12,6 +12,7 @@ import { createInvitation } from "~/services/clerk";
 import { client } from "~/lib/clerk";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
+import type { User } from "@clerk/nextjs/server";
 
 export const usersRouter = createTRPCRouter({
   // Get current user's profile
@@ -38,64 +39,109 @@ export const usersRouter = createTRPCRouter({
     return user;
   }),
 
-  // Get all team members
-  getAllTeamMembers: publicProcedure.query(async () => {
-    const allTeamMembers = await db
-      .select({
-        id: teamMembers.id,
-        name: teamMembers.name,
-        email: teamMembers.email,
-        avatar: teamMembers.avatar,
-        userId: teamMembers.userId,
-      })
-      .from(teamMembers)
-      .orderBy(teamMembers.name);
+  // Get all team members for a project (using Clerk users)
+  getAllTeamMembers: publicProcedure
+    .input(z.object({ projectId: z.number() }))
+    .query(async ({ input }) => {
+      const projectTeamMembersData = await db
+        .select({
+          clerkUserId: projectTeamMembers.clerkUserId,
+          role: projectTeamMembers.role,
+          joinedAt: projectTeamMembers.joinedAt,
+          invitedByClerkUserId: projectTeamMembers.invitedByClerkUserId,
+        })
+        .from(projectTeamMembers)
+        .where(eq(projectTeamMembers.projectId, input.projectId))
+        .orderBy(desc(projectTeamMembers.joinedAt));
 
-    return allTeamMembers;
-  }),
+      // Fetch user details from Clerk for each team member
+      const teamMembersWithDetails = await Promise.all(
+        projectTeamMembersData.map(async (member) => {
+          let user: User | null = null;
+          try {
+            user = await client.users.getUser(member?.clerkUserId || "");
+          } catch (error) {
+            console.error(`Failed to fetch user ${member.clerkUserId}:`, error);
+          }
+
+          return {
+            clerkUserId: member.clerkUserId,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            invitedByClerkUserId: member.invitedByClerkUserId,
+            user: user
+              ? {
+                  id: user.id,
+                  name:
+                    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                    user.emailAddresses[0]?.emailAddress,
+                  email: user.emailAddresses[0]?.emailAddress,
+                  imageUrl: user.imageUrl,
+                }
+              : null,
+          };
+        }),
+      );
+
+      return teamMembersWithDetails;
+    }),
 
   // Get team members for a specific project/focus room
   getTeamMembers: publicProcedure
     .input(z.object({ projectId: z.number() }))
     .query(async ({ input }) => {
-      const teamMembersData = await db
+      const projectTeamMembersData = await db
         .select({
-          id: teamMembers.id,
-          name: teamMembers.name,
-          email: teamMembers.email,
-          avatar: teamMembers.avatar,
-          userId: teamMembers.userId,
-          projectRole: projectTeamMembers.role,
+          clerkUserId: projectTeamMembers.clerkUserId,
+          role: projectTeamMembers.role,
           joinedAt: projectTeamMembers.joinedAt,
-          invitedBy: projectTeamMembers.invitedBy,
-          user: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            role: users.role,
-            invitedAt: users.invitedAt,
-            acceptedAt: users.acceptedAt,
-          },
+          invitedByClerkUserId: projectTeamMembers.invitedByClerkUserId,
         })
         .from(projectTeamMembers)
-        .leftJoin(
-          teamMembers,
-          eq(projectTeamMembers.teamMemberId, teamMembers.id),
-        )
-        .leftJoin(users, eq(teamMembers.userId, users.id))
         .where(eq(projectTeamMembers.projectId, input.projectId))
         .orderBy(desc(projectTeamMembers.joinedAt));
 
-      return teamMembersData;
+      // Fetch user details from Clerk for each team member
+      const teamMembersWithDetails = await Promise.all(
+        projectTeamMembersData.map(async (member) => {
+          let user: User | null = null;
+          if (member.clerkUserId) {
+            try {
+              user = await client.users.getUser(member.clerkUserId);
+            } catch (error) {
+              console.error(
+                `Failed to fetch user ${member.clerkUserId}:`,
+                error,
+              );
+            }
+          }
+
+          return {
+            clerkUserId: member.clerkUserId,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            invitedByClerkUserId: member.invitedByClerkUserId,
+            user: user
+              ? {
+                  id: user.id,
+                  name:
+                    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                    user.emailAddresses[0]?.emailAddress,
+                  email: user.emailAddresses[0]?.emailAddress,
+                  imageUrl: user.imageUrl,
+                }
+              : null,
+          };
+        }),
+      );
+
+      return teamMembersWithDetails;
     }),
 
-  // Get total user count for community stats
+  // Get total user count for community stats (from Clerk)
   getCount: publicProcedure.query(async () => {
-    const result = await db
-      .select({ count: sql<number>`count(*)`.as("count") })
-      .from(users);
-
-    return result[0]?.count || 0;
+    const users = await client.users.getUserList();
+    return users.data.length;
   }),
 
   // Get users by role in a specific project
@@ -109,35 +155,50 @@ export const usersRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const usersByRole = await db
         .select({
-          id: teamMembers.id,
-          name: teamMembers.name,
-          email: teamMembers.email,
-          avatar: teamMembers.avatar,
-          userId: teamMembers.userId,
-          projectRole: projectTeamMembers.role,
+          clerkUserId: projectTeamMembers.clerkUserId,
+          role: projectTeamMembers.role,
           joinedAt: projectTeamMembers.joinedAt,
-          user: {
-            id: users.id,
-            name: users.name,
-            email: users.email,
-            role: users.role,
-          },
+          invitedByClerkUserId: projectTeamMembers.invitedByClerkUserId,
         })
         .from(projectTeamMembers)
-        .leftJoin(
-          teamMembers,
-          eq(projectTeamMembers.teamMemberId, teamMembers.id),
-        )
-        .leftJoin(users, eq(teamMembers.userId, users.id))
         .where(
           and(
             eq(projectTeamMembers.projectId, input.projectId),
             eq(projectTeamMembers.role, input.role),
           ),
         )
-        .orderBy(teamMembers.name);
+        .orderBy(projectTeamMembers.joinedAt);
 
-      return usersByRole;
+      // Fetch user details from Clerk
+      const usersWithDetails = await Promise.all(
+        usersByRole.map(async (member) => {
+          let user: User | null = null;
+          try {
+            user = await client.users.getUser(member.clerkUserId || "");
+          } catch (error) {
+            console.error(`Failed to fetch user ${member.clerkUserId}:`, error);
+          }
+
+          return {
+            clerkUserId: member.clerkUserId,
+            role: member.role,
+            joinedAt: member.joinedAt,
+            invitedByClerkUserId: member.invitedByClerkUserId,
+            user: user
+              ? {
+                  id: user.id,
+                  name:
+                    `${user.firstName || ""} ${user.lastName || ""}`.trim() ||
+                    user.emailAddresses[0]?.emailAddress,
+                  email: user.emailAddresses[0]?.emailAddress,
+                  imageUrl: user.imageUrl,
+                }
+              : null,
+          };
+        }),
+      );
+
+      return usersWithDetails;
     }),
 
   // Get pending invitations for a specific project
@@ -159,7 +220,7 @@ export const usersRouter = createTRPCRouter({
         email: z.string().email(),
         projectId: z.number(),
         role: z.enum(["admin", "member", "moderator"]).default("member"),
-        invitedBy: z.number(), // team member ID who is inviting
+        invitedBy: z.string(), // clerk user ID who is inviting
       }),
     )
     .mutation(async ({ input }) => {
@@ -172,8 +233,18 @@ export const usersRouter = createTRPCRouter({
           ignoreExisting: true,
           publicMetadata: {
             role: input.role,
+            projectId: input.projectId,
           },
         });
+
+        // Add to project team members table
+        await db.insert(projectTeamMembers).values({
+          projectId: input.projectId,
+          clerkUserId: invitation.emailAddress, // This will be updated when user accepts
+          role: input.role,
+          invitedByClerkUserId: input.invitedBy,
+        });
+
         return invitation;
       } catch (error) {
         console.error("Failed to create invitation:", error);
@@ -187,8 +258,9 @@ export const usersRouter = createTRPCRouter({
   updateProjectRole: protectedProcedure
     .input(
       z.object({
-        teamMemberId: z.string(),
+        clerkUserId: z.string(),
         role: z.enum(["admin", "member"]),
+        projectId: z.number(),
       }),
     )
     .mutation(async ({ input, ctx }) => {
@@ -201,36 +273,19 @@ export const usersRouter = createTRPCRouter({
           message: "Only admins can update user roles",
         });
       }
-      const updatedUser = await client.users.updateUserMetadata(
-        input.teamMemberId,
-        {
-          publicMetadata: {
-            role: input.role,
-          },
-        },
-      );
-      return updatedUser;
-    }),
 
-  // Accept invitation (complete user profile)
-  acceptInvitation: publicProcedure
-    .input(
-      z.object({
-        userId: z.number(),
-        name: z.string(),
-      }),
-    )
-    .mutation(async ({ input }) => {
-      const updatedUser = await db
-        .update(users)
-        .set({
-          name: input.name,
-          acceptedAt: new Date().toISOString(),
-        })
-        .where(eq(users.id, input.userId))
-        .returning();
+      // Update in project team members table
+      await db
+        .update(projectTeamMembers)
+        .set({ role: input.role })
+        .where(
+          and(
+            eq(projectTeamMembers.projectId, input.projectId),
+            eq(projectTeamMembers.clerkUserId, input.clerkUserId),
+          ),
+        );
 
-      return updatedUser[0];
+      return { success: true };
     }),
 
   // Remove user from a specific project
@@ -238,7 +293,7 @@ export const usersRouter = createTRPCRouter({
     .input(
       z.object({
         projectId: z.number(),
-        teamMemberId: z.string(),
+        clerkUserId: z.string(),
       }),
     )
     .mutation(async ({ input }) => {
@@ -247,48 +302,9 @@ export const usersRouter = createTRPCRouter({
         .where(
           and(
             eq(projectTeamMembers.projectId, input.projectId),
-            eq(projectTeamMembers.teamMemberId, input.teamMemberId),
+            eq(projectTeamMembers.clerkUserId, input.clerkUserId),
           ),
         );
       return { success: true };
-    }),
-
-  // Remove user completely (from all projects and users table)
-  removeUser: publicProcedure
-    .input(z.object({ userId: z.string() }))
-    .mutation(async ({ input }) => {
-      // Remove from all project teams
-      const teamMembersToRemove = await db
-        .select({ id: teamMembers.id })
-        .from(teamMembers)
-        .where(eq(teamMembers.userId, parseInt(input.userId)));
-
-      for (const teamMember of teamMembersToRemove) {
-        await db
-          .delete(projectTeamMembers)
-          .where(eq(projectTeamMembers.teamMemberId, teamMember.id.toString()));
-      }
-
-      // Remove team members
-      await db
-        .delete(teamMembers)
-        .where(eq(teamMembers.userId, parseInt(input.userId)));
-
-      // Remove user
-      await db.delete(users).where(eq(users.id, parseInt(input.userId)));
-      return { success: true };
-    }),
-
-  // Resend invitation
-  resendInvitation: publicProcedure
-    .input(z.object({ userId: z.number() }))
-    .mutation(async ({ input }) => {
-      const updatedUser = await db
-        .update(users)
-        .set({ invitedAt: new Date().toISOString() })
-        .where(eq(users.id, input.userId))
-        .returning();
-
-      return updatedUser[0];
     }),
 });

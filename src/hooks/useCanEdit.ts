@@ -23,6 +23,6 @@ export default function useCanEdit({
 
   const role = user?.publicMetadata.role;
 
-  const canEdit = role === "admin" || event?.createdById === userId;
+  const canEdit = role === "admin" || event?.createdByClerkUserId === userId;
   return canEdit;
 }

@@ -10,6 +10,7 @@ import { EventDetailsDialog } from "~/app/dashboard/calendar/_components/EventDe
 import { EditEventDialog } from "~/app/dashboard/calendar/_components/EditEventDialog"
 import { api } from "~/trpc/react"
 import useCanEdit from "~/hooks/useCanEdit"
+import { useUser } from "@clerk/nextjs"
 
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -59,9 +60,9 @@ export default function CalendarPage() {
     const updateLocalEvent = api.events.update.useMutation();
     const deleteLocalEvent = api.events.delete.useMutation();
 
-    // Get current user info (for now using first available user)
-    const { data: currentUser } = api.users.getAll.useQuery();
-    const currentUserId = currentUser?.data?.[0]?.id
+    // Get current user info from Clerk
+    const { user } = useUser();
+    const currentUserId = user?.id;
     const canEdit = useCanEdit({ userId: currentUserId, eventId: selectedEvent?.id });
     console.log("canEdit", canEdit);
     // Get local events for the current month
@@ -89,19 +90,15 @@ export default function CalendarPage() {
 
     // Event creation handler
     const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
-        const startDateTime = new Date(`${eventData.date}T${eventData.startTime}`);
-        const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
+        const eventDate = new Date(`${eventData.date}T${eventData.startTime}`).toISOString();
         try {
             // Create local event
             await createLocalEvent.mutateAsync({
                 title: eventData.title,
                 description: eventData.description,
                 location: eventData.location,
-                startDateTime,
-                endDateTime,
-                allDay: false,
-                rsvpLink: eventData.rsvpLink,
-                createdById: currentUserId,
+                eventDate: eventDate,
+                createdByClerkUserId: currentUserId,
             });
 
             // Refresh local events
@@ -162,19 +159,15 @@ export default function CalendarPage() {
         if (!selectedEvent) return;
 
         try {
-            // Create new date/time objects
-            const startDateTime = new Date(`${eventData.date}T${eventData.startTime}`);
-            const endDateTime = new Date(`${eventData.date}T${eventData.endTime}`);
+            // Create event date string
+            const eventDate = new Date(`${eventData.date}T${eventData.startTime}`).toISOString();
 
             await updateLocalEvent.mutateAsync({
                 id: selectedEvent.id,
                 title: eventData.title,
                 description: eventData.description || undefined,
                 location: eventData.location || undefined,
-                startDateTime,
-                endDateTime,
-                allDay: false,
-                rsvpLink: eventData.rsvpLink || undefined,
+                eventDate: eventDate,
             });
 
             // Refresh local events

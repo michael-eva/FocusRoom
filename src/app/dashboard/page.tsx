@@ -10,7 +10,7 @@ import { useCallback, useState } from "react"
 import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 import { api } from "~/trpc/react"
 import { CreateEventDialog } from "./community/_components/CreateEventDialog"
-import { useClerk } from "@clerk/nextjs"
+import { useUser } from "@clerk/nextjs"
 
 export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
@@ -39,9 +39,10 @@ export default function Dashboard() {
         }
     });
 
-    // Get current user info (for now using first available user)
-    const { data: currentUser } = api.users.getAll.useQuery();
-    const currentUserId = currentUser?.[0]?.id || 67; // Use first available user or fallback to 67
+    // Get current user info from Clerk
+    const { user } = useUser();
+    const currentUserId = user?.id;
+
     // Get recent activity from database (includes polls and events)
     const { data: activityData = [] } = api.activity.getRecentActivity.useQuery(
         { limit: 10 },
@@ -53,21 +54,17 @@ export default function Dashboard() {
 
     const handleCreateEvent = useCallback(async (eventData: any) => {
         console.log("Creating event with data:", eventData);
-        const startDateTime = new Date(`${eventData.date}T${eventData.time}`);
-        const endDateTime = new Date(startDateTime.getTime() + (60 * 60 * 1000)); // 1 hour later by default
+        const eventDate = new Date(`${eventData.date}T${eventData.startTime}`).toISOString();
 
         // Create the event in the database
         await createLocalEvent.mutateAsync({
             title: eventData.title,
             description: eventData.description,
             location: eventData.location,
-            startDateTime,
-            endDateTime,
-            allDay: false,
-            rsvpLink: eventData.rsvpLink,
-            createdById: currentUserId,
+            eventDate: eventDate,
+            createdByClerkUserId: currentUserId,
         });
-    }, [createLocalEvent]);
+    }, [createLocalEvent, currentUserId]);
 
     const handleCreatePoll = async (pollData: any) => {
         console.log("Creating poll with data:", pollData);
@@ -75,7 +72,7 @@ export default function Dashboard() {
             title: pollData.title,
             content: pollData.description,
             options: pollData.options,
-            createdById: currentUserId,
+            createdByClerkUserId: currentUserId,
         });
 
     }
@@ -163,7 +160,6 @@ export default function Dashboard() {
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
         return `${Math.floor(diffInSeconds / 86400)}d ago`;
     };
-    const { signOut } = useClerk();
     return (
         <>
             <header className="flex items-center justify-between p-4 border-b bg-white">
@@ -189,7 +185,7 @@ export default function Dashboard() {
                                 <Button
                                     variant="ghost"
                                     className="w-full justify-start gap-2 h-9 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => signOut()}
+                                    onClick={() => window.location.href = '/sign-out'}
                                 >
                                     <LogOut className="h-4 w-4" />
                                     Sign Out

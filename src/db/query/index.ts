@@ -1,12 +1,5 @@
 import { db } from "~/db";
-import {
-  resources,
-  projects,
-  projectTeamMembers,
-  teamMembers,
-  tasks,
-  users,
-} from "../schema";
+import { resources, projects, projectTeamMembers, tasks } from "../schema";
 import { eq } from "drizzle-orm";
 
 export async function getResources() {
@@ -18,24 +11,16 @@ export async function getProjects() {
   // Get all projects
   const allProjects = await db.select().from(projects).execute();
 
-  // Get all project team members with team member details
+  // Get all project team members
   const allProjectTeamMembers = await db
     .select({
       projectId: projectTeamMembers.projectId,
-      teamMemberId: projectTeamMembers.teamMemberId,
+      clerkUserId: projectTeamMembers.clerkUserId,
       role: projectTeamMembers.role,
       joinedAt: projectTeamMembers.joinedAt,
-      invitedBy: projectTeamMembers.invitedBy,
-      teamMember: {
-        id: teamMembers.id,
-        name: teamMembers.name,
-        email: teamMembers.email,
-        avatar: teamMembers.avatar,
-        userId: teamMembers.userId,
-      },
+      invitedByClerkUserId: projectTeamMembers.invitedByClerkUserId,
     })
     .from(projectTeamMembers)
-    .leftJoin(teamMembers, eq(projectTeamMembers.teamMemberId, teamMembers.id))
     .execute();
 
   // Get all tasks
@@ -53,11 +38,10 @@ export async function getProjects() {
       }
       teamMembersByProject[ptm.projectId]?.push({
         projectId: ptm.projectId,
-        teamMemberId: ptm.teamMemberId,
+        clerkUserId: ptm.clerkUserId,
         role: ptm.role,
         joinedAt: ptm.joinedAt,
-        invitedBy: ptm.invitedBy,
-        teamMember: ptm.teamMember,
+        invitedByClerkUserId: ptm.invitedByClerkUserId,
       });
     }
   }
@@ -96,28 +80,10 @@ export async function getProjects() {
 }
 
 export async function getProjectById(id: number) {
-  // Get the project with creator information
+  // Get the project
   const project = await db
-    .select({
-      id: projects.id,
-      name: projects.name,
-      description: projects.description,
-      status: projects.status,
-      progress: projects.progress,
-      totalTasks: projects.totalTasks,
-      completedTasks: projects.completedTasks,
-      deadline: projects.deadline,
-      priority: projects.priority,
-      createdBy: projects.createdBy,
-      creator: {
-        id: users.id,
-        name: users.name,
-        email: users.email,
-        role: users.role,
-      },
-    })
+    .select()
     .from(projects)
-    .leftJoin(users, eq(projects.createdBy, users.id))
     .where(eq(projects.id, id))
     .limit(1)
     .execute();
@@ -126,49 +92,23 @@ export async function getProjectById(id: number) {
     return null;
   }
 
-  // Get project team members with team member details
+  // Get project team members
   const projectTeamMembersData = await db
     .select({
       projectId: projectTeamMembers.projectId,
-      teamMemberId: projectTeamMembers.teamMemberId,
+      clerkUserId: projectTeamMembers.clerkUserId,
       role: projectTeamMembers.role,
       joinedAt: projectTeamMembers.joinedAt,
-      invitedBy: projectTeamMembers.invitedBy,
-      teamMember: {
-        id: teamMembers.id,
-        name: teamMembers.name,
-        email: teamMembers.email,
-        avatar: teamMembers.avatar,
-        userId: teamMembers.userId,
-      },
+      invitedByClerkUserId: projectTeamMembers.invitedByClerkUserId,
     })
     .from(projectTeamMembers)
-    .leftJoin(teamMembers, eq(projectTeamMembers.teamMemberId, teamMembers.id))
     .where(eq(projectTeamMembers.projectId, id))
     .execute();
 
-  // Get tasks with assignee details
+  // Get tasks
   const projectTasks = await db
-    .select({
-      id: tasks.id,
-      title: tasks.title,
-      description: tasks.description,
-      status: tasks.status,
-      priority: tasks.priority,
-      deadline: tasks.deadline,
-      completedAt: tasks.completedAt,
-      projectId: tasks.projectId,
-      assigneeId: tasks.assigneeId,
-      assignee: {
-        id: teamMembers.id,
-        name: teamMembers.name,
-        email: teamMembers.email,
-        avatar: teamMembers.avatar,
-        userId: teamMembers.userId,
-      },
-    })
+    .select()
     .from(tasks)
-    .leftJoin(teamMembers, eq(tasks.assigneeId, teamMembers.id))
     .where(eq(tasks.projectId, id))
     .execute();
 
@@ -182,7 +122,7 @@ export async function getProjectById(id: number) {
   // Transform to match your expected data structure
   return {
     ...project[0],
-    teamMembers: projectTeamMembersData.map((ptm) => ptm.teamMember),
+    teamMembers: projectTeamMembersData,
     tasks: projectTasks.map((task) => ({
       id: task.id,
       title: task.title,
@@ -192,13 +132,7 @@ export async function getProjectById(id: number) {
       deadline: task.deadline,
       completedAt: task.completedAt,
       projectId: task.projectId,
-      assigneeId: task.assigneeId,
-      assignee: task.assignee
-        ? {
-            name: task.assignee.name,
-            avatar: task.assignee.avatar,
-          }
-        : null,
+      assigneeClerkUserId: task.assigneeClerkUserId,
     })),
     resources: projectResources,
   };

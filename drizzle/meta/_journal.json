@@ -50,6 +50,13 @@
       "when": 1752904091975,
       "tag": "0006_lyrical_songbird",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1753162459465,
+      "tag": "0007_shallow_piledriver",
+      "breakpoints": true
     }
   ]
 }
