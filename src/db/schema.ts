@@ -22,6 +22,22 @@ export const drizzleMigrations = pgTable("__drizzle_migrations", {
   createdAt: timestamp("created_at", { mode: "string" }),
 });
 
+export const chatMessages = pgTable("chat_messages", {
+  id: serial().primaryKey().notNull(),
+  content: text().notNull(),
+  clerkUserId: text("clerk_user_id").notNull(),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  isEdited: boolean("is_edited").default(false),
+  replyToId: integer("reply_to_id"), // For threading/replies
+});
+
 export const spotlights = pgTable("spotlights", {
   id: serial().primaryKey().notNull(),
   type: text().notNull(),

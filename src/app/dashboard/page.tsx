@@ -1,23 +1,29 @@
 'use client'
-import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 
-import { Bell, User, Music, Guitar, Mic, Calendar, BarChart3, Heart, MessageSquare, LogOut } from "lucide-react"
+import { Music, Guitar, Mic, Calendar, BarChart3, Heart, MessageSquare } from "lucide-react"
 import { CreatePollDialog } from "./community/_components/CreatePollDialog"
-import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
-import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
+import { Card, CardContent } from "~/components/ui/card"
 import { useCallback, useState } from "react"
 import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 import { api } from "~/trpc/react"
 import { CreateEventDialog, type EventFormData } from "./community/_components/CreateEventDialog"
 import { useUser } from "@clerk/nextjs"
 import CommonNavbar from "../_components/CommonNavbar"
+import ChatAndAI from "./_components/ChatAndAI"
+import React from "react"
 
 export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
     const [chatMessage, setChatMessage] = useState("")
+
+    // Pagination state - only for "load more" data
+    const [chatOffset, setChatOffset] = useState(0)
+    const [activityOffset, setActivityOffset] = useState(0)
+    const [olderChatMessages, setOlderChatMessages] = useState<any[]>([])
+    const [olderActivityData, setOlderActivityData] = useState<any[]>([])
 
     const utils = api.useUtils();
 
@@ -41,18 +47,117 @@ export default function Dashboard() {
         }
     });
 
+    // Chat mutations
+    const sendMessage = api.chat.sendMessage.useMutation({
+        onSuccess: async () => {
+            await utils.chat.getMessages.invalidate();
+        },
+        onError: (error) => {
+            alert("Failed to send message: " + error.message);
+        }
+    });
+
     // Get current user info from Clerk
     const { user } = useUser();
     const currentUserId = user?.id;
 
-    // Get recent activity from database (includes polls and events)
-    const { data: activityData = [] } = api.activity.getRecentActivity.useQuery(
-        { limit: 10 },
+    // Get initial recent activity from database (includes polls and events)
+    const { data: activityData = [], isLoading: isActivityLoading } = api.activity.getRecentActivity.useQuery(
+        { limit: 10, offset: 0 },
         {
             staleTime: 2 * 60 * 1000, // 2 minutes
             gcTime: 10 * 60 * 1000, // 10 minutes
         }
     );
+
+    // Get initial chat messages
+    const { data: chatMessagesData = [], isLoading: isChatLoading } = api.chat.getMessages.useQuery(
+        { limit: 20, offset: 0 },
+        {
+            staleTime: 30 * 1000, // 30 seconds (more frequent updates for chat)
+            gcTime: 2 * 60 * 1000, // 2 minutes
+        }
+    );
+
+    // Set initial offset based on data length
+    React.useEffect(() => {
+        if (chatMessagesData.length > 0 && chatOffset === 0) {
+            setChatOffset(chatMessagesData.length);
+        }
+    }, [chatMessagesData, chatOffset]);
+
+    React.useEffect(() => {
+        if (activityData.length > 0 && activityOffset === 0) {
+            setActivityOffset(activityData.length);
+        }
+    }, [activityData, activityOffset]);
+
+    // Load more data queries (disabled by default)
+    const { data: moreChatMessages, isLoading: isLoadingMoreChat, refetch: refetchMoreChat } = api.chat.getMessages.useQuery(
+        { limit: 20, offset: chatOffset },
+        {
+            enabled: false, // Only fetch when explicitly requested
+        }
+    );
+
+    const { data: moreActivityData, isLoading: isLoadingMoreActivity, refetch: refetchMoreActivity } = api.activity.getRecentActivity.useQuery(
+        { limit: 10, offset: activityOffset },
+        {
+            enabled: false, // Only fetch when explicitly requested
+        }
+    );
+
+    // Handle new data from load more with deduplication
+    React.useEffect(() => {
+        if (moreChatMessages && moreChatMessages.length > 0) {
+            setOlderChatMessages(prev => {
+                // Get all existing IDs to avoid duplicates
+                const existingIds = new Set([...prev, ...chatMessagesData].map(msg => msg.id));
+                const newMessages = moreChatMessages.filter(msg => !existingIds.has(msg.id));
+                return [...newMessages, ...prev]; // Prepend only new messages
+            });
+        }
+    }, [moreChatMessages, chatMessagesData]);
+
+    React.useEffect(() => {
+        if (moreActivityData && moreActivityData.length > 0) {
+            setOlderActivityData(prev => {
+                // Get all existing IDs to avoid duplicates
+                const existingIds = new Set([...prev, ...activityData].map(activity => activity.id));
+                const newActivities = moreActivityData.filter(activity => !existingIds.has(activity.id));
+                return [...newActivities, ...prev]; // Prepend only new activities
+            });
+        }
+    }, [moreActivityData, activityData]);
+
+    // Handle load more functionality
+    const handleLoadMore = async () => {
+        setChatOffset(prev => prev + 20);
+        setActivityOffset(prev => prev + 10);
+
+        // Trigger refetch for both
+        await refetchMoreChat();
+        await refetchMoreActivity();
+    };
+
+    const isLoadingMore = isLoadingMoreChat || isLoadingMoreActivity;
+    const hasMore = chatMessagesData.length >= 20 || activityData.length >= 10;
+
+    const handleSendMessage = async () => {
+        if (chatMessage.trim() && currentUserId) {
+            try {
+                await sendMessage.mutateAsync({
+                    content: chatMessage.trim(),
+                    clerkUserId: currentUserId,
+                });
+                setChatMessage("");
+                // Refresh current messages to include the new one
+                await utils.chat.getMessages.invalidate();
+            } catch (error) {
+                console.error("Failed to send message:", error);
+            }
+        }
+    };
 
     const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
         const eventDate = new Date(`${eventData.date}T${eventData.startTime}`).toISOString();
@@ -184,7 +289,7 @@ export default function Dashboard() {
         if (!activity.action) {
             console.log("No action found, using fallback");
             return {
-                id: activity.id,
+                id: `activity-${activity.id}`,
                 user: userName,
                 avatar: userName.charAt(0).toUpperCase(),
                 avatarColor: 'bg-gray-500',
@@ -196,9 +301,12 @@ export default function Dashboard() {
         }
 
         switch (activity.action) {
+            case 'chat_message_sent':
+                // Skip chat messages since we show them separately as real chat messages
+                return null;
             case 'poll_created':
                 return {
-                    id: activity.id,
+                    id: `activity-${activity.id}`,
                     user: userName,
                     avatar: userName.charAt(0).toUpperCase(),
                     avatarColor: 'bg-blue-500',
@@ -209,7 +317,7 @@ export default function Dashboard() {
                 };
             case 'poll_voted':
                 return {
-                    id: activity.id,
+                    id: `activity-${activity.id}`,
                     user: userName,
                     avatar: userName.charAt(0).toUpperCase(),
                     avatarColor: 'bg-green-500',
@@ -220,7 +328,7 @@ export default function Dashboard() {
                 };
             case 'event_created':
                 return {
-                    id: activity.id,
+                    id: `activity-${activity.id}`,
                     user: userName,
                     avatar: userName.charAt(0).toUpperCase(),
                     avatarColor: 'bg-orange-500',
@@ -231,7 +339,7 @@ export default function Dashboard() {
                 };
             case 'event_rsvp':
                 return {
-                    id: activity.id,
+                    id: `activity-${activity.id}`,
                     user: userName,
                     avatar: userName.charAt(0).toUpperCase(),
                     avatarColor: 'bg-purple-500',
@@ -242,7 +350,7 @@ export default function Dashboard() {
                 };
             case 'post_liked':
                 return {
-                    id: activity.id,
+                    id: `activity-${activity.id}`,
                     user: userName,
                     avatar: userName.charAt(0).toUpperCase(),
                     avatarColor: 'bg-red-500',
@@ -253,7 +361,7 @@ export default function Dashboard() {
                 };
             case 'comment_created':
                 return {
-                    id: activity.id,
+                    id: `activity-${activity.id}`,
                     user: userName,
                     avatar: userName.charAt(0).toUpperCase(),
                     avatarColor: 'bg-blue-500',
@@ -264,7 +372,7 @@ export default function Dashboard() {
                 };
             default:
                 return {
-                    id: activity.id,
+                    id: `activity-${activity.id}`,
                     user: userName,
                     avatar: userName.charAt(0).toUpperCase(),
                     avatarColor: 'bg-gray-500',
@@ -276,20 +384,70 @@ export default function Dashboard() {
         }
     };
 
-    // Convert activity data to chat messages
-    const chatMessages = activityData.map(activity => getActivityChatMessage(activity));
+    // Convert chat messages to display format
+    const getChatMessage = (chatMsg: any) => {
+        const userName = chatMsg.user?.firstName || 'Unknown User';
+        const createdAt = new Date(chatMsg.createdAt);
+        const timeAgo = getTimeAgo(createdAt);
+
+        return {
+            id: `chat-${chatMsg.id}`,
+            user: userName,
+            avatar: userName.charAt(0).toUpperCase(),
+            avatarColor: 'bg-indigo-500', // Different color for chat messages
+            message: chatMsg.content,
+            timeAgo,
+            type: 'chat',
+            isEdited: chatMsg.isEdited,
+            chatData: chatMsg
+        };
+    };
+
+    // Combine current data with older data from "load more" with deduplication
+    const allChatDataSet = new Map();
+    [...olderChatMessages, ...chatMessagesData].forEach(msg => {
+        allChatDataSet.set(msg.id, msg);
+    });
+    const allChatData = Array.from(allChatDataSet.values());
+
+    const allActivityDataSet = new Map();
+    [...olderActivityData, ...activityData].forEach(activity => {
+        allActivityDataSet.set(activity.id, activity);
+    });
+    const allActivityDataCombined = Array.from(allActivityDataSet.values());
+
+    // Combine and sort chat messages and activity data by timestamp
+    const activityMessages = allActivityDataCombined.map(activity => getActivityChatMessage(activity)).filter(msg => msg !== null);
+    const realChatMessages = allChatData.map(chatMsg => getChatMessage(chatMsg));
+
+    // Combine both arrays and sort by creation time (oldest first for chat-like experience)
+    const allMessages = [...activityMessages, ...realChatMessages];
+
+    // Final deduplication by message ID to ensure no duplicates
+    const uniqueMessagesMap = new Map();
+    allMessages.forEach(msg => {
+        uniqueMessagesMap.set(msg.id, msg);
+    });
+    const uniqueMessages = Array.from(uniqueMessagesMap.values());
+
+    uniqueMessages.sort((a, b) => {
+        const timeA = a.type === 'chat' ?
+            new Date(a.chatData?.createdAt || 0).getTime() :
+            new Date(a.activityData?.timestamp || 0).getTime();
+        const timeB = b.type === 'chat' ?
+            new Date(b.chatData?.createdAt || 0).getTime() :
+            new Date(b.activityData?.timestamp || 0).getTime();
+        return timeA - timeB; // Oldest first (chronological order)
+    });
+
+    // Take the most recent 20 messages for display (will show oldest to newest)
+    const chatMessages = uniqueMessages.slice(-20); // Take last 20 messages
 
     // Debug: Log the first few activities to see the structure
     console.log("Activity data sample:", activityData.slice(0, 3));
-    console.log("Chat messages sample:", chatMessages.slice(0, 3));
+    console.log("Real chat messages sample:", chatMessagesData.slice(0, 3));
+    console.log("Combined messages sample:", chatMessages.slice(0, 3));
 
-    const handleSendMessage = () => {
-        if (chatMessage.trim()) {
-            // TODO: Implement sending message to backend
-            console.log("Sending message:", chatMessage);
-            setChatMessage("");
-        }
-    };
     return (
         <>
 
@@ -358,111 +516,16 @@ export default function Dashboard() {
                     </Card>
 
                     {/* Group Chat and AI Assistant Section */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {/* Group Chat - Takes up 2/3 on desktop, full width on mobile */}
-                        <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-                            <CardHeader className="p-4 sm:p-6">
-                                <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 flex items-center gap-2">
-                                    <MessageSquare className="h-5 w-5 text-blue-600" />
-                                    Group Chat
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 sm:p-6 pt-0">
-                                <div className="space-y-3">
-                                    {/* Chat Messages */}
-                                    {chatMessages.length > 0 ? (
-                                        chatMessages.map((msg) => (
-                                            <div key={msg.id} className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-3 border-l-4 border-blue-400 shadow-sm">
-                                                <div className="flex items-center gap-3">
-                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium ${msg.avatarColor} shadow-sm`}>
-                                                        {msg.avatar}
-                                                    </div>
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="text-sm font-semibold text-gray-800">{msg.user}</span>
-                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{msg.timeAgo}</span>
-                                                        </div>
-                                                        <p className="text-sm text-gray-700 font-medium">{msg.message}</p>
-                                                    </div>
-                                                    <div className="flex-shrink-0">
-                                                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))
-                                    ) : (
-                                        <div className="text-center py-8 text-gray-500">
-                                            <p>No recent activity</p>
-                                        </div>
-                                    )}
-
-                                    {/* Message Input */}
-                                    <div className="flex gap-2 mt-4">
-                                        <input
-                                            type="text"
-                                            placeholder="Type your message..."
-                                            className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                            value={chatMessage}
-                                            onChange={(e) => setChatMessage(e.target.value)}
-                                        />
-                                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleSendMessage}>
-                                            Send
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                        {/* AI Assistant - Takes up 1/3 on desktop, full width on mobile */}
-                        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-                            <CardHeader className="p-4 sm:p-6">
-                                <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 flex items-center gap-2">
-                                    <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
-                                        <span className="text-white text-xs font-bold">AI</span>
-                                    </div>
-                                    AI Assistant
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 sm:p-6 pt-0">
-                                <div className="space-y-3">
-                                    {/* AI Response */}
-                                    <div className="bg-white rounded-lg p-3 border border-purple-200">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                                AI
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm text-gray-700">I can help you with songwriting tips, chord progressions, or finding inspiration for your next piece!</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-lg p-3 border border-purple-200">
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                                AI
-                                            </div>
-                                            <div className="flex-1">
-                                                <p className="text-sm text-gray-700">Need help with lyrics or want to explore new musical genres?</p>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* AI Input */}
-                                    <div className="flex gap-2 mt-4">
-                                        <input
-                                            type="text"
-                                            placeholder="Ask AI..."
-                                            className="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                        />
-                                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
-                                            Ask
-                                        </Button>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
+                    <ChatAndAI
+                        chatMessages={chatMessages}
+                        chatMessage={chatMessage}
+                        setChatMessage={setChatMessage}
+                        handleSendMessage={handleSendMessage}
+                        currentUserId={currentUserId}
+                        hasMore={hasMore}
+                        onLoadMore={handleLoadMore}
+                        isLoadingMore={isLoadingMore}
+                    />
 
                     {/* Desktop Action Cards - Hidden on Mobile */}
                     <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
