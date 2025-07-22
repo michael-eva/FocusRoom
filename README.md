@@ -30,5 +30,9 @@ Follow our deployment guides for [Vercel](https://create.t3.gg/en/deployment/ver
 
 Where I left off and whats next:
 
-- fix user build errors
 - admin and created by to edit and delete tasks, projects and polls
+- Loading UI for likes, comments and selecting polls
+- chat and AI interface on /dashboard
+- empty projects and tasks site
+- RSVP from calendar
+- Theme consistent from thepack

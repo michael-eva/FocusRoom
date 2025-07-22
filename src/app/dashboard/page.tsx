@@ -17,6 +17,7 @@ export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
+    const [chatMessage, setChatMessage] = useState("")
 
     const utils = api.useUtils();
 
@@ -170,6 +171,125 @@ export default function Dashboard() {
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
         return `${Math.floor(diffInSeconds / 86400)}d ago`;
     };
+
+    // Helper function to convert activity to chat message
+    const getActivityChatMessage = (activity: any) => {
+        console.log("Processing activity:", activity); // Debug log
+
+        const userName = activity.user?.name || activity.user?.firstName || 'Someone';
+        const createdAt = activity.timestamp ? new Date(activity.timestamp) : new Date();
+        const timeAgo = getTimeAgo(createdAt);
+
+        // Check if we have the actual activity data
+        if (!activity.action) {
+            console.log("No action found, using fallback");
+            return {
+                id: activity.id,
+                user: userName,
+                avatar: userName.charAt(0).toUpperCase(),
+                avatarColor: 'bg-gray-500',
+                message: `performed an action`,
+                timeAgo,
+                type: 'activity',
+                activityData: activity
+            };
+        }
+
+        switch (activity.action) {
+            case 'poll_created':
+                return {
+                    id: activity.id,
+                    user: userName,
+                    avatar: userName.charAt(0).toUpperCase(),
+                    avatarColor: 'bg-blue-500',
+                    message: `created a poll: "${activity.details?.replace('Created poll: ', '') || 'Untitled Poll'}"`,
+                    timeAgo,
+                    type: 'activity',
+                    activityData: activity
+                };
+            case 'poll_voted':
+                return {
+                    id: activity.id,
+                    user: userName,
+                    avatar: userName.charAt(0).toUpperCase(),
+                    avatarColor: 'bg-green-500',
+                    message: `voted on "${activity.details?.replace('Voted on poll: ', '') || 'Untitled Poll'}"`,
+                    timeAgo,
+                    type: 'activity',
+                    activityData: activity
+                };
+            case 'event_created':
+                return {
+                    id: activity.id,
+                    user: userName,
+                    avatar: userName.charAt(0).toUpperCase(),
+                    avatarColor: 'bg-orange-500',
+                    message: `created an event: "${activity.details?.replace('Created event: ', '') || 'Untitled Event'}"`,
+                    timeAgo,
+                    type: 'activity',
+                    activityData: activity
+                };
+            case 'event_rsvp':
+                return {
+                    id: activity.id,
+                    user: userName,
+                    avatar: userName.charAt(0).toUpperCase(),
+                    avatarColor: 'bg-purple-500',
+                    message: `RSVP'd to "${activity.details?.replace('RSVP\'d to event: ', '') || 'Untitled Event'}"`,
+                    timeAgo,
+                    type: 'activity',
+                    activityData: activity
+                };
+            case 'post_liked':
+                return {
+                    id: activity.id,
+                    user: userName,
+                    avatar: userName.charAt(0).toUpperCase(),
+                    avatarColor: 'bg-red-500',
+                    message: `liked a ${activity.targetType || 'post'}`,
+                    timeAgo,
+                    type: 'activity',
+                    activityData: activity
+                };
+            case 'comment_created':
+                return {
+                    id: activity.id,
+                    user: userName,
+                    avatar: userName.charAt(0).toUpperCase(),
+                    avatarColor: 'bg-blue-500',
+                    message: `commented on a ${activity.targetType || 'post'}`,
+                    timeAgo,
+                    type: 'activity',
+                    activityData: activity
+                };
+            default:
+                return {
+                    id: activity.id,
+                    user: userName,
+                    avatar: userName.charAt(0).toUpperCase(),
+                    avatarColor: 'bg-gray-500',
+                    message: activity.details || `performed an action (${activity.action || 'unknown'})`,
+                    timeAgo,
+                    type: 'activity',
+                    activityData: activity
+                };
+        }
+    };
+
+    // Convert activity data to chat messages
+    const chatMessages = activityData.map(activity => getActivityChatMessage(activity));
+
+    // Debug: Log the first few activities to see the structure
+    console.log("Activity data sample:", activityData.slice(0, 3));
+    console.log("Chat messages sample:", chatMessages.slice(0, 3));
+
+    const handleSendMessage = () => {
+        if (chatMessage.trim()) {
+            // TODO: Implement sending message to backend
+            console.log("Sending message:", chatMessage);
+            setChatMessage("");
+        }
+    };
     return (
         <>
 
@@ -197,8 +317,155 @@ export default function Dashboard() {
                         </CardContent>
                     </Card>
 
-                    {/* Action Cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {/* Quick Action Buttons - Mobile Header Style */}
+                    <div className="flex gap-2 sm:hidden">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-10 bg-orange-50 border-orange-200 hover:bg-orange-100"
+                            onClick={() => setIsCreateEventOpen(true)}
+                        >
+                            <Calendar className="h-4 w-4 mr-2 text-orange-600" />
+                            Event
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-10 bg-blue-50 border-blue-200 hover:bg-blue-100"
+                            onClick={() => setIsCreatePollOpen(true)}
+                        >
+                            <BarChart3 className="h-4 w-4 mr-2 text-blue-600" />
+                            Poll
+                        </Button>
+                    </div>
+
+                    {/* Spotlight Card - Standalone */}
+                    <Card
+                        className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95"
+                        onClick={() => setIsSpotlightOpen(true)}
+                    >
+                        <CardContent className="p-4 sm:p-6 text-center">
+                            <div className="flex flex-col items-center gap-3">
+                                <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gray-500 rounded-full flex items-center justify-center group-hover:bg-gray-600 transition-colors">
+                                    <Mic className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-800 text-base sm:text-lg mb-1">Spotlight</h3>
+                                    <p className="text-xs sm:text-sm text-gray-600">Share your music or story</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Group Chat and AI Assistant Section */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {/* Group Chat - Takes up 2/3 on desktop, full width on mobile */}
+                        <Card className="lg:col-span-2 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+                            <CardHeader className="p-4 sm:p-6">
+                                <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                    <MessageSquare className="h-5 w-5 text-blue-600" />
+                                    Group Chat
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 sm:p-6 pt-0">
+                                <div className="space-y-3">
+                                    {/* Chat Messages */}
+                                    {chatMessages.length > 0 ? (
+                                        chatMessages.map((msg) => (
+                                            <div key={msg.id} className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-3 border-l-4 border-blue-400 shadow-sm">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-medium ${msg.avatarColor} shadow-sm`}>
+                                                        {msg.avatar}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2 mb-1">
+                                                            <span className="text-sm font-semibold text-gray-800">{msg.user}</span>
+                                                            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{msg.timeAgo}</span>
+                                                        </div>
+                                                        <p className="text-sm text-gray-700 font-medium">{msg.message}</p>
+                                                    </div>
+                                                    <div className="flex-shrink-0">
+                                                        <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8 text-gray-500">
+                                            <p>No recent activity</p>
+                                        </div>
+                                    )}
+
+                                    {/* Message Input */}
+                                    <div className="flex gap-2 mt-4">
+                                        <input
+                                            type="text"
+                                            placeholder="Type your message..."
+                                            className="flex-1 px-3 py-2 border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            value={chatMessage}
+                                            onChange={(e) => setChatMessage(e.target.value)}
+                                        />
+                                        <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={handleSendMessage}>
+                                            Send
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        {/* AI Assistant - Takes up 1/3 on desktop, full width on mobile */}
+                        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+                            <CardHeader className="p-4 sm:p-6">
+                                <CardTitle className="text-base sm:text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                    <div className="w-5 h-5 bg-purple-600 rounded-full flex items-center justify-center">
+                                        <span className="text-white text-xs font-bold">AI</span>
+                                    </div>
+                                    AI Assistant
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 sm:p-6 pt-0">
+                                <div className="space-y-3">
+                                    {/* AI Response */}
+                                    <div className="bg-white rounded-lg p-3 border border-purple-200">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                AI
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-gray-700">I can help you with songwriting tips, chord progressions, or finding inspiration for your next piece!</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white rounded-lg p-3 border border-purple-200">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                                                AI
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm text-gray-700">Need help with lyrics or want to explore new musical genres?</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* AI Input */}
+                                    <div className="flex gap-2 mt-4">
+                                        <input
+                                            type="text"
+                                            placeholder="Ask AI..."
+                                            className="flex-1 px-3 py-2 border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                        />
+                                        <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                                            Ask
+                                        </Button>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* Desktop Action Cards - Hidden on Mobile */}
+                    <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95"
                             onClick={() => setIsCreateEventOpen(true)}>
                             <CardContent className="p-4 sm:p-6 text-center">
@@ -248,53 +515,6 @@ export default function Dashboard() {
                             </CardContent>
                         </Card>
                     </div>
-
-                    {/* Recent Activity */}
-                    <Card>
-                        <CardHeader className="p-4 sm:p-6">
-                            <CardTitle className="text-base sm:text-lg font-semibold text-gray-800">Recent Activity</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-                            {activityData.length > 0 ? (
-                                activityData.map((activity) => {
-                                    const display = getActivityDisplay(activity);
-                                    return (
-                                        <div key={activity.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors active:bg-gray-100 cursor-pointer">
-                                            <div className="flex-shrink-0 mt-1">
-                                                {display.icon}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1 sm:gap-2">
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-gray-800 leading-snug">{display.text}</p>
-                                                        {display.title && (
-                                                            <p className="text-sm text-gray-600 mt-1 font-medium truncate">{display.title}</p>
-                                                        )}
-                                                        {display.content && (
-                                                            <p className="text-xs text-gray-500 mt-1 line-clamp-2 leading-relaxed">{display.content}</p>
-                                                        )}
-                                                    </div>
-                                                    <span className="text-xs text-gray-400 flex-shrink-0 self-start">{display.timeAgo}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <div className="text-center py-8 text-gray-500">
-                                    <p>No recent activity</p>
-                                </div>
-                            )}
-
-                            {activityData.length > 0 && (
-                                <div className="text-center pt-2">
-                                    <Button variant="ghost" size="sm" asChild>
-                                        <a href="/dashboard/community">View All Activity</a>
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
                 </div>
                 {/* Spotlight Dialog */}
                 <SpotlightDialog isOpen={isSpotlightOpen} onClose={() => setIsSpotlightOpen(false)} isAdmin={true} />
