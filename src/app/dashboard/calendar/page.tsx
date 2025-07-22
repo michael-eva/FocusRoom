@@ -15,6 +15,7 @@ import CommonNavbar from "~/app/_components/CommonNavbar"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 
 
+
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 const MONTHS = [
     "January", "February", "March", "April", "May", "June",
@@ -51,7 +52,8 @@ export default function CalendarPage() {
     const [isEventDetailsOpen, setIsEventDetailsOpen] = useState(false);
     const [isEditEventOpen, setIsEditEventOpen] = useState(false);
     const [viewMode, setViewMode] = useState<"calendar" | "list">("calendar");
-    console.log("selectedEvent", selectedEvent);
+
+
 
     const utils = api.useUtils();
 
@@ -67,7 +69,7 @@ export default function CalendarPage() {
     const { user } = useUser();
     const currentUserId = user?.id;
     const canEdit = useCanEdit({ userId: currentUserId, eventId: selectedEvent?.id });
-    console.log("canEdit", canEdit);
+
     // Get local events for the current month
     const { data: localEvents = [], refetch: refetchLocalEvents, isFetching: localEventsFetching } = api.events.getByMonth.useQuery({
         year,
@@ -371,7 +373,7 @@ export default function CalendarPage() {
                                                         {getEventsForDate(day).map((event) => (
                                                             <div
                                                                 key={event.id}
-                                                                className={`text-xs p-1 rounded truncate relative group cursor-pointer hover:shadow-md transition-shadow border-l-2 ${event.userRSVP?.status === "attending"
+                                                                className={`text-xs p-1 rounded truncate relative group hover:shadow-md transition-shadow border-l-2 ${event.userRSVP?.status === "attending"
                                                                     ? "bg-green-100 text-green-800 border-green-500 hover:bg-green-200"
                                                                     : event.userRSVP?.status === "maybe"
                                                                         ? "bg-yellow-100 text-yellow-800 border-yellow-500 hover:bg-yellow-200"
@@ -381,9 +383,9 @@ export default function CalendarPage() {
                                                                     }`}
                                                                 title={`${event.title}${event.location ? ` - ${event.location}` : ''}${!event.allDay ? ` at ${formatInTimeZone(event.startDateTime, event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone, { hour: '2-digit', minute: '2-digit' })}` : ''
                                                                     }${event.userRSVP ? ` (RSVP: ${event.userRSVP.status})` : ''}`}
-                                                                onClick={() => handleEventClick(event)}
                                                             >
-                                                                <div className="flex items-center justify-between">
+                                                                <div className="flex items-center justify-between cursor-pointer"
+                                                                    onClick={() => handleEventClick(event)}>
                                                                     <span className="truncate flex-1">
                                                                         {!event.allDay && (
                                                                             <span className="inline-block w-2 h-2 sm:w-3 sm:h-3 mr-1">🕐</span>
@@ -405,6 +407,7 @@ export default function CalendarPage() {
                                                                         <span className="truncate">{event.location}</span>
                                                                     </div>
                                                                 )}
+
                                                             </div>
                                                         ))}
                                                     </div>
@@ -440,7 +443,7 @@ export default function CalendarPage() {
                                                 .map((event) => (
                                                     <div
                                                         key={event.id}
-                                                        className={`p-4 rounded-lg border-l-4 cursor-pointer hover:shadow-md transition-shadow ${event.userRSVP?.status === "attending"
+                                                        className={`p-4 rounded-lg border-l-4 hover:shadow-md transition-shadow ${event.userRSVP?.status === "attending"
                                                             ? "bg-green-50 border-green-500 hover:bg-green-100"
                                                             : event.userRSVP?.status === "maybe"
                                                                 ? "bg-yellow-50 border-yellow-500 hover:bg-yellow-100"
@@ -448,10 +451,9 @@ export default function CalendarPage() {
                                                                     ? "bg-red-50 border-red-500 hover:bg-red-100"
                                                                     : "bg-blue-50 border-blue-500 hover:bg-blue-100"
                                                             }`}
-                                                        onClick={() => handleEventClick(event)}
                                                     >
                                                         <div className="flex items-start justify-between">
-                                                            <div className="flex-1">
+                                                            <div className="flex-1 cursor-pointer" onClick={() => handleEventClick(event)}>
                                                                 <h3 className="font-semibold text-gray-900 mb-1">{event.title}</h3>
                                                                 <div className="flex items-center gap-4 text-sm text-gray-600">
                                                                     <div className="flex items-center gap-1">
@@ -475,18 +477,21 @@ export default function CalendarPage() {
                                                                     <p className="text-sm text-gray-600 mt-2 line-clamp-2">{event.description}</p>
                                                                 )}
                                                             </div>
-                                                            {event.userRSVP && (
-                                                                <div className="ml-2">
-                                                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${event.userRSVP.status === "attending" ? "bg-green-100 text-green-800" :
-                                                                        event.userRSVP.status === "maybe" ? "bg-yellow-100 text-yellow-800" :
-                                                                            "bg-red-100 text-red-800"
-                                                                        }`}>
-                                                                        {event.userRSVP.status === "attending" && "✓ Attending"}
-                                                                        {event.userRSVP.status === "maybe" && "? Maybe"}
-                                                                        {event.userRSVP.status === "declined" && "✗ Declined"}
-                                                                    </span>
-                                                                </div>
-                                                            )}
+                                                            <div className="ml-4 flex flex-col gap-2">
+                                                                {event.userRSVP && (
+                                                                    <div>
+                                                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${event.userRSVP.status === "attending" ? "bg-green-100 text-green-800" :
+                                                                            event.userRSVP.status === "maybe" ? "bg-yellow-100 text-yellow-800" :
+                                                                                "bg-red-100 text-red-800"
+                                                                            }`}>
+                                                                            {event.userRSVP.status === "attending" && "✓ Attending"}
+                                                                            {event.userRSVP.status === "maybe" && "? Maybe"}
+                                                                            {event.userRSVP.status === "declined" && "✗ Declined"}
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -528,6 +533,7 @@ export default function CalendarPage() {
                 }}
                 onUpdateEvent={handleEventUpdate}
             />
+
         </>
     );
 }

@@ -8,6 +8,7 @@ import { useCallback, useState } from "react"
 import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 import { api } from "~/trpc/react"
 import { CreateEventDialog, type EventFormData } from "./community/_components/CreateEventDialog"
+import { RSVPDialog } from "./community/_components/RSVPDialog"
 import { useUser } from "@clerk/nextjs"
 import CommonNavbar from "../_components/CommonNavbar"
 import ChatAndAI from "./_components/ChatAndAI"
@@ -17,6 +18,9 @@ export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
     const [isCreatePollOpen, setIsCreatePollOpen] = useState(false)
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false)
+    const [isRSVPDialogOpen, setIsRSVPDialogOpen] = useState(false)
+    const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
+    const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
     const [chatMessage, setChatMessage] = useState("")
 
     // Pagination state - only for "load more" data
@@ -54,6 +58,17 @@ export default function Dashboard() {
         },
         onError: (error) => {
             alert("Failed to send message: " + error.message);
+        }
+    });
+
+    // RSVP mutations
+    const createRSVP = api.rsvp.create.useMutation({
+        onSuccess: async () => {
+            alert("RSVP submitted successfully!");
+            await utils.activity.getRecentActivity.invalidate();
+        },
+        onError: () => {
+            alert("Failed to RSVP. Please try again.");
         }
     });
 
@@ -191,6 +206,26 @@ export default function Dashboard() {
             createdByClerkUserId: currentUserId,
         });
 
+    }
+
+    const handleRSVP = async (eventId: number, eventTitle: string) => {
+        setSelectedEventId(eventId);
+        setSelectedEventTitle(eventTitle);
+        setIsRSVPDialogOpen(true);
+    }
+
+    const handleRSVPSubmit = async (status: "attending" | "maybe" | "declined") => {
+        if (!selectedEventId || !currentUserId) return;
+
+        try {
+            await createRSVP.mutateAsync({
+                eventId: selectedEventId,
+                clerkUserId: currentUserId,
+                status,
+            });
+        } catch (error) {
+            console.error("Failed to RSVP:", error);
+        }
     }
 
     // Helper function to format activity text and get icon
@@ -525,6 +560,7 @@ export default function Dashboard() {
                         hasMore={hasMore}
                         onLoadMore={handleLoadMore}
                         isLoadingMore={isLoadingMore}
+                        onRSVP={handleRSVP}
                     />
 
                     {/* Desktop Action Cards - Hidden on Mobile */}
@@ -591,6 +627,12 @@ export default function Dashboard() {
                     onClose={() => setIsCreateEventOpen(false)}
                     onCreateEvent={handleCreateEvent}
                     showCommunityFeatures={false}
+                />
+                <RSVPDialog
+                    isOpen={isRSVPDialogOpen}
+                    onClose={() => setIsRSVPDialogOpen(false)}
+                    onRSVP={handleRSVPSubmit}
+                    eventTitle={selectedEventTitle}
                 />
             </main>
         </>

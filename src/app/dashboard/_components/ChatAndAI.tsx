@@ -1,5 +1,5 @@
 import { Button } from "~/components/ui/button"
-import { MessageSquare, Activity, Bell, Zap, MoreHorizontal, Loader2 } from "lucide-react"
+import { MessageSquare, Activity, Bell, Zap, MoreHorizontal, Loader2, Calendar } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { useEffect, useRef, useState } from "react"
 
@@ -11,7 +11,8 @@ export default function ChatAndAI({
   currentUserId,
   hasMore,
   onLoadMore,
-  isLoadingMore
+  isLoadingMore,
+  onRSVP
 }: {
   chatMessages: any[],
   chatMessage: string,
@@ -20,7 +21,8 @@ export default function ChatAndAI({
   currentUserId?: string,
   hasMore?: boolean,
   onLoadMore?: () => void,
-  isLoadingMore?: boolean
+  isLoadingMore?: boolean,
+  onRSVP?: (eventId: number, eventTitle: string) => void
 }) {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isAtTop, setIsAtTop] = useState(false);
@@ -196,7 +198,7 @@ export default function ChatAndAI({
                         </div>
                       </div>
                     ) : (
-                      // ACTIVITY EVENT - Subtle, elegant notification style
+                      // ACTIVITY EVENT - Enhanced with RSVP button for events
                       <div key={msg.id} className="flex justify-center my-4">
                         <div className="flex items-center gap-2 bg-blue-50/80 backdrop-blur-sm border border-blue-100 rounded-full px-4 py-2 text-sm shadow-sm">
                           <Zap className="h-3.5 w-3.5 text-blue-500" />
@@ -206,6 +208,23 @@ export default function ChatAndAI({
                           <span className="font-medium text-gray-700">{msg.user}</span>
                           <span className="text-gray-600">{msg.message}</span>
                           <span className="text-xs text-blue-600 font-medium ml-1">{msg.timeAgo}</span>
+
+                          {/* RSVP Button for events */}
+                          {msg.activityData?.action === 'event_created' && onRSVP && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="ml-2 h-6 px-2 text-xs bg-white hover:bg-gray-50 border-gray-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const eventTitle = msg.activityData?.details?.replace('Created event: ', '') || 'Event';
+                                onRSVP(msg.activityData?.metadata?.eventId, eventTitle);
+                              }}
+                            >
+                              <Calendar className="h-3 w-3 mr-1" />
+                              RSVP
+                            </Button>
+                          )}
                         </div>
                       </div>
                     );

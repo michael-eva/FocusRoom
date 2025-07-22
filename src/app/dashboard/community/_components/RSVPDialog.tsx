@@ -2,10 +2,12 @@
 
 import { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
 import { Check, X, HelpCircle } from "lucide-react"
 import { useScrollLock } from "~/hooks/use-scroll-lock"
+import { useIsMobile } from "~/hooks/use-mobile"
 
 interface RSVPDialogProps {
   isOpen: boolean
@@ -43,6 +45,7 @@ const RSVP_OPTIONS = [
 ]
 
 export function RSVPDialog({ isOpen, onClose, onRSVP, eventTitle, currentStatus }: RSVPDialogProps) {
+  const isMobile = useIsMobile();
   const [selectedStatus, setSelectedStatus] = useState<"attending" | "maybe" | "declined" | null>(currentStatus || null)
 
   // Lock scroll when dialog is open
@@ -60,16 +63,36 @@ export function RSVPDialog({ isOpen, onClose, onRSVP, eventTitle, currentStatus 
     onClose()
   }
 
+  // Use consistent component selection to prevent layout shifts
+  const DialogWrapper = isMobile ? Sheet : Dialog;
+  const DialogContentWrapper = isMobile ? SheetContent : DialogContent;
+  const DialogHeaderWrapper = isMobile ? SheetHeader : DialogHeader;
+  const DialogTitleWrapper = isMobile ? SheetTitle : DialogTitle;
+
+  const dialogProps = {
+    open: isOpen,
+    onOpenChange: onClose,
+  };
+
+  const contentProps = isMobile ? {
+    side: "bottom" as const,
+    className: "max-h-[95vh] overflow-hidden flex flex-col"
+  } : {
+    className: "sm:max-w-md p-0 overflow-hidden"
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md p-0 overflow-hidden">
-        <DialogHeader className="px-6 pt-6 pb-2">
-          <DialogTitle className="text-2xl font-bold text-gray-900">RSVP for Event</DialogTitle>
-        </DialogHeader>
-        <div className="px-6 pb-2">
+    <DialogWrapper {...dialogProps}>
+      <DialogContentWrapper {...contentProps}>
+        <DialogHeaderWrapper className={`${isMobile ? "px-4 pt-4 pb-2" : "px-6 pt-6 pb-2"}`}>
+          <DialogTitleWrapper className={`${isMobile ? "text-xl" : "text-2xl"} font-bold text-gray-900`}>
+            RSVP for Event
+          </DialogTitleWrapper>
+        </DialogHeaderWrapper>
+        <div className={`${isMobile ? "flex-1 overflow-y-auto px-4 pb-2" : "px-6 pb-2"}`}>
           {eventTitle && (
             <div className="text-center mb-4">
-              <h3 className="font-semibold text-lg text-gray-800">{eventTitle}</h3>
+              <h3 className={`font-semibold ${isMobile ? "text-base" : "text-lg"} text-gray-800`}>{eventTitle}</h3>
             </div>
           )}
           <div className="space-y-3">
@@ -95,7 +118,7 @@ export function RSVPDialog({ isOpen, onClose, onRSVP, eventTitle, currentStatus 
             })}
           </div>
         </div>
-        <div className="px-6 pt-4 pb-6 flex flex-col sm:flex-row gap-3 border-t bg-gray-50 mt-6">
+        <div className={`${isMobile ? "px-4 pt-4 pb-4" : "px-6 pt-4 pb-6"} flex flex-col sm:flex-row gap-3 border-t bg-gray-50 ${isMobile ? "mt-auto" : "mt-6"}`}>
           <Button variant="outline" onClick={handleCancel} className="flex-1 py-2 text-base">
             Cancel
           </Button>
@@ -107,7 +130,7 @@ export function RSVPDialog({ isOpen, onClose, onRSVP, eventTitle, currentStatus 
             Confirm RSVP
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </DialogContentWrapper>
+    </DialogWrapper>
   )
 } 
