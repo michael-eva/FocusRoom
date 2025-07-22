@@ -3,11 +3,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Badge } from "~/components/ui/badge"
-import { Bell, User, Plus, Users, Calendar, CheckCircle2, Clock } from "lucide-react"
+import { Bell, User, Plus, Users, Calendar, CheckCircle2, Clock, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 import { api } from "~/trpc/react"
+import CommonNavbar from "~/app/_components/CommonNavbar"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 
 const getStatusColor = (status: string | null) => {
     switch (status) {
@@ -70,7 +72,7 @@ export default function ProjectsPage() {
 
     return (
         <>
-            <header className="flex items-center justify-between p-4 border-b bg-white">
+            {/* <header className="flex items-center justify-between p-4 border-b bg-white">
                 <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                     <SidebarTrigger />
                     <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
@@ -92,9 +94,39 @@ export default function ProjectsPage() {
                         <User className="h-5 w-5" />
                     </Button>
                 </div>
-            </header>
+            </header> */}
 
-            <main className="flex-1 p-4 sm:p-6 bg-gray-50">
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title="Projects"
+                    rightContent={
+                        <Link href="/dashboard/projects/new">
+                            <Button className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base px-3 sm:px-4 py-2">
+                                <Plus className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">New Project</span>
+                            </Button>
+                        </Link>
+                    }
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Link href="/dashboard/projects/new">
+                                        <Button variant="ghost" className="justify-start">
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            New Project
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                />
                 <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
                     {/* Projects Overview */}
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
@@ -217,7 +249,7 @@ export default function ProjectsPage() {
                         ))}
                     </div>
                 </div>
-            </main>
+            </main >
         </>
     )
 }

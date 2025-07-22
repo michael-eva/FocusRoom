@@ -11,6 +11,7 @@ import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 import { api } from "~/trpc/react"
 import { CreateEventDialog, type EventFormData } from "./community/_components/CreateEventDialog"
 import { useUser } from "@clerk/nextjs"
+import CommonNavbar from "../_components/CommonNavbar"
 
 export default function Dashboard() {
     const [isSpotlightOpen, setIsSpotlightOpen] = useState(false)
@@ -171,41 +172,11 @@ export default function Dashboard() {
     };
     return (
         <>
-            <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-                    <SidebarTrigger />
-                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
-                        <span className="hidden sm:inline">Pack Music Australia</span>
-                        <span className="sm:hidden">Pack Music</span>
-                    </h1>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                        <Bell className="h-5 w-5" />
-                    </Button>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                                <User className="h-5 w-5" />
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48 p-2" align="end">
-                            <div className="space-y-1">
-                                <Button
-                                    variant="ghost"
-                                    className="w-full justify-start gap-2 h-9 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                    onClick={() => window.location.href = '/sign-out'}
-                                >
-                                    <LogOut className="h-4 w-4" />
-                                    Sign Out
-                                </Button>
-                            </div>
-                        </PopoverContent>
-                    </Popover>
-                </div>
-            </header>
 
-            <main className="flex-1 p-4 sm:p-6 bg-gray-50">
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title="Dashboard"
+                />
                 <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
                     {/* Welcome Banner */}
                     <Card className="bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200">

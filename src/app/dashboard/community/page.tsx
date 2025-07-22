@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Textarea } from "~/components/ui/textarea"
-import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3, Users, Mail, Trash2 } from "lucide-react"
+import { Bell, User, Calendar, MessageSquare, ThumbsUp, Share2, Users, Mail, Trash2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { CreateEventDialog, type EventFormData } from "./_components/CreateEventDialog"
@@ -15,6 +15,9 @@ import { RSVPDialog } from "./_components/RSVPDialog"
 import { api } from "~/trpc/react"
 import { useUser } from "@clerk/nextjs"
 import { DateTime } from "luxon";
+import CommonNavbar from "~/app/_components/CommonNavbar"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
+import { MoreHorizontal, Plus, BarChart3 } from "lucide-react";
 
 // Add a helper to format date/time in the event's timezone
 function formatInTimeZone(dateString: string, timeZone: string, options: Intl.DateTimeFormatOptions) {
@@ -257,7 +260,7 @@ export default function CommunityPage() {
         <>
             <main className="flex-1 space-y-6 p-6">
                 {/* Header */}
-                <div className="flex items-center justify-between">
+                {/* <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">Community</h1>
                         <p className="text-muted-foreground">
@@ -275,7 +278,43 @@ export default function CommunityPage() {
                             Create Poll
                         </Button>
                     </div>
-                </div>
+                </div> */}
+                <CommonNavbar
+                    title="Community"
+                    rightContent={
+                        <>
+                            <Button onClick={() => setIsCreateEventOpen(true)}>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Event
+                            </Button>
+                            <Button onClick={() => setIsCreatePollOpen(true)} variant="outline">
+                                <BarChart3 className="h-4 w-4 mr-2" />
+                                Create Poll
+                            </Button>
+                        </>
+                    }
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Button onClick={() => setIsCreateEventOpen(true)} variant="ghost" className="justify-start">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Event
+                                    </Button>
+                                    <Button onClick={() => setIsCreatePollOpen(true)} variant="ghost" className="justify-start">
+                                        <BarChart3 className="h-4 w-4 mr-2" />
+                                        Create Poll
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                />
 
                 {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

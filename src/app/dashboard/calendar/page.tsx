@@ -4,13 +4,15 @@ import { useState, useCallback } from "react"
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { Button } from "~/components/ui/button"
 import { Card, CardContent } from "~/components/ui/card"
-import { ChevronLeft, ChevronRight, Plus, Bell, User, RefreshCw, Calendar } from "lucide-react"
+import { ChevronLeft, ChevronRight, Plus, Bell, User, RefreshCw, Calendar, MoreHorizontal } from "lucide-react"
 import { CreateEventDialog, type EventFormData } from "~/app/dashboard/community/_components/CreateEventDialog"
 import { EventDetailsDialog } from "~/app/dashboard/calendar/_components/EventDetailsDialog"
 import { EditEventDialog } from "~/app/dashboard/calendar/_components/EditEventDialog"
 import { api } from "~/trpc/react"
 import useCanEdit from "~/hooks/useCanEdit"
 import { useUser } from "@clerk/nextjs"
+import CommonNavbar from "~/app/_components/CommonNavbar"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
@@ -214,7 +216,7 @@ export default function CalendarPage() {
 
     return (
         <>
-            <header className="flex items-center justify-between p-3 sm:p-4 border-b bg-white">
+            {/* <header className="flex items-center justify-between p-3 sm:p-4 border-b bg-white">
                 <div className="flex items-center gap-2 sm:gap-4">
                     <SidebarTrigger />
                     <h1 className="text-lg sm:text-xl font-semibold text-gray-800">Calendar & Events</h1>
@@ -241,9 +243,39 @@ export default function CalendarPage() {
                         <User className="h-5 w-5" />
                     </Button>
                 </div>
-            </header>
+            </header> */}
 
-            <main className="flex-1 p-3 sm:p-6 bg-gray-50 overflow-auto">
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title="Calendar"
+                    rightContent={<div className="flex items-center gap-2 sm:gap-3">
+                        <Button
+                            className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base px-2 sm:px-4"
+                            onClick={() => setIsCreateEventOpen(true)}
+                        >
+                            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Create Event</span>
+                            <span className="sm:hidden">Add</span>
+                        </Button>
+                    </div>}
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Button onClick={() => setIsCreateEventOpen(true)} variant="ghost" className="justify-start">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Event
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                />
                 <div className="max-w-7xl mx-auto">
                     <Card className="h-full">
                         <CardContent className="p-3 sm:p-6 h-full">
