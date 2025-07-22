@@ -36,10 +36,12 @@ export const feedRouter = createTRPCRouter({
           content: events.description,
           location: events.location,
           eventDate: events.eventDate,
+          endDate: events.endDate, // <-- Use correct property name
           createdAt: events.createdAt,
           updatedAt: events.updatedAt,
           createdByClerkUserId: events.createdByClerkUserId,
           userRSVP: eventRsvps,
+          timezone: events.timezone,
         })
         .from(events)
         .leftJoin(eventRsvps, eq(events.id, eventRsvps.eventId))
@@ -117,6 +119,7 @@ export const feedRouter = createTRPCRouter({
             content: row.content,
             location: row.location,
             eventDate: row.eventDate,
+            endDate: row.endDate, // <-- Use correct property name
             createdAt: row.createdAt,
             updatedAt: row.updatedAt,
             createdByClerkUserId: row.createdByClerkUserId,
@@ -126,6 +129,7 @@ export const feedRouter = createTRPCRouter({
               row.userRSVP.clerkUserId === input.userId
                 ? row.userRSVP
                 : null,
+            timezone: row.timezone,
           });
         }
         return acc;
@@ -197,23 +201,39 @@ export const feedRouter = createTRPCRouter({
           (l) => l.targetId === event.id,
         );
 
+        // Format date and times in the event's timezone
+        const timezone = event.timezone || "UTC";
+        const eventDateObj = event.eventDate ? new Date(event.eventDate) : null;
+        const endDateObj = event.endDate ? new Date(event.endDate) : null;
+
         return {
           id: event.id,
           type: event.type,
           title: event.title,
           content: event.content,
           eventDetails: {
-            date: event.eventDate
-              ? new Date(event.eventDate).toISOString().split("T")[0]
+            date: eventDateObj
+              ? eventDateObj.toLocaleDateString("en-CA", { timeZone: timezone })
               : "",
-            time: event.eventDate
-              ? new Date(event.eventDate).toLocaleTimeString([], {
+            time: eventDateObj
+              ? eventDateObj.toLocaleTimeString([], {
                   hour: "2-digit",
                   minute: "2-digit",
+                  hour12: true,
+                  timeZone: timezone,
+                })
+              : "",
+            endTime: endDateObj
+              ? endDateObj.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                  timeZone: timezone,
                 })
               : "",
             location: event.location || "Location TBD",
             rsvpLink: "#", // Not in new schema
+            timezone: timezone,
           },
           createdAt: event.createdAt,
           updatedAt: event.updatedAt,

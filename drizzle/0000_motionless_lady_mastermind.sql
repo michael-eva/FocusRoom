@@ -39,7 +39,8 @@ CREATE TABLE "events" (
 	"created_by_id" integer,
 	"created_at" timestamp DEFAULT now(),
 	"updated_at" timestamp DEFAULT now(),
-	"google_event_id" text
+	"google_event_id" text,
+	"timezone" text
 );
 --> statement-breakpoint
 CREATE TABLE "likes" (

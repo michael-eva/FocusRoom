@@ -10,10 +10,18 @@ import { Textarea } from "~/components/ui/textarea"
 import { Bell, User, Plus, Calendar, MessageSquare, ThumbsUp, Share2, BarChart3, Users, Mail, Trash2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
-import { CreateEventDialog } from "./_components/CreateEventDialog"
+import { CreateEventDialog, type EventFormData } from "./_components/CreateEventDialog"
 import { RSVPDialog } from "./_components/RSVPDialog"
 import { api } from "~/trpc/react"
 import { useUser } from "@clerk/nextjs"
+import { DateTime } from "luxon";
+
+// Add a helper to format date/time in the event's timezone
+function formatInTimeZone(dateString: string, timeZone: string, options: Intl.DateTimeFormatOptions) {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return ''; // or 'Invalid date'
+    return new Intl.DateTimeFormat('en-US', { ...options, timeZone }).format(date);
+}
 
 export default function CommunityPage() {
     const [newComment, setNewComment] = useState("")
@@ -44,6 +52,7 @@ export default function CommunityPage() {
             gcTime: 15 * 60 * 1000, // 15 minutes
         }
     );
+    console.log("feed", feedPosts);
 
     // Get comments for the active post
     const activePost = feedPosts.find(p => p.id === activeCommentPost);
@@ -59,10 +68,6 @@ export default function CommunityPage() {
         }
     );
 
-    // Debug logging
-    console.log("Active comment post:", activeCommentPost);
-    console.log("Feed posts:", feedPosts.map(p => ({ id: p.id, type: p.type, comments: p.comments })));
-    console.log("Post comments:", postComments);
 
     // API mutations
     const createLocalEvent = api.events.create.useMutation();
@@ -156,33 +161,38 @@ export default function CommunityPage() {
         }
     }
 
-    const handleCreateEvent = useCallback(async (eventData: any) => {
-        try {
-            const eventDate = new Date(`${eventData.date}T${eventData.time}`).toISOString();
+    const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone; // or let user pick
+        const eventDate = DateTime.fromFormat(
+            `${eventData.date} ${eventData.startTime}`,
+            "yyyy-MM-dd HH:mm",
+            { zone: timezone }
+        ).toUTC().toISO();
 
-            // Create the event in the database
+        const endDate = DateTime.fromFormat(
+            `${eventData.date} ${eventData.endTime}`,
+            "yyyy-MM-dd HH:mm",
+            { zone: timezone }
+        ).toUTC().toISO();
+        try {
+            // Create local event
             await createLocalEvent.mutateAsync({
                 title: eventData.title,
                 description: eventData.description,
                 location: eventData.location,
                 eventDate: eventDate,
+                endDate: endDate,
                 createdByClerkUserId: currentUserId,
+                timezone, // Pass timezone
             });
 
-            // Refresh the feed
-            await refetchFeed();
-
-            // Show success message
-            if (eventData.publishToCommunity) {
-                alert("Event created and published to community! Email notifications sent to all members.");
-            } else {
-                alert("Event created successfully!");
-            }
+            alert("Event created successfully!");
+            await refetchFeed()
         } catch (error) {
             console.error("Failed to create event:", error);
             alert("Failed to create event. Please try again.");
         }
-    }, [createLocalEvent, refetchFeed, currentUserId]);
+    }, [createLocalEvent]);
 
     const handleCreatePoll = async (pollData: any) => {
         try {
@@ -364,16 +374,30 @@ export default function CommunityPage() {
                                             <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                                                 <div className="grid grid-cols-2 gap-4 text-sm">
                                                     <div>
-                                                        <span className="font-medium">Date:</span> {post.eventDetails.date}
+                                                        <span className="font-medium">Date:</span> {post.eventDetails.date
+                                                            ? formatInTimeZone(post.eventDetails.date, (post.eventDetails.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone), { year: 'numeric', month: '2-digit', day: '2-digit' })
+                                                            : ''}
                                                     </div>
                                                     <div>
-                                                        <span className="font-medium">Time:</span> {post.eventDetails.time}
+                                                        <span className="font-medium">Time:</span>{" "}
+                                                        {post.eventDetails.time
+                                                            ? post.eventDetails.time
+                                                            : "–"}
+                                                        {post.eventDetails.endTime && (
+                                                            <>
+                                                                {" "}–{" "}
+                                                                {post.eventDetails.endTime}
+                                                            </>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <span className="font-medium">Location:</span> {post.eventDetails.location}
                                                     </div>
                                                     <div>
                                                         <span className="font-medium">RSVPs:</span> {'rsvps' in post ? post.rsvps || 0 : 0}
+                                                    </div>
+                                                    <div className="col-span-2">
+                                                        <span className="font-medium">Timezone:</span> {post.eventDetails.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone}
                                                     </div>
                                                 </div>
                                             </div>

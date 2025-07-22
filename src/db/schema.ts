@@ -1,6 +1,5 @@
 import {
   pgTable,
-  foreignKey,
   serial,
   text,
   timestamp,
@@ -35,10 +34,19 @@ export const spotlights = pgTable("spotlights", {
   established: text(),
   links: text(),
   stats: text(),
-  featuredSince: timestamp("featured_since", { mode: "string" }).defaultNow(),
+  featuredSince: timestamp("featured_since", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
   isCurrent: boolean("is_current").default(false),
-  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
   createdByClerkUserId: text("created_by_clerk_user_id"),
 });
 
@@ -48,7 +56,7 @@ export const likes = pgTable("likes", {
   postId: integer("post_id"),
   pollId: integer("poll_id"),
   spotlightId: integer("spotlight_id"),
-  timestamp: timestamp({ mode: "string" }).defaultNow(),
+  timestamp: timestamp({ mode: "string", withTimezone: true }).defaultNow(),
 });
 
 export const eventRsvps = pgTable("event_rsvps", {
@@ -56,7 +64,10 @@ export const eventRsvps = pgTable("event_rsvps", {
   eventId: integer("event_id"),
   status: text(),
   clerkUserId: text("clerk_user_id"),
-  rsvpDate: timestamp("rsvp_date", { mode: "string" }).defaultNow(),
+  rsvpDate: timestamp("rsvp_date", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
   notes: text(),
 });
 
@@ -72,7 +83,7 @@ export const activityLog = pgTable("activity_log", {
   clerkUserId: text("clerk_user_id"),
   action: text(),
   details: text(),
-  timestamp: timestamp({ mode: "string" }).defaultNow(),
+  timestamp: timestamp({ mode: "string", withTimezone: true }).defaultNow(),
   metadata: json(),
 });
 
@@ -82,7 +93,10 @@ export const resources = pgTable("resources", {
   type: text(),
   url: text(),
   description: text(),
-  lastUpdated: timestamp("last_updated", { mode: "string" }),
+  lastUpdated: timestamp("last_updated", {
+    mode: "string",
+    withTimezone: true,
+  }),
   projectId: integer("project_id"),
 });
 
@@ -92,8 +106,11 @@ export const tasks = pgTable("tasks", {
   description: text(),
   status: text(),
   priority: text(),
-  deadline: timestamp({ mode: "string" }),
-  completedAt: timestamp("completed_at", { mode: "string" }),
+  deadline: timestamp({ mode: "string", withTimezone: true }),
+  completedAt: timestamp("completed_at", {
+    mode: "string",
+    withTimezone: true,
+  }),
   projectId: integer("project_id"),
   assigneeClerkUserId: text("assignee_clerk_user_id"),
 });
@@ -103,7 +120,10 @@ export const pollVotes = pgTable("poll_votes", {
   pollId: integer("poll_id"),
   optionId: integer("option_id"),
   clerkUserId: text("clerk_user_id"),
-  votedAt: timestamp("voted_at", { mode: "string" }).defaultNow(),
+  votedAt: timestamp("voted_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
 });
 
 export const events = pgTable("events", {
@@ -111,21 +131,29 @@ export const events = pgTable("events", {
   title: text(),
   description: text(),
   location: text(),
-  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
-  eventDate: timestamp("event_date", { mode: "string" }),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  eventDate: timestamp("event_date", { mode: "string", withTimezone: true }),
+  endDate: timestamp("end_date", { mode: "string", withTimezone: true }),
   maxAttendees: integer("max_attendees"),
   isVirtual: boolean("is_virtual").default(false),
   virtualLink: text("virtual_link"),
   eventType: text("event_type"),
   createdByClerkUserId: text("created_by_clerk_user_id"),
+  timezone: text("timezone"),
 });
 
 export const comments = pgTable("comments", {
   id: serial().primaryKey().notNull(),
   content: text(),
   clerkUserId: text("clerk_user_id"),
-  timestamp: timestamp({ mode: "string" }).defaultNow(),
+  timestamp: timestamp({ mode: "string", withTimezone: true }).defaultNow(),
   postId: integer("post_id"),
   eventId: integer("event_id"),
   pollId: integer("poll_id"),
@@ -134,18 +162,27 @@ export const comments = pgTable("comments", {
 
 export const polls = pgTable("polls", {
   id: serial().primaryKey().notNull(),
-  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
   question: text(),
   createdByClerkUserId: text("created_by_clerk_user_id"),
-  endsAt: timestamp("ends_at", { mode: "string" }),
+  endsAt: timestamp("ends_at", { mode: "string", withTimezone: true }),
   isActive: boolean("is_active").default(true),
 });
 
 export const posts = pgTable("posts", {
   id: serial().primaryKey().notNull(),
   name: text(),
-  createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
-  updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
   createdByClerkUserId: text("created_by_clerk_user_id"),
 });
 
@@ -156,14 +193,17 @@ export const projectActivities = pgTable("project_activities", {
   description: text().notNull(),
   taskId: integer("task_id"),
   resourceId: integer("resource_id"),
-  timestamp: timestamp({ mode: "string" }).defaultNow(),
+  timestamp: timestamp({ mode: "string", withTimezone: true }).defaultNow(),
   clerkUserId: text("clerk_user_id"),
 });
 
 export const projectTeamMembers = pgTable("project_team_members", {
   projectId: integer("project_id"),
   role: text().default("member"),
-  joinedAt: timestamp("joined_at", { mode: "string" }).defaultNow(),
+  joinedAt: timestamp("joined_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
   clerkUserId: text("clerk_user_id"),
   invitedByClerkUserId: text("invited_by_clerk_user_id"),
 });
@@ -176,7 +216,7 @@ export const projects = pgTable("projects", {
   progress: integer(),
   totalTasks: integer(),
   completedTasks: integer(),
-  deadline: timestamp({ mode: "string" }),
+  deadline: timestamp({ mode: "string", withTimezone: true }),
   priority: text(),
   createdBy: text("created_by"),
 });

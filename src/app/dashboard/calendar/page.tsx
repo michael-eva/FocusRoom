@@ -39,6 +39,7 @@ interface LocalEvent {
         createdAt: string;
         updatedAt: string;
     } | null;
+    timezone?: string; // Add this line
 }
 
 export default function CalendarPage() {
@@ -91,6 +92,8 @@ export default function CalendarPage() {
     // Event creation handler
     const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
         const eventDate = new Date(`${eventData.date}T${eventData.startTime}`).toISOString();
+        const endDate = new Date(`${eventData.date}T${eventData.endTime}`).toISOString();
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         try {
             // Create local event
             await createLocalEvent.mutateAsync({
@@ -98,7 +101,9 @@ export default function CalendarPage() {
                 description: eventData.description,
                 location: eventData.location,
                 eventDate: eventDate,
+                endDate: endDate,
                 createdByClerkUserId: currentUserId,
+                timezone, // Pass timezone
             });
 
             // Refresh local events
@@ -138,6 +143,11 @@ export default function CalendarPage() {
         return today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
     };
 
+    // Add a helper to format date/time in the event's timezone
+    function formatInTimeZone(dateString: string, timeZone: string, options: Intl.DateTimeFormatOptions) {
+        return new Intl.DateTimeFormat('en-US', { ...options, timeZone }).format(new Date(dateString));
+    }
+
     const formatTime = (dateString: string): string => {
         const date = new Date(dateString);
         return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -159,8 +169,9 @@ export default function CalendarPage() {
         if (!selectedEvent) return;
 
         try {
-            // Create event date string
+            // Create event date strings
             const eventDate = new Date(`${eventData.date}T${eventData.startTime}`).toISOString();
+            const endDate = new Date(`${eventData.date}T${eventData.endTime}`).toISOString();
 
             await updateLocalEvent.mutateAsync({
                 id: selectedEvent.id,
@@ -168,6 +179,7 @@ export default function CalendarPage() {
                 description: eventData.description || undefined,
                 location: eventData.location || undefined,
                 eventDate: eventDate,
+                endDate: endDate,
             });
 
             // Refresh local events
@@ -335,7 +347,7 @@ export default function CalendarPage() {
                                                                             ? "bg-red-100 text-red-800 border-red-500 hover:bg-red-200"
                                                                             : "bg-blue-100 text-blue-800 border-blue-500 hover:bg-blue-200"
                                                                     }`}
-                                                                title={`${event.title}${event.location ? ` - ${event.location}` : ''}${!event.allDay ? ` at ${formatTime(event.startDateTime)}` : ''
+                                                                title={`${event.title}${event.location ? ` - ${event.location}` : ''}${!event.allDay ? ` at ${formatInTimeZone(event.startDateTime, event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone, { hour: '2-digit', minute: '2-digit' })}` : ''
                                                                     }${event.userRSVP ? ` (RSVP: ${event.userRSVP.status})` : ''}`}
                                                                 onClick={() => handleEventClick(event)}
                                                             >
@@ -417,7 +429,7 @@ export default function CalendarPage() {
                                                                     {!event.allDay && (
                                                                         <div className="flex items-center gap-1">
                                                                             <span className="text-gray-400">🕐</span>
-                                                                            <span>{formatTime(event.startDateTime)}</span>
+                                                                            <span>{formatInTimeZone(event.startDateTime, event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone, { hour: '2-digit', minute: '2-digit' })}</span>
                                                                         </div>
                                                                     )}
                                                                     {event.location && (

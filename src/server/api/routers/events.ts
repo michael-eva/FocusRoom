@@ -14,10 +14,12 @@ export const eventsRouter = createTRPCRouter({
         startDateTime: z.date().optional().nullable(),
         endDateTime: z.date().optional().nullable(),
         eventDate: z.string().optional(), // For new schema
+        endDate: z.string().optional(), // Add this line
         allDay: z.boolean().default(false),
         rsvpLink: z.string().optional(),
         createdById: z.union([z.string(), z.number()]).optional(), // Handle both string and number
         createdByClerkUserId: z.string().optional(), // For new schema
+        timezone: z.string().optional(), // Add timezone field
       }),
     )
     .mutation(async ({ input }) => {
@@ -28,6 +30,9 @@ export const eventsRouter = createTRPCRouter({
       const eventDate =
         input.eventDate ||
         (input.startDateTime ? input.startDateTime.toISOString() : undefined);
+      const endDate =
+        input.endDate ||
+        (input.endDateTime ? input.endDateTime.toISOString() : undefined);
 
       if (!createdByClerkUserId) {
         throw new Error("createdByClerkUserId/createdById is required");
@@ -40,7 +45,9 @@ export const eventsRouter = createTRPCRouter({
           description: input.description,
           location: input.location,
           eventDate: eventDate,
+          endDate: endDate, // Add this line
           createdByClerkUserId: createdByClerkUserId,
+          timezone: input.timezone, // Save timezone
         })
         .returning();
 
@@ -111,6 +118,7 @@ export const eventsRouter = createTRPCRouter({
           description: events.description,
           location: events.location,
           eventDate: events.eventDate,
+          endDate: events.endDate, // Add this line
           maxAttendees: events.maxAttendees,
           isVirtual: events.isVirtual,
           virtualLink: events.virtualLink,
@@ -119,6 +127,7 @@ export const eventsRouter = createTRPCRouter({
           createdAt: events.createdAt,
           updatedAt: events.updatedAt,
           userRSVP: eventRsvps,
+          timezone: events.timezone, // Add timezone to the select
         })
         .from(events)
         .leftJoin(eventRsvps, eq(events.id, eventRsvps.eventId))
@@ -152,6 +161,7 @@ export const eventsRouter = createTRPCRouter({
             description: row.description,
             location: row.location,
             eventDate: row.eventDate,
+            endDate: row.endDate, // Add this line
             maxAttendees: row.maxAttendees,
             isVirtual: row.isVirtual,
             virtualLink: row.virtualLink,
@@ -165,6 +175,7 @@ export const eventsRouter = createTRPCRouter({
               row.userRSVP.clerkUserId === input.userId
                 ? row.userRSVP
                 : null,
+            timezone: row.timezone, // Add timezone to the returned object
           });
         }
         return acc;
@@ -179,7 +190,10 @@ export const eventsRouter = createTRPCRouter({
         startDateTime:
           event.eventDate || event.createdAt || new Date().toISOString(),
         endDateTime:
-          event.eventDate || event.createdAt || new Date().toISOString(), // Use same as start for now
+          event.endDate ||
+          event.eventDate ||
+          event.createdAt ||
+          new Date().toISOString(), // Use endDate if available
         allDay: false, // Default to false since we don't have this field in new schema
         rsvpLink: null, // Not in new schema
         createdById: null, // Keep as null since Clerk IDs are strings, not numbers
@@ -201,6 +215,7 @@ export const eventsRouter = createTRPCRouter({
               updatedAt: event.userRSVP.rsvpDate || new Date().toISOString(),
             }
           : null,
+        timezone: event.timezone, // Ensure timezone is included
       }));
 
       return backwardCompatibleEvents;
@@ -226,10 +241,12 @@ export const eventsRouter = createTRPCRouter({
         description: z.string().optional(),
         location: z.string().optional(),
         eventDate: z.string().optional(),
+        endDate: z.string().optional(), // Add this line
         maxAttendees: z.number().optional(),
         isVirtual: z.boolean().optional(),
         virtualLink: z.string().optional(),
         eventType: z.string().optional(),
+        timezone: z.string().optional(), // Add timezone field
       }),
     )
     .mutation(async ({ input }) => {

@@ -57,6 +57,27 @@
       "when": 1753162459465,
       "tag": "0007_shallow_piledriver",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1753172283601,
+      "tag": "0008_breezy_pixie",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1753173054471,
+      "tag": "0009_misty_starjammers",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1753175228878,
+      "tag": "0010_mixed_mattie_franklin",
+      "breakpoints": true
     }
   ]
 }

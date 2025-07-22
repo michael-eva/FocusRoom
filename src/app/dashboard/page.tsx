@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover
 import { useCallback, useState } from "react"
 import { SpotlightDialog } from "./_components/spotlight/SpotlightDialog"
 import { api } from "~/trpc/react"
-import { CreateEventDialog } from "./community/_components/CreateEventDialog"
+import { CreateEventDialog, type EventFormData } from "./community/_components/CreateEventDialog"
 import { useUser } from "@clerk/nextjs"
 
 export default function Dashboard() {
@@ -52,19 +52,28 @@ export default function Dashboard() {
         }
     );
 
-    const handleCreateEvent = useCallback(async (eventData: any) => {
-        console.log("Creating event with data:", eventData);
+    const handleCreateEvent = useCallback(async (eventData: EventFormData) => {
         const eventDate = new Date(`${eventData.date}T${eventData.startTime}`).toISOString();
+        const endDate = new Date(`${eventData.date}T${eventData.endTime}`).toISOString();
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        try {
+            // Create local event
+            await createLocalEvent.mutateAsync({
+                title: eventData.title,
+                description: eventData.description,
+                location: eventData.location,
+                eventDate: eventDate,
+                endDate: endDate,
+                createdByClerkUserId: currentUserId,
+                timezone, // Pass timezone
+            });
 
-        // Create the event in the database
-        await createLocalEvent.mutateAsync({
-            title: eventData.title,
-            description: eventData.description,
-            location: eventData.location,
-            eventDate: eventDate,
-            createdByClerkUserId: currentUserId,
-        });
-    }, [createLocalEvent, currentUserId]);
+            alert("Event created successfully!");
+        } catch (error) {
+            console.error("Failed to create event:", error);
+            alert("Failed to create event. Please try again.");
+        }
+    }, [createLocalEvent]);
 
     const handleCreatePoll = async (pollData: any) => {
         console.log("Creating poll with data:", pollData);
