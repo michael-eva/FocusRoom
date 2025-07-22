@@ -3,6 +3,7 @@ import React from "react";
 import { Button } from "~/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { SidebarTrigger } from "~/components/ui/sidebar";
+import { SignOutButton } from "@clerk/nextjs";
 
 export interface NavbarButtonProps {
   label: string;
@@ -75,14 +76,15 @@ const CommonNavbar: React.FC<CommonNavbarProps> = ({
         </PopoverTrigger>
         <PopoverContent className="w-48 p-2" align="end">
           <div className="space-y-1">
-            <Button
-              variant="ghost"
-              className="w-full justify-start gap-2 h-9 text-red-600 hover:text-red-700 hover:bg-red-50"
-              onClick={() => window.location.href = '/sign-out'}
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
+            <SignOutButton redirectUrl="/">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-2 h-9 text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </SignOutButton>
           </div>
         </PopoverContent>
       </Popover>
