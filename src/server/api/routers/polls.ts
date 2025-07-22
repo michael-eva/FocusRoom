@@ -238,32 +238,73 @@ export const pollsRouter = createTRPCRouter({
         )
         .limit(1);
 
+      let isVoteChange = false;
+
       if (existingVote.length > 0) {
-        throw new Error("User has already voted on this poll");
+        // User is changing their vote
+        const oldOptionId = existingVote[0]!.optionId;
+
+        // Only proceed if they're voting for a different option
+        if (oldOptionId === input.optionId) {
+          return {
+            success: true,
+            message: "You have already voted for this option",
+          };
+        }
+
+        isVoteChange = true;
+
+        // Update the existing vote record
+        await db
+          .update(pollVotes)
+          .set({
+            optionId: input.optionId,
+            votedAt: sql`now()`,
+          })
+          .where(eq(pollVotes.id, existingVote[0]!.id));
+
+        // Decrease vote count for the old option
+        if (oldOptionId) {
+          await db
+            .update(pollOptions)
+            .set({ votes: sql`${pollOptions.votes} - 1` })
+            .where(eq(pollOptions.id, oldOptionId));
+        }
+
+        // Increase vote count for the new option
+        await db
+          .update(pollOptions)
+          .set({ votes: sql`${pollOptions.votes} + 1` })
+          .where(eq(pollOptions.id, input.optionId));
+      } else {
+        // Create a new vote
+        await db.insert(pollVotes).values({
+          pollId: input.pollId,
+          optionId: input.optionId,
+          clerkUserId: input.clerkUserId,
+        });
+
+        // Update the option vote count using SQL expression
+        await db
+          .update(pollOptions)
+          .set({ votes: sql`${pollOptions.votes} + 1` })
+          .where(eq(pollOptions.id, input.optionId));
       }
-
-      // Create the vote
-      await db.insert(pollVotes).values({
-        pollId: input.pollId,
-        optionId: input.optionId,
-        clerkUserId: input.clerkUserId,
-      });
-
-      // Update the option vote count using SQL expression
-      await db
-        .update(pollOptions)
-        .set({ votes: sql`${pollOptions.votes} + 1` })
-        .where(eq(pollOptions.id, input.optionId));
 
       // Log the activity
       await db.insert(activityLog).values({
         clerkUserId: input.clerkUserId,
-        action: "poll_voted",
-        details: "Voted on a poll",
+        action: isVoteChange ? "poll_vote_changed" : "poll_voted",
+        details: isVoteChange ? "Changed vote on a poll" : "Voted on a poll",
         metadata: { pollId: input.pollId, optionId: input.optionId },
       });
 
-      return { success: true };
+      return {
+        success: true,
+        message: isVoteChange
+          ? "Vote changed successfully"
+          : "Vote cast successfully",
+      };
     }),
 
   delete: publicProcedure

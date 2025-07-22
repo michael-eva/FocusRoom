@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Textarea } from "~/components/ui/textarea"
-import { Bell, User, Calendar, MessageSquare, ThumbsUp, Share2, Users, Mail, Trash2 } from "lucide-react"
+import { Bell, User, Calendar, MessageSquare, ThumbsUp, Share2, Users, Mail, Trash2, Loader2 } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { CreateEventDialog, type EventFormData } from "./_components/CreateEventDialog"
@@ -34,6 +34,7 @@ export default function CommunityPage() {
     const [isRSVPDialogOpen, setIsRSVPDialogOpen] = useState(false)
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
     const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
+    const [votingOption, setVotingOption] = useState<{ pollId: number, optionId: number } | null>(null)
 
     const { user } = useUser();
     const currentUserId = user?.id || "";
@@ -128,8 +129,11 @@ export default function CommunityPage() {
     }
 
     const handleVote = async (postId: number, optionId: number) => {
+        // Set loading state for this specific option
+        setVotingOption({ pollId: postId, optionId });
+
         try {
-            await votePoll.mutateAsync({
+            const result = await votePoll.mutateAsync({
                 pollId: postId,
                 optionId: optionId,
                 clerkUserId: currentUserId,
@@ -137,9 +141,18 @@ export default function CommunityPage() {
 
             // Refresh the feed to show updated vote counts
             await refetchFeed();
+
+            // Show success message if available
+            if (result?.message && result.message !== "You have already voted for this option") {
+                // Only show toast for successful actions, not for clicking the same option
+                console.log(result.message);
+            }
         } catch (error) {
             console.error("Failed to vote:", error);
             alert("Failed to vote. Please try again.");
+        } finally {
+            // Clear loading state
+            setVotingOption(null);
         }
     }
 
@@ -449,25 +462,60 @@ export default function CommunityPage() {
                                                     const totalVotes = post.options?.reduce((sum: number, opt: any) => sum + (opt.votes || 0), 0) || 0;
                                                     const percentage = totalVotes > 0 ? Math.round((option.votes || 0) / totalVotes * 100) : 0;
                                                     const hasVoted = 'userVote' in post && post.userVote?.optionId === option.id;
+                                                    const userHasVotedOnPoll = 'userVote' in post && post.userVote !== null;
+                                                    const isThisOptionLoading = votingOption?.pollId === post.id && votingOption?.optionId === option.id;
+                                                    const isAnyOptionLoading = votingOption?.pollId === post.id;
 
                                                     return (
                                                         <div key={option.id} className="relative">
                                                             <button
                                                                 onClick={() => handleVote(post.id, option.id)}
-                                                                className={`w-full p-3 text-left rounded-lg border transition-all ${hasVoted
-                                                                    ? 'bg-orange-100 border-orange-300'
-                                                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                                                                disabled={isAnyOptionLoading}
+                                                                title={
+                                                                    hasVoted
+                                                                        ? "Your current choice (click to change)"
+                                                                        : userHasVotedOnPoll
+                                                                            ? "Click to change your vote to this option"
+                                                                            : "Click to vote for this option"
+                                                                }
+                                                                className={`group w-full p-3 text-left rounded-lg border transition-all duration-200 ${hasVoted
+                                                                    ? 'bg-orange-100 border-orange-300 ring-2 ring-orange-200'
+                                                                    : isAnyOptionLoading && !isThisOptionLoading
+                                                                        ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                                                                        : isThisOptionLoading
+                                                                            ? 'bg-orange-50 border-orange-200 animate-pulse'
+                                                                            : userHasVotedOnPoll
+                                                                                ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
+                                                                                : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
                                                                     }`}
                                                             >
                                                                 <div className="flex justify-between items-center">
-                                                                    <span className="font-medium">{option.optionText}</span>
-                                                                    <span className="text-sm text-muted-foreground">
-                                                                        {option.votes || 0} votes ({percentage}%)
-                                                                    </span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="font-medium">{option.optionText}</span>
+                                                                        {hasVoted && (
+                                                                            <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full">
+                                                                                Your Vote
+                                                                            </span>
+                                                                        )}
+                                                                        {isThisOptionLoading && (
+                                                                            <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-sm text-muted-foreground">
+                                                                            {option.votes || 0} votes ({percentage}%)
+                                                                        </span>
+                                                                        {userHasVotedOnPoll && !hasVoted && !isAnyOptionLoading && (
+                                                                            <span className="text-xs text-blue-600 hidden group-hover:inline">
+                                                                                Click to change
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                                 <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                                                                     <div
-                                                                        className="bg-orange-500 h-2 rounded-full transition-all"
+                                                                        className={`h-2 rounded-full transition-all duration-300 ${isThisOptionLoading ? 'bg-gradient-to-r from-orange-400 to-orange-600' : 'bg-orange-500'
+                                                                            }`}
                                                                         style={{ width: `${percentage}%` }}
                                                                     />
                                                                 </div>
