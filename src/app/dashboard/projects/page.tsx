@@ -72,30 +72,6 @@ export default function ProjectsPage() {
 
     return (
         <>
-            {/* <header className="flex items-center justify-between p-4 border-b bg-white">
-                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-                    <SidebarTrigger />
-                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate">
-                        <span className="hidden sm:inline">Projects & Tasks</span>
-                        <span className="sm:hidden">Projects</span>
-                    </h1>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                    <Link href="/dashboard/projects/new">
-                        <Button className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base px-3 sm:px-4 py-2">
-                            <Plus className="h-4 w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">New Project</span>
-                        </Button>
-                    </Link>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                        <Bell className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10">
-                        <User className="h-5 w-5" />
-                    </Button>
-                </div>
-            </header> */}
-
             <main className="flex-1 space-y-6 p-6">
                 <CommonNavbar
                     title="Projects"

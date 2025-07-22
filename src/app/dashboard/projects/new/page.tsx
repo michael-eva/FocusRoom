@@ -11,11 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~
 import { Badge } from "~/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs"
 import { Separator } from "~/components/ui/separator"
-import { ArrowLeft, Save, Plus, X, Trash2, FileText, Link as LinkIcon, Calendar, Users, Target } from "lucide-react"
+import { ArrowLeft, Save, Plus, X, Trash2, FileText, Link as LinkIcon, Calendar, Users, Target, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 import { SidebarTrigger } from "~/components/ui/sidebar"
 import { api } from "~/trpc/react"
 import { toast } from "sonner"
+import CommonNavbar from "~/app/_components/CommonNavbar"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 
 interface Task {
   id: string
@@ -347,48 +349,34 @@ export default function NewProjectPage() {
 
   return (
     <>
-      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 sm:p-6 border-b bg-white shadow-sm gap-4">
-        <div className="flex items-center gap-3 sm:gap-4">
-          <SidebarTrigger />
-          <Link href="/dashboard/projects">
-            <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-              <ArrowLeft className="h-5 w-5" />
+      <main className="flex-1 space-y-6 p-6">
+        <CommonNavbar
+          title="Create New Project"
+          rightContent={
+            <Button onClick={handleSaveDraft}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Draft
             </Button>
-          </Link>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
-              {draftProjectId ? "Edit Draft Project" : "Create New Project"}
-            </h1>
-            <p className="text-xs sm:text-sm text-gray-600 mt-1 hidden sm:block">
-              {draftProjectId ? "Continue editing your draft project" : "Set up your project with tasks, resources, and team members"}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {hasUnsavedChanges && (
-            <Button variant="outline" onClick={handleSaveDraft} className="gap-1 sm:gap-2 text-xs sm:text-sm">
-              <Save className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Save Draft</span>
-              <span className="sm:hidden">Save</span>
-            </Button>
-          )}
-          {draftProjectId && (
-            <Link href={`/dashboard/projects/${draftProjectId}`}>
-              <Button variant="outline" className="gap-1 sm:gap-2 text-xs sm:text-sm">
-                <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
-                <span className="hidden sm:inline">View Draft</span>
-                <span className="sm:hidden">View</span>
-              </Button>
-            </Link>
-          )}
-          <Button variant="ghost" onClick={handleClearDraft} className="text-gray-600 hover:text-gray-800 text-xs sm:text-sm">
-            <span className="hidden sm:inline">Clear Form</span>
-            <span className="sm:hidden">Clear</span>
-          </Button>
-        </div>
-      </header>
-
-      <main className="flex-1 p-4 sm:p-8 bg-gray-50">
+          }
+          mobilePopoverContent={
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-48">
+                <div className="flex flex-col gap-2">
+                  <Button onClick={handleSaveDraft} variant="ghost" className="justify-start">
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Draft
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          }
+          showBackButton={true}
+        />
         <div className="max-w-7xl mx-auto">
           <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
             <Tabs defaultValue="basic" className="space-y-6 sm:space-y-8">

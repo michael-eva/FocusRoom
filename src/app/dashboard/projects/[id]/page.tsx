@@ -15,7 +15,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Textarea } from "~/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
-import { Bell, User, Plus, ArrowLeft, Calendar, Users, Mail, CheckCircle2, Clock, AlertCircle, ExternalLink, FileText, LinkIcon, Edit, Trash2 } from "lucide-react"
+import { Bell, User, Plus, ArrowLeft, Calendar, Users, Mail, CheckCircle2, Clock, AlertCircle, ExternalLink, FileText, LinkIcon, Edit, Trash2, MoreHorizontal } from "lucide-react"
 import Link from "next/link"
 import { ResourcesSection } from "../_components/ResourceSection"
 import { TaskAssignmentDialog } from "../_components/TaskAssignmentDialog"
@@ -27,6 +27,8 @@ import { ProjectSettingsDropdown } from "../_components/ProjectSettingsDropdown"
 import { EditProjectDialog } from "../../_components/EditProjectDialog"
 import { api } from "~/trpc/react"
 import { toast } from "sonner"
+import CommonNavbar from "~/app/_components/CommonNavbar"
+import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 
 const getStatusColor = (status: string | null) => {
     switch (status) {
@@ -383,82 +385,38 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
     return (
         <>
-            <header className="flex items-center justify-between p-4 border-b bg-white shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
-                    <SidebarTrigger />
-                    <Link href="/dashboard/projects">
-                        <Button variant="ghost" size="icon" className="h-9 w-9 sm:h-10 sm:w-10 hover:bg-gray-100">
-                            <ArrowLeft className="h-5 w-5" />
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title={project.name ?? "Project"}
+                    rightContent={
+                        <Button onClick={() => setIsEditProjectDialogOpen(true)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Project
                         </Button>
-                    </Link>
-                    <div className="min-w-0 flex-1">
-                        <h1 className="text-lg sm:text-2xl font-bold text-gray-900 truncate">{project.name}</h1>
-                        <p className="text-xs sm:text-sm text-gray-600 mt-1 truncate hidden sm:block">{project.description}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-                    {/* Mobile: Show menu button, Desktop: Show all buttons */}
-                    <div className="hidden sm:flex items-center gap-3">
-                        <Button
-                            onClick={() => setIsAddTaskDialogOpen(true)}
-                            className="bg-orange-500 hover:bg-orange-600 text-white gap-2"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Task
-                        </Button>
-                        <Button
-                            onClick={() => setIsAddResourceDialogOpen(true)}
-                            variant="outline"
-                            className="gap-2"
-                        >
-                            <Plus className="h-4 w-4" />
-                            Add Resource
-                        </Button>
-                        {canEditProject && (
-                            <Button
-                                variant="outline"
-                                onClick={() => setIsEditProjectDialogOpen(true)}
-                                className="gap-2"
-                            >
-                                <Edit className="h-4 w-4" />
-                                Edit Project
-                            </Button>
-                        )}
-                    </div>
-
-                    {/* Mobile: Compact actions */}
-                    <div className="sm:hidden flex items-center gap-2">
-                        <Button
-                            size="sm"
-                            className="bg-orange-500 hover:bg-orange-600 text-white"
-                            onClick={() => setIsAddTaskDialogOpen(true)}
-                        >
-                            <Plus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setIsAddResourceDialogOpen(true)}
-                        >
-                            <LinkIcon className="h-4 w-4" />
-                        </Button>
-                    </div>
-
-                    <ProjectSettingsDropdown
-                        onDelete={() => setIsDeleteProjectDialogOpen(true)}
-                        isLoading={deleteProjectMutation.isPending}
-                    />
-                    <div className="hidden sm:flex items-center gap-3">
-                        <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-                            <Bell className="h-5 w-5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="hover:bg-gray-100">
-                            <User className="h-5 w-5" />
-                        </Button>
-                    </div>
-                </div>
-            </header>
-            <main className="flex-1 p-4 sm:p-8 bg-gray-50">
+                    }
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Button onClick={() => setIsEditProjectDialogOpen(true)} variant="ghost" className="justify-start">
+                                        <Edit className="h-4 w-4 mr-2" />
+                                        Edit Project
+                                    </Button>
+                                    <Button onClick={() => setIsDeleteProjectDialogOpen(true)} variant="ghost" className="justify-start">
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete Project
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                    showBackButton={true}
+                />
                 <div className="max-w-7xl mx-auto space-y-4 sm:space-y-8">
                     {/* Project Overview */}
                     <Card className="border-0 shadow-sm">

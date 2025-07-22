@@ -1,9 +1,11 @@
-import { LogOut, User } from "lucide-react";
+import { ArrowLeft, LogOut, User } from "lucide-react";
 import React from "react";
 import { Button } from "~/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { SidebarTrigger } from "~/components/ui/sidebar";
 import { SignOutButton } from "@clerk/nextjs";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export interface NavbarButtonProps {
   label: string;
@@ -18,6 +20,7 @@ export interface CommonNavbarProps {
   rightContent?: React.ReactNode;
   mobilePopoverContent?: React.ReactNode;
   className?: string;
+  showBackButton?: boolean;
 }
 
 const CommonNavbar: React.FC<CommonNavbarProps> = ({
@@ -26,7 +29,9 @@ const CommonNavbar: React.FC<CommonNavbarProps> = ({
   rightContent,
   mobilePopoverContent,
   className = "",
+  showBackButton = false,
 }) => {
+  const router = useRouter();
   return (
     <nav
       className={`w-full flex items-center py-2 sm:py-4 bg-white border-b ${className}`}
@@ -37,7 +42,12 @@ const CommonNavbar: React.FC<CommonNavbarProps> = ({
       </div>
 
       {/* Title + Subtext (center) */}
-      <div className="flex flex-col flex-1 items-center sm:items-start justify-center min-w-0 px-2">
+      <div className="flex flex-1 items-center sm:items-start justify-center min-w-0 px-2">
+        {showBackButton && (
+          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        )}
         <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-center sm:text-left truncate w-full">
           {title}
         </h1>
