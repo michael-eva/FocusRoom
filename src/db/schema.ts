@@ -236,3 +236,21 @@ export const projects = pgTable("projects", {
   priority: text(),
   createdBy: text("created_by"),
 });
+
+export const uatQueries = pgTable("uat_queries", {
+  id: serial().primaryKey().notNull(),
+  query: text().notNull(),
+  clerkUserId: text("clerk_user_id"),
+  userName: text("user_name"),
+  userEmail: text("user_email"),
+  status: text().default("pending"), // pending, reviewed, resolved
+  createdAt: timestamp("created_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  updatedAt: timestamp("updated_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  notes: text(), // For admin notes
+});

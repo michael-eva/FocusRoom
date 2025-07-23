@@ -12,6 +12,7 @@ import { RSVPDialog } from "./community/_components/RSVPDialog"
 import { useUser } from "@clerk/nextjs"
 import CommonNavbar from "../_components/CommonNavbar"
 import ChatAndAI from "./_components/ChatAndAI"
+import { UATDialog } from "./_components/UATDialog"
 import React from "react"
 
 export default function Dashboard() {
@@ -22,6 +23,7 @@ export default function Dashboard() {
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
     const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
     const [chatMessage, setChatMessage] = useState("")
+    const [isUATDialogOpen, setIsUATDialogOpen] = useState(false)
 
     // Pagination state - only for "load more" data
     const [chatOffset, setChatOffset] = useState(0)
@@ -69,6 +71,16 @@ export default function Dashboard() {
         },
         onError: () => {
             alert("Failed to RSVP. Please try again.");
+        }
+    });
+
+    // UAT mutations
+    const submitUATQuery = api.uat.submit.useMutation({
+        onSuccess: async () => {
+            alert("UAT query submitted successfully!");
+        },
+        onError: () => {
+            alert("Failed to submit UAT query. Please try again.");
         }
     });
 
@@ -225,6 +237,22 @@ export default function Dashboard() {
             });
         } catch (error) {
             console.error("Failed to RSVP:", error);
+        }
+    }
+
+    const handleUATSubmit = async (query: string) => {
+        if (!currentUserId) return;
+
+        try {
+            await submitUATQuery.mutateAsync({
+                query,
+                clerkUserId: currentUserId,
+                userName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : undefined,
+                userEmail: user?.emailAddresses?.[0]?.emailAddress,
+            });
+        } catch (error) {
+            console.error("Failed to submit UAT query:", error);
+            throw error; // Re-throw to let the dialog handle the error
         }
     }
 
@@ -530,6 +558,15 @@ export default function Dashboard() {
                             <BarChart3 className="h-4 w-4 mr-2 text-blue-600" />
                             Poll
                         </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="flex-1 h-10 bg-purple-50 border-purple-200 hover:bg-purple-100"
+                            onClick={() => setIsUATDialogOpen(true)}
+                        >
+                            <MessageSquare className="h-4 w-4 mr-2 text-purple-600" />
+                            UAT
+                        </Button>
                     </div>
 
                     {/* Spotlight Card - Standalone */}
@@ -598,7 +635,7 @@ export default function Dashboard() {
                         </Card>
 
                         <Card
-                            className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95 sm:col-span-2 lg:col-span-1"
+                            className="bg-gradient-to-br from-gray-50 to-gray-100 border-gray-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95"
                             onClick={() => setIsSpotlightOpen(true)}
                         >
                             <CardContent className="p-4 sm:p-6 text-center">
@@ -609,6 +646,23 @@ export default function Dashboard() {
                                     <div>
                                         <h3 className="font-semibold text-gray-800 text-base sm:text-lg mb-1">Spotlight</h3>
                                         <p className="text-xs sm:text-sm text-gray-600">Share your music or story</p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+
+                        <Card
+                            className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer group active:scale-95"
+                            onClick={() => setIsUATDialogOpen(true)}
+                        >
+                            <CardContent className="p-4 sm:p-6 text-center">
+                                <div className="flex flex-col items-center gap-3">
+                                    <div className="w-12 h-12 sm:w-14 sm:h-14 bg-purple-500 rounded-full flex items-center justify-center group-hover:bg-purple-600 transition-colors">
+                                        <MessageSquare className="h-6 w-6 sm:h-7 sm:w-7 text-white" />
+                                    </div>
+                                    <div>
+                                        <h3 className="font-semibold text-gray-800 text-base sm:text-lg mb-1">UAT Query</h3>
+                                        <p className="text-xs sm:text-sm text-gray-600">Submit feedback or questions</p>
                                     </div>
                                 </div>
                             </CardContent>
@@ -633,6 +687,11 @@ export default function Dashboard() {
                     onClose={() => setIsRSVPDialogOpen(false)}
                     onRSVP={handleRSVPSubmit}
                     eventTitle={selectedEventTitle}
+                />
+                <UATDialog
+                    isOpen={isUATDialogOpen}
+                    onClose={() => setIsUATDialogOpen(false)}
+                    onSubmit={handleUATSubmit}
                 />
             </main>
         </>
