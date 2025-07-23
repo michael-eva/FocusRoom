@@ -232,7 +232,7 @@ export function EditEventDialog({
                 <div className="flex items-center gap-2 p-6 border-t">
                     <Button
                         type="button"
-                        variant="outline"
+                        variant="packOutline"
                         onClick={onClose}
                         className="flex-1"
                     >
@@ -241,6 +241,7 @@ export function EditEventDialog({
                     <Button
                         type="submit"
                         form="edit-event-form"
+                        variant="packPrimary"
                         className="flex-1"
                     >
                         Save Changes

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-
+import { Button } from "~/components/ui/button";
 import { api } from "~/trpc/react";
 
 export function LatestPost() {
@@ -35,15 +35,15 @@ export function LatestPost() {
           placeholder="Title"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="w-full rounded-full bg-white/10 px-4 py-2 text-white"
+          className="w-full rounded-lg border border-border bg-background px-4 py-2 text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <button
+        <Button
           type="submit"
-          className="rounded-full bg-white/10 px-10 py-3 font-semibold transition hover:bg-white/20"
+          variant="packPrimary"
           disabled={createPost.isPending}
         >
           {createPost.isPending ? "Submitting..." : "Submit"}
-        </button>
+        </Button>
       </form>
     </div>
   );

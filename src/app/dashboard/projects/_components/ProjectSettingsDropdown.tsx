@@ -27,7 +27,7 @@ export function ProjectSettingsDropdown({
       <Button
         variant="ghost"
         size="icon"
-        className="hover:bg-gray-100"
+        className="hover:bg-accent/10"
         disabled={isLoading}
         onClick={() => setIsOpen(true)}
       >
@@ -47,7 +47,7 @@ export function ProjectSettingsDropdown({
             {onEdit && (
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 h-10"
+                className="w-full justify-start gap-2 h-10 hover:bg-accent/10"
                 onClick={() => {
                   onEdit()
                   setIsOpen(false)
@@ -60,7 +60,7 @@ export function ProjectSettingsDropdown({
             {onShare && (
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 h-10"
+                className="w-full justify-start gap-2 h-10 hover:bg-accent/10"
                 onClick={() => {
                   onShare()
                   setIsOpen(false)
@@ -73,7 +73,7 @@ export function ProjectSettingsDropdown({
             {onArchive && (
               <Button
                 variant="ghost"
-                className="w-full justify-start gap-2 h-10"
+                className="w-full justify-start gap-2 h-10 hover:bg-accent/10"
                 onClick={() => {
                   onArchive()
                   setIsOpen(false)

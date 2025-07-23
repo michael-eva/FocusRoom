@@ -253,15 +253,16 @@ export function CreateEventDialog({
                 </div>
 
                 <div className="flex justify-end gap-2 py-4 border-t px-6 bg-white">
-                    <Button type="button" variant="outline" onClick={onClose} className="min-w-[80px]">
+                    <Button type="button" variant="packOutline" onClick={onClose} className="min-w-[80px]">
                         Cancel
                     </Button>
                     <Button
                         type="submit"
-                        className="bg-orange-500 hover:bg-orange-600 min-w-[120px]"
-                        disabled={!formData.title || !formData.description}
-                        onClick={handleSubmit}
+                        variant="packPrimary"
+                        disabled={!formData.title}
+                        className="min-w-[120px]"
                     >
+                        {/* {isSubmitting ? "Creating..." : "Create Event"} */}
                         Create Event
                     </Button>
                 </div>

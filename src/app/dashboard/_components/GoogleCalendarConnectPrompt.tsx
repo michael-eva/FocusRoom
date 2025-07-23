@@ -16,7 +16,7 @@ export function GoogleCalendarConnectPrompt({ onConnect }: GoogleCalendarConnect
         Integrate your Google Calendar to seamlessly add events directly from FocusRoom and manage your schedule.
       </p>
       <Button
-        className="bg-orange-500 hover:bg-orange-600 text-white text-lg px-8 py-4"
+        className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-8 py-4"
         onClick={onConnect}
       >
         Connect Google Calendar

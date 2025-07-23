@@ -118,7 +118,7 @@ export function SpotlightViewDialog({
       case "instagram":
         return "bg-pink-500 hover:bg-pink-600"
       case "thePack":
-        return "bg-orange-500 hover:bg-orange-600"
+        return "bg-accent hover:bg-accent/90"
       case "facebook":
         return "bg-blue-500 hover:bg-blue-600"
       case "bandcamp":
@@ -156,7 +156,7 @@ export function SpotlightViewDialog({
             <DialogTitleWrapper>Loading Spotlight...</DialogTitleWrapper>
           </DialogHeaderWrapper>
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent"></div>
           </div>
         </DialogContentWrapper>
       </DialogWrapper>
@@ -183,7 +183,7 @@ export function SpotlightViewDialog({
       <DialogContentWrapper {...contentProps}>
         <DialogHeaderWrapper className={isMobile ? "pb-2" : ""}>
           <DialogTitleWrapper className={`flex items-center gap-2 ${isMobile ? "text-lg" : ""}`}>
-            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+            <div className="w-2 h-2 bg-accent rounded-full"></div>
             Featured {spotlight.type === "musician" ? "Musician" : "Venue"}
             <Badge variant="secondary">Previous Spotlight</Badge>
           </DialogTitleWrapper>
@@ -203,7 +203,7 @@ export function SpotlightViewDialog({
 
               <div className="text-center space-y-2">
                 <h3 className="text-lg sm:text-xl font-bold text-gray-800">{spotlight.name}</h3>
-                <p className="text-orange-600 font-medium">{spotlight.title}</p>
+                <p className="text-accent font-medium">{spotlight.title}</p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-gray-600">
                   {spotlight.location && (
@@ -234,19 +234,19 @@ export function SpotlightViewDialog({
                 return (
                   <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                     <div className="text-center">
-                      <div className="text-lg sm:text-2xl font-bold text-orange-600">
+                      <div className="text-lg sm:text-2xl font-bold text-accent">
                         {stats.monthlyListeners || "N/A"}
                       </div>
                       <div className="text-xs sm:text-sm text-gray-600">Monthly Listeners</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg sm:text-2xl font-bold text-orange-600">
+                      <div className="text-lg sm:text-2xl font-bold text-accent">
                         {stats.followers || "N/A"}
                       </div>
                       <div className="text-xs sm:text-sm text-gray-600">Followers</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg sm:text-2xl font-bold text-orange-600">
+                      <div className="text-lg sm:text-2xl font-bold text-accent">
                         {stats.upcomingShows || "N/A"}
                       </div>
                       <div className="text-xs sm:text-sm text-gray-600">Upcoming Shows</div>
@@ -304,10 +304,10 @@ export function SpotlightViewDialog({
               {/* Like Button */}
               <div className="flex items-center gap-4 mb-4">
                 <Button
-                  variant={userHasLiked ? "default" : "outline"}
+                  variant={userHasLiked ? "packPrimary" : "packOutline"}
                   size="sm"
                   onClick={handleLike}
-                  className={userHasLiked ? "bg-red-500 hover:bg-red-600" : ""}
+                  className={userHasLiked ? "bg-accent hover:bg-accent/90" : ""}
                 >
                   <Heart className={`h-4 w-4 mr-2 ${userHasLiked ? "fill-current" : ""}`} />
                   {userHasLiked ? "Liked" : "Like"}
@@ -324,7 +324,7 @@ export function SpotlightViewDialog({
                     placeholder="Add a comment..."
                     value={commentContent}
                     onChange={(e) => setCommentContent(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+                    className="w-full p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
                     rows={3}
                   />
                   <div className="flex justify-end">
@@ -341,7 +341,7 @@ export function SpotlightViewDialog({
                         }
                       }}
                       disabled={!commentContent.trim()}
-                      className="bg-orange-500 hover:bg-orange-600 text-sm sm:text-base"
+                      className="bg-accent hover:bg-accent/90 text-sm sm:text-base"
                     >
                       Post Comment
                     </Button>
@@ -356,8 +356,8 @@ export function SpotlightViewDialog({
                     comments.map((comment) => (
                       <div key={comment.id} className="p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span className="text-orange-600 font-medium text-sm">
+                          <div className="w-8 h-8 bg-accent/20 rounded-full flex items-center justify-center flex-shrink-0">
+                            <span className="text-accent font-medium text-sm">
                               {comment.user?.name?.charAt(0) || "U"}
                             </span>
                           </div>
@@ -384,4 +384,4 @@ export function SpotlightViewDialog({
       </DialogContentWrapper>
     </DialogWrapper>
   )
-} 
+}

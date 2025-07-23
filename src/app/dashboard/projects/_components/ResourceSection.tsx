@@ -147,11 +147,12 @@ function AddResourceDialog({
                 </div>
 
                 <div className="flex justify-end gap-2 py-4 border-t px-6">
-                    <Button type="button" variant="outline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
+                    <Button type="button" variant="packOutline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
                         Cancel
                     </Button>
                     <Button
                         type="submit"
+                        variant="packPrimary"
                         disabled={!formData.title}
                         onClick={handleSubmit}
                         className="h-10 sm:h-11 text-sm sm:text-base"
@@ -225,7 +226,7 @@ export function ResourcesSection({ projectId, onDeleteResource }: ResourcesSecti
             <div className="flex justify-end">
                 <Button
                     onClick={() => setIsAddResourceDialogOpen(true)}
-                    className="gap-2 bg-orange-500 hover:bg-orange-600 text-white"
+                    className="gap-2"
                 >
                     <Plus className="h-4 w-4" />
                     Add Resource
@@ -285,8 +286,8 @@ export function ResourcesSection({ projectId, onDeleteResource }: ResourcesSecti
                                     <span className="text-xs text-gray-500">
                                         Updated {new Date(resource.lastUpdated!).toLocaleDateString()}
                                     </span>
-                                    <Button variant="outline" size="sm" onClick={() => window.open(resource.url!, "_blank")}>
-                                        <ExternalLink className="h-4 w-4 mr-1" />
+                                    <Button variant="packOutline" size="sm" onClick={() => window.open(resource.url!, "_blank")}>
+                                        <ExternalLink className="h-4 w-4 mr-2" />
                                         Open
                                     </Button>
                                 </div>

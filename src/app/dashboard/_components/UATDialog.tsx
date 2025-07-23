@@ -88,7 +88,7 @@ export function UATDialog({ isOpen, onClose, onSubmit }: UATDialogProps) {
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="packOutline"
                 onClick={onClose}
                 disabled={isSubmitting}
               >
@@ -96,8 +96,8 @@ export function UATDialog({ isOpen, onClose, onSubmit }: UATDialogProps) {
               </Button>
               <Button
                 type="submit"
+                variant="packPrimary"
                 disabled={!query.trim() || isSubmitting}
-                className="bg-blue-600 hover:bg-blue-700"
               >
                 {isSubmitting ? (
                   <>

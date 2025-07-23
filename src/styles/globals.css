@@ -48,71 +48,72 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Pack Music Brand Colors */
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #ffffff;
+  --card-foreground: #000000;
+  --popover: #ffffff;
+  --popover-foreground: #000000;
+  --primary: #0066cc; /* Bright blue for buttons */
+  --primary-foreground: #ffffff;
+  --secondary: #f8f9fa;
+  --secondary-foreground: #000000;
+  --muted: #f8f9fa;
+  --muted-foreground: #6c757d;
+  --accent: #ff69b4; /* Vibrant pink/magenta */
+  --accent-foreground: #ffffff;
+  --destructive: #dc3545;
+  --border: #e9ecef;
+  --input: #ffffff;
+  --ring: #0066cc;
+  --chart-1: #ff69b4; /* Pink */
+  --chart-2: #00bfff; /* Light blue/cyan */
+  --chart-3: #0066cc; /* Blue */
+  --chart-4: #9932cc; /* Purple */
+  --chart-5: #ff4500; /* Orange */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #000000;
+  --sidebar-primary: #0066cc;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ff69b4;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #e9ecef;
+  --sidebar-ring: #0066cc;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #000000;
+  --foreground: #ffffff;
+  --card: #1a1a1a;
+  --card-foreground: #ffffff;
+  --popover: #1a1a1a;
+  --popover-foreground: #ffffff;
+  --primary: #0066cc;
+  --primary-foreground: #ffffff;
+  --secondary: #2d2d2d;
+  --secondary-foreground: #ffffff;
+  --muted: #2d2d2d;
+  --muted-foreground: #a0a0a0;
+  --accent: #ff69b4;
+  --accent-foreground: #ffffff;
+  --destructive: #ff6b6b;
+  --border: #404040;
+  --input: #2d2d2d;
+  --ring: #0066cc;
+  --chart-1: #ff69b4;
+  --chart-2: #00bfff;
+  --chart-3: #0066cc;
+  --chart-4: #9932cc;
+  --chart-5: #ff4500;
+  --sidebar: #1a1a1a;
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: #0066cc;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #ff69b4;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #404040;
+  --sidebar-ring: #0066cc;
 }
 
 @layer base {
@@ -120,7 +121,65 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+/* Pack Music Brand Elements */
+@layer components {
+  /* Wavy divider like Pack Music uses */
+  .wavy-divider {
+    position: relative;
+    height: 20px;
+    background: linear-gradient(90deg, transparent 0%, #ff69b4 50%, transparent 100%);
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+  
+  .wavy-divider::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #ff69b4;
+    clip-path: polygon(0 50%, 5% 40%, 10% 50%, 15% 40%, 20% 50%, 25% 40%, 30% 50%, 35% 40%, 40% 50%, 45% 40%, 50% 50%, 55% 40%, 60% 50%, 65% 40%, 70% 50%, 75% 40%, 80% 50%, 85% 40%, 90% 50%, 95% 40%, 100% 50%, 100% 100%, 0 100%);
+  }
+  
+  /* Pack Music button styles */
+  .btn-pack-primary {
+    @apply bg-primary text-primary-foreground px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity;
+  }
+  
+  .btn-pack-secondary {
+    @apply bg-accent text-accent-foreground px-6 py-3 rounded-lg font-semibold hover:opacity-90 transition-opacity;
+  }
+  
+  /* Pack Music card styles */
+  .card-pack {
+    @apply bg-card border border-border rounded-lg p-6 shadow-sm;
+  }
+  
+  /* Pack Music text styles */
+  .text-pack-heading {
+    @apply text-3xl font-bold text-foreground;
+  }
+  
+  .text-pack-subheading {
+    @apply text-xl font-semibold text-foreground;
+  }
+  
+  .text-pack-body {
+    @apply text-base text-foreground leading-relaxed;
+  }
+  
+  .text-pack-accent {
+    @apply text-accent font-semibold;
+  }
+  
+  /* Pack Music link styles */
+  .link-pack {
+    @apply text-accent hover:underline transition-all;
   }
 }
 

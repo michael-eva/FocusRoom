@@ -146,7 +146,7 @@ export default function CalendarComponent({
     return (
       <div className={`${height} flex items-center justify-center bg-white rounded-lg shadow-md`}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
           <p className="text-gray-600">Loading calendar...</p>
         </div>
       </div>
@@ -165,21 +165,21 @@ export default function CalendarComponent({
             </CardTitle>
             <div className="flex items-center gap-2">
               <Button
-                variant="outline"
+                variant="packOutline"
                 size="sm"
                 onClick={() => navigateMonth('prev')}
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               <Button
-                variant="outline"
+                variant="packOutline"
                 size="sm"
                 onClick={() => setCurrentDate(new Date())}
               >
                 Today
               </Button>
               <Button
-                variant="outline"
+                variant="packOutline"
                 size="sm"
                 onClick={() => navigateMonth('next')}
               >
@@ -210,11 +210,11 @@ export default function CalendarComponent({
                   className={`min-h-[100px] p-2 border-b border-r cursor-pointer transition-colors ${isCurrentMonth
                     ? 'bg-white hover:bg-gray-50'
                     : 'bg-gray-50 text-gray-400'
-                    } ${isTodayDate ? 'bg-orange-50' : ''}`}
+                    } ${isTodayDate ? 'bg-accent/10' : ''}`}
                   onClick={() => setSelectedDate(date)}
                 >
                   <div className={`text-sm font-medium mb-1 ${isTodayDate
-                    ? 'bg-orange-500 text-white w-6 h-6 rounded-full flex items-center justify-center'
+                    ? 'bg-accent text-accent-foreground w-6 h-6 rounded-full flex items-center justify-center'
                     : ''
                     }`}>
                     {date.getDate()}

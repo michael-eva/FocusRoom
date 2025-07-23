@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Badge } from "~/components/ui/badge"
 import { Textarea } from "~/components/ui/textarea"
-import { Bell, User, Calendar, MessageSquare, ThumbsUp, Share2, Users, Mail, Trash2, Loader2 } from "lucide-react"
+import { Bell, User, Calendar, MessageSquare, ThumbsUp, Share2, Users, Mail, Trash2, Loader2, RefreshCw } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { CreatePollDialog } from "./_components/CreatePollDialog"
 import { CreateEventDialog, type EventFormData } from "./_components/CreateEventDialog"
@@ -296,11 +296,11 @@ export default function CommunityPage() {
                     title="Community"
                     rightContent={
                         <>
-                            <Button onClick={() => setIsCreateEventOpen(true)}>
+                            <Button variant="packPrimary" onClick={() => setIsCreateEventOpen(true)}>
                                 <Plus className="h-4 w-4 mr-2" />
                                 Create Event
                             </Button>
-                            <Button onClick={() => setIsCreatePollOpen(true)} variant="outline">
+                            <Button variant="packSecondary" onClick={() => setIsCreatePollOpen(true)}>
                                 <BarChart3 className="h-4 w-4 mr-2" />
                                 Create Poll
                             </Button>
@@ -309,7 +309,7 @@ export default function CommunityPage() {
                     mobilePopoverContent={
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm">
+                                <Button variant="packOutline" size="sm">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>
@@ -387,7 +387,8 @@ export default function CommunityPage() {
                 <div className="space-y-6">
                     <div className="flex items-center justify-between">
                         <h2 className="text-xl font-semibold">Recent Activity</h2>
-                        <Button variant="outline" size="sm" onClick={() => refetchFeed()}>
+                        <Button variant="packOutline" size="sm" onClick={() => refetchFeed()}>
+                            <RefreshCw className="h-4 w-4 mr-2" />
                             Refresh
                         </Button>
                     </div>
@@ -400,7 +401,7 @@ export default function CommunityPage() {
                                     <div className="flex items-start justify-between mb-4">
                                         <div className="flex items-center gap-3">
                                             <Avatar className="w-10 h-10">
-                                                <AvatarFallback className="bg-orange-500 text-white">
+                                                <AvatarFallback className="bg-accent text-accent-foreground">
                                                     {post.author?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
                                                 </AvatarFallback>
                                             </Avatar>
@@ -479,11 +480,11 @@ export default function CommunityPage() {
                                                                             : "Click to vote for this option"
                                                                 }
                                                                 className={`group w-full p-3 text-left rounded-lg border transition-all duration-200 ${hasVoted
-                                                                    ? 'bg-orange-100 border-orange-300 ring-2 ring-orange-200'
+                                                                    ? 'bg-accent/20 border-accent/30 ring-2 ring-accent/20'
                                                                     : isAnyOptionLoading && !isThisOptionLoading
                                                                         ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
                                                                         : isThisOptionLoading
-                                                                            ? 'bg-orange-50 border-orange-200 animate-pulse'
+                                                                            ? 'bg-accent/10 border-accent/20 animate-pulse'
                                                                             : userHasVotedOnPoll
                                                                                 ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
                                                                                 : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
@@ -493,12 +494,12 @@ export default function CommunityPage() {
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="font-medium">{option.optionText}</span>
                                                                         {hasVoted && (
-                                                                            <span className="text-xs bg-orange-500 text-white px-2 py-1 rounded-full">
+                                                                            <span className="text-xs bg-accent text-accent-foreground px-2 py-1 rounded-full">
                                                                                 Your Vote
                                                                             </span>
                                                                         )}
                                                                         {isThisOptionLoading && (
-                                                                            <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
+                                                                            <Loader2 className="h-4 w-4 animate-spin text-accent" />
                                                                         )}
                                                                     </div>
                                                                     <div className="flex items-center gap-2">
@@ -514,7 +515,7 @@ export default function CommunityPage() {
                                                                 </div>
                                                                 <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                                                                     <div
-                                                                        className={`h-2 rounded-full transition-all duration-300 ${isThisOptionLoading ? 'bg-gradient-to-r from-orange-400 to-orange-600' : 'bg-orange-500'
+                                                                        className={`h-2 rounded-full transition-all duration-300 ${isThisOptionLoading ? 'bg-gradient-to-r from-accent/80 to-accent' : 'bg-accent'
                                                                             }`}
                                                                         style={{ width: `${percentage}%` }}
                                                                     />
@@ -533,7 +534,7 @@ export default function CommunityPage() {
                                             variant="ghost"
                                             size="sm"
                                             onClick={() => handleLike(post.id, post.type as "event" | "poll")}
-                                            className={post.userHasLiked ? "text-orange-600" : ""}
+                                            className={post.userHasLiked ? "text-accent" : ""}
                                         >
                                             <ThumbsUp className="h-4 w-4 mr-1" />
                                             {post.likes || 0}
@@ -585,9 +586,7 @@ export default function CommunityPage() {
                                             {postComments.map((comment) => (
                                                 <div key={comment.id} className="flex gap-3">
                                                     <Avatar className="w-8 h-8">
-                                                        <AvatarFallback className="bg-gray-500 text-white text-xs">
-                                                            {comment.user?.name?.split(' ').map((n: string) => n[0]).join('') || 'U'}
-                                                        </AvatarFallback>
+                                                        <AvatarFallback className="bg-accent text-accent-foreground text-xs">YU</AvatarFallback>
                                                     </Avatar>
                                                     <div className="flex-1">
                                                         <div className="bg-gray-100 rounded-lg p-3">
@@ -606,7 +605,7 @@ export default function CommunityPage() {
                                             {/* Add Comment */}
                                             <div className="flex gap-3">
                                                 <Avatar className="w-8 h-8">
-                                                    <AvatarFallback className="bg-orange-500 text-white text-xs">YU</AvatarFallback>
+                                                    <AvatarFallback className="bg-accent text-accent-foreground text-xs">YU</AvatarFallback>
                                                 </Avatar>
                                                 <div className="flex-1 space-y-2">
                                                     <Textarea
@@ -618,9 +617,9 @@ export default function CommunityPage() {
                                                     <div className="flex justify-end">
                                                         <Button
                                                             size="sm"
+                                                            variant="packPrimary"
                                                             onClick={() => handleComment(post.id, post.type as "event" | "poll")}
                                                             disabled={!newComment.trim()}
-                                                            className="bg-orange-500 hover:bg-orange-600"
                                                         >
                                                             Comment
                                                         </Button>

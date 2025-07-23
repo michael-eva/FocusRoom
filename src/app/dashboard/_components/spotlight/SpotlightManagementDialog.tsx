@@ -157,7 +157,7 @@ export function SpotlightManagementDialog({
                             <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100">
                                 <img src={formData.image || "/placeholder.svg"} alt="Preview" className="w-full h-full object-cover" />
                             </div>
-                            <Button type="button" variant="outline">
+                            <Button type="button" variant="packOutline">
                                 <Upload className="h-4 w-4 mr-2" />
                                 Upload Image
                             </Button>
@@ -288,7 +288,7 @@ export function SpotlightManagementDialog({
                                 </div>
                                 <div className="col-span-1">
                                     {formData.links.length > 1 && (
-                                        <Button type="button" variant="outline" size="icon" onClick={() => removeLink(index)}>
+                                        <Button type="button" variant="packOutline" size="icon" onClick={() => removeLink(index)}>
                                             <X className="h-4 w-4" />
                                         </Button>
                                     )}
@@ -297,27 +297,27 @@ export function SpotlightManagementDialog({
                         ))}
 
                         {formData.links.length < 6 && (
-                            <Button type="button" variant="outline" onClick={addLink} className="w-full bg-transparent">
+                            <Button type="button" variant="packOutline" onClick={addLink} className="w-full bg-transparent">
                                 <Plus className="h-4 w-4 mr-2" />
                                 Add Link
                             </Button>
                         )}
                     </div>
 
-                    <div className="flex items-center gap-2 p-3 bg-orange-50 rounded-lg">
-                        <Music className="h-4 w-4 text-orange-600" />
-                        <p className="text-sm text-orange-800">
+                    <div className="flex items-center gap-2 p-3 bg-accent/10 rounded-lg">
+                        <Music className="h-4 w-4 text-accent" />
+                        <p className="text-sm text-accent/80">
                             Creating a new spotlight will replace the current featured spotlight. The current spotlight will be moved to the previous spotlights section.
                         </p>
                     </div>
 
                     <div className="flex justify-end gap-2 pt-4">
-                        <Button type="button" variant="outline" onClick={onClose}>
+                        <Button type="button" variant="packOutline" onClick={onClose}>
                             Cancel
                         </Button>
                         <Button
                             type="submit"
-                            className="bg-orange-500 hover:bg-orange-600"
+                            variant="packPrimary"
                             disabled={!formData.name || !formData.title || !formData.description}
                         >
                             Create Spotlight

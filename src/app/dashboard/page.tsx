@@ -541,30 +541,30 @@ export default function Dashboard() {
                     {/* Quick Action Buttons - Mobile Header Style */}
                     <div className="flex gap-2 sm:hidden">
                         <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-10 bg-orange-50 border-orange-200 hover:bg-orange-100"
+                            variant="packSecondary"
+                            size="pack"
+                            className="flex-1"
                             onClick={() => setIsCreateEventOpen(true)}
                         >
-                            <Calendar className="h-4 w-4 mr-2 text-orange-600" />
+                            <Calendar className="h-4 w-4 mr-2" />
                             Event
                         </Button>
                         <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-10 bg-blue-50 border-blue-200 hover:bg-blue-100"
+                            variant="packPrimary"
+                            size="pack"
+                            className="flex-1"
                             onClick={() => setIsCreatePollOpen(true)}
                         >
-                            <BarChart3 className="h-4 w-4 mr-2 text-blue-600" />
+                            <BarChart3 className="h-4 w-4 mr-2" />
                             Poll
                         </Button>
                         <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1 h-10 bg-purple-50 border-purple-200 hover:bg-purple-100"
+                            variant="packOutline"
+                            size="pack"
+                            className="flex-1"
                             onClick={() => setIsUATDialogOpen(true)}
                         >
-                            <MessageSquare className="h-4 w-4 mr-2 text-purple-600" />
+                            <MessageSquare className="h-4 w-4 mr-2" />
                             UAT
                         </Button>
                     </div>

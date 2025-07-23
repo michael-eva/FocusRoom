@@ -130,7 +130,7 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
                                         className="flex-1"
                                     />
                                     {formData.options.length > 2 && (
-                                        <Button type="button" variant="outline" size="icon" onClick={() => removeOption(index)} className="flex-shrink-0">
+                                        <Button type="button" variant="packOutline" size="icon" onClick={() => removeOption(index)} className="flex-shrink-0">
                                             <X className="h-4 w-4" />
                                         </Button>
                                     )}
@@ -138,7 +138,7 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
                             ))}
 
                             {formData.options.length < 6 && (
-                                <Button type="button" variant="outline" onClick={addOption} className="w-full bg-transparent">
+                                <Button type="button" variant="packOutline" onClick={addOption} className="w-full bg-transparent">
                                     <Plus className="h-4 w-4 mr-2" />
                                     Add Option
                                 </Button>
@@ -155,14 +155,13 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
                 </div>
 
                 <div className="flex justify-end gap-2 py-4 border-t px-6 bg-white">
-                    <Button type="button" variant="outline" onClick={onClose} className="min-w-[80px]">
+                    <Button type="button" variant="packOutline" onClick={onClose} className="min-w-[80px]">
                         Cancel
                     </Button>
                     <Button
                         type="submit"
-                        className="bg-orange-500 hover:bg-orange-600 min-w-[120px]"
                         disabled={!formData.title || validOptions.length < 2}
-                        onClick={handleSubmit}
+                        className="bg-accent hover:bg-accent/90 min-w-[120px]"
                     >
                         Create Poll
                     </Button>

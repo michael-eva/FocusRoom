@@ -218,10 +218,9 @@ export default function CalendarPage() {
 
     return (
         <>
-            {/* <header className="flex items-center justify-between p-3 sm:p-4 border-b bg-white">
-                <div className="flex items-center gap-2 sm:gap-4">
-                    <SidebarTrigger />
-                    <h1 className="text-lg sm:text-xl font-semibold text-gray-800">Calendar & Events</h1>
+            {/* <header className="flex items-center justify-between p-4 border-b bg-white">
+                <div className="flex items-center gap-4">
+                    <h1 className="text-xl font-semibold text-gray-800">Calendar</h1>
                     {localEventsFetching && (
                         <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
                             <div className="animate-spin h-3 w-3 border-2 border-blue-500 border-t-transparent rounded-full"></div>
@@ -252,7 +251,8 @@ export default function CalendarPage() {
                     title="Calendar"
                     rightContent={<div className="flex items-center gap-2 sm:gap-3">
                         <Button
-                            className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base px-2 sm:px-4"
+                            variant="packPrimary"
+                            className="text-sm sm:text-base px-2 sm:px-4"
                             onClick={() => setIsCreateEventOpen(true)}
                         >
                             <Plus className="h-4 w-4 mr-1 sm:mr-2" />
@@ -263,7 +263,7 @@ export default function CalendarPage() {
                     mobilePopoverContent={
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm">
+                                <Button variant="packOutline" size="sm">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>
@@ -290,7 +290,7 @@ export default function CalendarPage() {
                                     {/* Mobile view toggle */}
                                     <div className="flex sm:hidden gap-1">
                                         <Button
-                                            variant={viewMode === "calendar" ? "default" : "outline"}
+                                            variant={viewMode === "calendar" ? "packPrimary" : "packOutline"}
                                             size="sm"
                                             onClick={() => setViewMode("calendar")}
                                             className="px-2"
@@ -298,7 +298,7 @@ export default function CalendarPage() {
                                             <Calendar className="h-4 w-4" />
                                         </Button>
                                         <Button
-                                            variant={viewMode === "list" ? "default" : "outline"}
+                                            variant={viewMode === "list" ? "packPrimary" : "packOutline"}
                                             size="sm"
                                             onClick={() => setViewMode("list")}
                                             className="px-2"
@@ -308,17 +308,17 @@ export default function CalendarPage() {
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-1 sm:gap-2">
-                                    <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} className="h-8 w-8 sm:h-10 sm:w-10">
+                                    <Button variant="packOutline" size="icon" onClick={() => navigateMonth("prev")} className="h-8 w-8 sm:h-10 sm:w-10">
                                         <ChevronLeft className="h-4 w-4" />
                                     </Button>
-                                    <Button variant="outline" onClick={() => setCurrentDate(new Date())} className="text-sm px-2 sm:px-4">
+                                    <Button variant="packOutline" onClick={() => setCurrentDate(new Date())} className="text-sm px-2 sm:px-4">
                                         Today
                                     </Button>
-                                    <Button variant="outline" size="icon" onClick={() => navigateMonth("next")} className="h-8 w-8 sm:h-10 sm:w-10">
+                                    <Button variant="packOutline" size="icon" onClick={() => navigateMonth("next")} className="h-8 w-8 sm:h-10 sm:w-10">
                                         <ChevronRight className="h-4 w-4" />
                                     </Button>
                                     <Button
-                                        variant="outline"
+                                        variant="packOutline"
                                         size="icon"
                                         onClick={async () => {
                                             await utils.events.getByMonth.invalidate({ year, month });
@@ -361,7 +361,7 @@ export default function CalendarPage() {
                                                 <>
                                                     <div
                                                         className={`text-xs sm:text-sm font-medium mb-1 ${isToday(day)
-                                                            ? "bg-orange-500 text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center"
+                                                            ? "bg-accent text-accent-foreground w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center"
                                                             : "text-gray-700"
                                                             }`}
                                                     >
@@ -429,7 +429,8 @@ export default function CalendarPage() {
                                             <Calendar className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                                             <p>No events scheduled for this month</p>
                                             <Button
-                                                className="mt-4 bg-orange-500 hover:bg-orange-600 text-white"
+                                                variant="packPrimary"
+                                                className="mt-4"
                                                 onClick={() => setIsCreateEventOpen(true)}
                                             >
                                                 <Plus className="h-4 w-4 mr-2" />

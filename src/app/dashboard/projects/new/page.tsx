@@ -353,7 +353,7 @@ export default function NewProjectPage() {
         <CommonNavbar
           title="Create New Project"
           rightContent={
-            <Button onClick={handleSaveDraft}>
+            <Button variant="packSecondary" onClick={handleSaveDraft}>
               <Save className="h-4 w-4 mr-2" />
               Save Draft
             </Button>
@@ -361,7 +361,7 @@ export default function NewProjectPage() {
           mobilePopoverContent={
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="packOutline" size="sm">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
@@ -554,7 +554,7 @@ export default function NewProjectPage() {
                       <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900">Project Tasks</CardTitle>
                       <p className="text-xs sm:text-sm text-gray-600">Define the tasks needed to complete this project</p>
                     </div>
-                    <Button type="button" onClick={addTask} variant="outline" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm w-full sm:w-auto">
+                    <Button type="button" onClick={addTask} variant="packOutline" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm w-full sm:w-auto">
                       <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       Add Task
                     </Button>
@@ -564,7 +564,7 @@ export default function NewProjectPage() {
                       <div className="text-center py-8 sm:py-12">
                         <FileText className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
                         <p className="text-sm sm:text-base text-gray-500 mb-3 sm:mb-4">No tasks added yet. Create your first task to get started!</p>
-                        <Button onClick={addTask} className="gap-1 sm:gap-2 text-sm sm:text-base">
+                        <Button onClick={addTask} variant="packPrimary" className="gap-1 sm:gap-2 text-sm sm:text-base">
                           <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                           Add First Task
                         </Button>
@@ -697,7 +697,7 @@ export default function NewProjectPage() {
                       <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900">Project Resources</CardTitle>
                       <p className="text-xs sm:text-sm text-gray-600">Add documents, links, and other resources for this project</p>
                     </div>
-                    <Button type="button" onClick={addResource} variant="outline" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm w-full sm:w-auto">
+                    <Button type="button" onClick={addResource} variant="packOutline" size="sm" className="gap-1 sm:gap-2 text-xs sm:text-sm w-full sm:w-auto">
                       <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                       Add Resource
                     </Button>
@@ -707,7 +707,7 @@ export default function NewProjectPage() {
                       <div className="text-center py-8 sm:py-12">
                         <LinkIcon className="h-8 w-8 sm:h-12 sm:w-12 text-gray-300 mx-auto mb-3 sm:mb-4" />
                         <p className="text-sm sm:text-base text-gray-500 mb-3 sm:mb-4">No resources added yet. Add documents, links, or files to get started!</p>
-                        <Button onClick={addResource} className="gap-1 sm:gap-2 text-sm sm:text-base">
+                        <Button onClick={addResource} variant="packPrimary" className="gap-1 sm:gap-2 text-sm sm:text-base">
                           <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                           Add First Resource
                         </Button>
@@ -788,11 +788,11 @@ export default function NewProjectPage() {
             {/* Submit Buttons */}
             <div className="flex flex-col sm:flex-row sm:justify-end gap-3 sm:gap-4 pt-4 sm:pt-6 border-t bg-white p-4 sm:p-6 rounded-lg shadow-sm">
               <Link href="/dashboard/projects" className="w-full sm:w-auto">
-                <Button type="button" variant="outline" className="h-10 sm:h-11 px-4 sm:px-6 w-full sm:w-auto text-sm sm:text-base">
+                <Button type="button" variant="packOutline" className="h-10 sm:h-11 px-4 sm:px-6 w-full sm:w-auto text-sm sm:text-base">
                   Cancel
                 </Button>
               </Link>
-              <Button type="submit" disabled={isSubmitting || !formData.name} className="h-10 sm:h-11 px-6 sm:px-8 w-full sm:w-auto text-sm sm:text-base">
+              <Button type="submit" variant="packPrimary" disabled={isSubmitting || !formData.name} className="h-10 sm:h-11 px-6 sm:px-8 w-full sm:w-auto text-sm sm:text-base">
                 {isSubmitting ? (draftProjectId ? "Finalizing Project..." : "Creating Project...") : (draftProjectId ? "Finalize Project" : "Create Project")}
               </Button>
             </div>

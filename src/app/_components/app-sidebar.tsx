@@ -42,15 +42,15 @@ export function AppSidebar() {
     const pathname = usePathname()
 
     return (
-        <Sidebar className="border-r">
+        <Sidebar className="border-r border-border bg-sidebar">
             <SidebarHeader className="p-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-gray-800 rounded-full flex-shrink-0">
-                        <Music className="h-6 w-6 text-white" />
+                    <div className="flex items-center justify-center w-10 h-10 bg-foreground rounded-full flex-shrink-0">
+                        <span className="text-background font-bold text-sm">P</span>
                     </div>
                     <div className="min-w-0">
-                        <h2 className="font-semibold text-gray-800 truncate">Pack</h2>
-                        <p className="text-sm text-gray-600 truncate">Australia</p>
+                        <h2 className="font-semibold text-sidebar-foreground truncate">pack music/</h2>
+                        <p className="text-sm text-muted-foreground truncate">Focus Room</p>
                     </div>
                 </div>
             </SidebarHeader>

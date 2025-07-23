@@ -141,12 +141,12 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                     <CardHeader className="pb-4">
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                             <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                                <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
                                 <CardTitle className="text-lg">Featured Spotlight</CardTitle>
                                 <Badge variant="secondary">Spotlight</Badge>
                             </div>
                             {isAdmin && (
-                                <Button variant="outline" size="sm" onClick={() => setIsManagementOpen(true)}>
+                                <Button variant="packOutline" size="sm" onClick={() => setIsManagementOpen(true)}>
                                     Create Spotlight
                                 </Button>
                             )}
@@ -165,7 +165,8 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                 {isAdmin && (
                                     <Button
                                         onClick={() => setIsManagementOpen(true)}
-                                        className="bg-orange-500 hover:bg-orange-600 text-sm sm:text-base"
+                                        variant="packPrimary"
+                                        className="text-sm sm:text-base"
                                     >
                                         Create New Spotlight
                                     </Button>
@@ -195,7 +196,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                                             />
                                         </div>
-                                        <h4 className="font-semibold text-gray-800 group-hover:text-orange-600 transition-colors">
+                                        <h4 className="font-semibold text-gray-800 group-hover:text-accent transition-colors">
                                             {item.name}
                                         </h4>
                                         <p className="text-sm text-gray-600">{item.title}</p>
@@ -231,13 +232,13 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                 <CardHeader className="pb-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0">
                         <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                            <div className="w-2 h-2 bg-accent rounded-full animate-pulse"></div>
                             <CardTitle className="text-lg">Featured {spotlight.type === "musician" ? "Musician" : "Venue"}</CardTitle>
                             <Badge variant="secondary">Spotlight</Badge>
                         </div>
                         {isAdmin && (
-                            <Button variant="outline" size="sm" onClick={() => setIsManagementOpen(true)}>
-                                Create New Spotlight
+                            <Button variant="packOutline" size="sm" onClick={() => setIsManagementOpen(true)}>
+                                Edit Spotlight
                             </Button>
                         )}
                     </div>
@@ -257,7 +258,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
 
                             <div className="text-center space-y-2">
                                 <h3 className="text-xl font-bold text-gray-800">{spotlight.name}</h3>
-                                <p className="text-orange-600 font-medium">{spotlight.title}</p>
+                                <p className="text-accent font-medium">{spotlight.title}</p>
 
                                 <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 text-sm text-gray-600">
                                     {spotlight.location && (
@@ -284,15 +285,15 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                             {Boolean(spotlight.stats && typeof spotlight.stats === 'object' && spotlight.stats !== null && 'monthlyListeners' in (spotlight.stats as any)) && (
                                 <div className="grid grid-cols-3 gap-2 sm:gap-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
                                     <div className="text-center">
-                                        <p className="text-lg sm:text-2xl font-bold text-orange-600">{(spotlight.stats as any).monthlyListeners}</p>
+                                        <p className="text-lg sm:text-2xl font-bold text-accent">{(spotlight.stats as any).monthlyListeners}</p>
                                         <p className="text-xs sm:text-sm text-gray-600">Monthly Listeners</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-lg sm:text-2xl font-bold text-orange-600">{(spotlight.stats as any).followers}</p>
+                                        <p className="text-lg sm:text-2xl font-bold text-accent">{(spotlight.stats as any).followers}</p>
                                         <p className="text-xs sm:text-sm text-gray-600">Followers</p>
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-lg sm:text-2xl font-bold text-orange-600">{(spotlight.stats as any).upcomingShows}</p>
+                                        <p className="text-lg sm:text-2xl font-bold text-accent">{(spotlight.stats as any).upcomingShows}</p>
                                         <p className="text-xs sm:text-sm text-gray-600">Upcoming Shows</p>
                                     </div>
                                 </div>
@@ -352,7 +353,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                 <div className="space-y-2">
                                     <textarea
                                         placeholder="Share your thoughts..."
-                                        className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-sm sm:text-base"
+                                        className="w-full p-3 border border-border rounded-lg resize-none focus:ring-2 focus:ring-primary focus:border-transparent text-sm sm:text-base"
                                         rows={3}
                                         value={commentContent}
                                         onChange={(e) => setCommentContent(e.target.value)}
@@ -372,7 +373,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                                 }
                                             }}
                                             disabled={!commentContent.trim()}
-                                            className="bg-orange-500 hover:bg-orange-600 text-sm sm:text-base"
+                                            className="bg-accent hover:bg-accent/90 text-sm sm:text-base"
                                         >
                                             Post Comment
                                         </Button>
@@ -384,7 +385,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                     {comments?.map((comment) => (
                                         <div key={comment.id} className="p-3 bg-gray-50 rounded-lg">
                                             <div className="flex items-start gap-3">
-                                                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-sm font-medium flex-shrink-0">
+                                                <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center text-accent-foreground text-sm font-medium flex-shrink-0">
                                                     {comment.user?.name?.charAt(0) || 'U'}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
@@ -435,7 +436,7 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                                         />
                                     </div>
-                                    <h4 className="font-semibold text-gray-800 group-hover:text-orange-600 transition-colors text-sm sm:text-base">
+                                    <h4 className="font-semibold text-gray-800 group-hover:text-accent transition-colors text-sm sm:text-base">
                                         {item.name}
                                     </h4>
                                     <p className="text-xs sm:text-sm text-gray-600">{item.title}</p>

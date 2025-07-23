@@ -515,7 +515,8 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                 <h3 className="text-base sm:text-lg font-semibold text-gray-900">Project Tasks</h3>
                                 <Button
                                     onClick={() => setIsAddTaskDialogOpen(true)}
-                                    className="bg-orange-500 hover:bg-orange-600 text-white gap-2 self-start sm:self-auto"
+                                    variant="packPrimary"
+                                    className="gap-2 self-start sm:self-auto"
                                     size="sm"
                                 >
                                     <Plus className="h-4 w-4" />
@@ -529,7 +530,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                         <FileText className="h-12 w-12 sm:h-16 sm:w-16 text-gray-300 mx-auto mb-4" />
                                         <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">No tasks yet</h3>
                                         <p className="text-sm text-gray-500 mb-4 sm:mb-6">Create your first task to get started with this project!</p>
-                                        <Button onClick={() => setIsAddTaskDialogOpen(true)} className="gap-2" size="sm">
+                                        <Button onClick={() => setIsAddTaskDialogOpen(true)} variant="packPrimary" className="gap-2" size="sm">
                                             <Plus className="h-4 w-4" />
                                             Add First Task
                                         </Button>
@@ -935,11 +936,12 @@ function AddTaskDialog({
                 </div>
 
                 <div className="flex justify-end gap-2 py-4 border-t px-6">
-                    <Button type="button" variant="outline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
+                    <Button type="button" variant="packOutline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
                         Cancel
                     </Button>
                     <Button
                         type="submit"
+                        variant="packPrimary"
                         disabled={!formData.title}
                         onClick={handleSubmit}
                         className="h-10 sm:h-11 text-sm sm:text-base"
@@ -1059,11 +1061,12 @@ function AddResourceDialog({
                 </div>
 
                 <div className="flex justify-end gap-2 py-4 border-t px-6">
-                    <Button type="button" variant="outline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
+                    <Button type="button" variant="packOutline" onClick={onClose} className="h-10 sm:h-11 text-sm sm:text-base">
                         Cancel
                     </Button>
                     <Button
                         type="submit"
+                        variant="packPrimary"
                         disabled={!formData.title}
                         onClick={handleSubmit}
                         className="h-10 sm:h-11 text-sm sm:text-base"

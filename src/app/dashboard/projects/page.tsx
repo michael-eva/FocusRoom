@@ -77,7 +77,7 @@ export default function ProjectsPage() {
                     title="Projects"
                     rightContent={
                         <Link href="/dashboard/projects/new">
-                            <Button className="bg-orange-500 hover:bg-orange-600 text-white text-sm sm:text-base px-3 sm:px-4 py-2">
+                            <Button variant="packPrimary" size="pack">
                                 <Plus className="h-4 w-4 sm:mr-2" />
                                 <span className="hidden sm:inline">New Project</span>
                             </Button>
@@ -86,7 +86,7 @@ export default function ProjectsPage() {
                     mobilePopoverContent={
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="outline" size="sm">
+                                <Button variant="packOutline" size="sm">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>

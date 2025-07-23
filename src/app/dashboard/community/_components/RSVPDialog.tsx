@@ -119,13 +119,13 @@ export function RSVPDialog({ isOpen, onClose, onRSVP, eventTitle, currentStatus 
           </div>
         </div>
         <div className={`${isMobile ? "px-4 pt-4 pb-4" : "px-6 pt-4 pb-6"} flex flex-col sm:flex-row gap-3 border-t bg-gray-50 ${isMobile ? "mt-auto" : "mt-6"}`}>
-          <Button variant="outline" onClick={handleCancel} className="flex-1 py-2 text-base">
+          <Button variant="packOutline" onClick={handleCancel} className="flex-1 py-2 text-base">
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!selectedStatus}
-            className="flex-1 py-2 text-base font-semibold shadow-md bg-orange-500 hover:bg-orange-600 text-white disabled:bg-gray-300 disabled:text-gray-500"
+            className="flex-1 py-2 text-base font-semibold shadow-md bg-accent hover:bg-accent/90 text-accent-foreground disabled:bg-muted disabled:text-muted-foreground"
           >
             Confirm RSVP
           </Button>

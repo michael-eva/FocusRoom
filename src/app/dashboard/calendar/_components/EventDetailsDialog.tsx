@@ -211,7 +211,7 @@ export function EventDetailsDialog({
                   <Badge variant={event.allDay ? "secondary" : "default"}>
                     {event.allDay ? "All Day" : "Scheduled"}
                   </Badge>
-                  <Badge variant="outline" className="text-green-600 border-green-600">
+                  <Badge variant="outline" className="text-accent border-accent">
                     Local Event
                   </Badge>
                 </div>
@@ -310,7 +310,7 @@ export function EventDetailsDialog({
             <Button
               onClick={handleRSVP}
               className="flex-1"
-              variant="outline"
+              variant="packOutline"
             >
               <Calendar className="h-4 w-4 mr-2" />
               RSVP
@@ -319,7 +319,7 @@ export function EventDetailsDialog({
               <Button
                 onClick={handleEdit}
                 className="flex-1"
-                variant="outline"
+                variant="packOutline"
               >
                 <Edit className="h-4 w-4 mr-2" />
                 Edit Event
@@ -339,6 +339,7 @@ export function EventDetailsDialog({
               <Button
                 onClick={onClose}
                 className="flex-1"
+                variant="packPrimary"
               >
                 Close
               </Button>

@@ -125,11 +125,11 @@ export default function ChatAndAI({
           {hasMore && isAtTop && (
             <div className="flex justify-center mb-4">
               <Button
-                variant="outline"
+                variant="packOutline"
                 size="sm"
                 onClick={handleLoadMore}
                 disabled={isLoadingMore}
-                className="bg-white/80 hover:bg-white border-blue-200 text-gray-600 hover:text-gray-700"
+                className="bg-white/80 hover:bg-white border-border text-foreground hover:text-foreground"
               >
                 {isLoadingMore ? (
                   <>
@@ -213,8 +213,8 @@ export default function ChatAndAI({
                           {msg.activityData?.action === 'event_created' && onRSVP && (
                             <Button
                               size="sm"
-                              variant="outline"
-                              className="ml-2 h-6 px-2 text-xs bg-white hover:bg-gray-50 border-gray-200"
+                              variant="packOutline"
+                              className="ml-2 h-6 px-2 text-xs bg-white hover:bg-gray-50 border-border"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 const eventTitle = msg.activityData?.details?.replace('Created event: ', '') || 'Event';
