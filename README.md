@@ -32,4 +32,4 @@ Where I left off and whats next:
 
 - Loading UI for likes, comments
 - empty projects and tasks site
-- Theme consistent from thepack
+- Popup with some info about the website which should go into the "Resources" tab

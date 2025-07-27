@@ -50,22 +50,47 @@ export const feedRouter = createTRPCRouter({
         .offset(input.offset);
 
       // Get polls with options and vote data
-      const pollsData = await db
-        .select({
-          id: polls.id,
-          type: sql`'poll'`.as("type"),
-          question: polls.question,
-          createdAt: polls.createdAt,
-          createdByClerkUserId: polls.createdByClerkUserId,
-          options: pollOptions,
-          userVote: pollVotes,
-        })
-        .from(polls)
-        .leftJoin(pollOptions, eq(polls.id, pollOptions.pollId))
-        .leftJoin(pollVotes, eq(polls.id, pollVotes.pollId))
-        .orderBy(desc(polls.createdAt))
-        .limit(input.limit)
-        .offset(input.offset);
+      let pollsData;
+      if (input.userId) {
+        pollsData = await db
+          .select({
+            id: polls.id,
+            type: sql`'poll'`.as("type"),
+            question: polls.question,
+            createdAt: polls.createdAt,
+            createdByClerkUserId: polls.createdByClerkUserId,
+            options: pollOptions,
+            userVote: pollVotes,
+          })
+          .from(polls)
+          .leftJoin(pollOptions, eq(polls.id, pollOptions.pollId))
+          .leftJoin(
+            pollVotes,
+            and(
+              eq(polls.id, pollVotes.pollId),
+              eq(pollVotes.clerkUserId, input.userId),
+            ),
+          )
+          .orderBy(desc(polls.createdAt))
+          .limit(input.limit)
+          .offset(input.offset);
+      } else {
+        pollsData = await db
+          .select({
+            id: polls.id,
+            type: sql`'poll'`.as("type"),
+            question: polls.question,
+            createdAt: polls.createdAt,
+            createdByClerkUserId: polls.createdByClerkUserId,
+            options: pollOptions,
+            userVote: sql`null`.as("userVote"),
+          })
+          .from(polls)
+          .leftJoin(pollOptions, eq(polls.id, pollOptions.pollId))
+          .orderBy(desc(polls.createdAt))
+          .limit(input.limit)
+          .offset(input.offset);
+      }
 
       // Group poll options by poll and collect vote data
       const pollsWithOptions = pollsData.reduce((acc, row) => {
@@ -74,7 +99,9 @@ export const feedRouter = createTRPCRouter({
           if (row.options) {
             existingPoll.options.push(row.options);
           }
+          // Only set userVote if we don't already have one and this row has a valid vote
           if (
+            !existingPoll.userVote &&
             row.userVote &&
             input.userId &&
             row.userVote.clerkUserId === input.userId
