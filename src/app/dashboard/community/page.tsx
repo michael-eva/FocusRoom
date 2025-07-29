@@ -503,8 +503,7 @@ export default function CommunityPage() {
                                                                                 ? "Click to change your vote to this option"
                                                                                 : "Click to vote for this option"
                                                                 }
-                                                                className={`group w-full p-3 text-left rounded-lg border transition-all duration-200 ${
-                                                                    isPollExpired
+                                                                className={`group w-full p-3 text-left rounded-lg border transition-all duration-200 ${isPollExpired
                                                                         ? 'bg-gray-100 border-gray-300 opacity-60 cursor-not-allowed'
                                                                         : hasVoted
                                                                             ? 'bg-accent/20 border-accent/30 ring-2 ring-accent/20'
@@ -515,7 +514,7 @@ export default function CommunityPage() {
                                                                                     : userHasVotedOnPoll
                                                                                         ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
                                                                                         : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-2">
@@ -694,7 +693,7 @@ export default function CommunityPage() {
                 eventTitle={selectedEventTitle}
                 currentStatus={
                     selectedEventId
-                        ? (feedPosts.find(post => post.id === selectedEventId && post.type === "event") as any)?.userRSVPStatus || null
+                        ? (feedPosts.find(post => post.id === selectedEventId && post.type === "event"))?.userRSVPStatus || null
                         : null
                 }
             />
