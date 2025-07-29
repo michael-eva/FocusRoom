@@ -4,10 +4,11 @@ import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "~/components/ui/card"
 import { Button } from "~/components/ui/button"
 import { Badge } from "~/components/ui/badge"
-import { Heart, MessageSquare, ExternalLink, Music, MapPin, Calendar, Users, Play } from "lucide-react"
+import { Heart, MessageSquare, ExternalLink, Music, MapPin, Calendar, Users, Play, Loader2 } from "lucide-react"
 import { SpotlightManagementDialog, type SpotlightFormData } from "./SpotlightManagementDialog"
 import { SpotlightViewDialog } from "./SpotlightViewDialog"
 import { api } from "~/trpc/react"
+import { useUser } from "@clerk/nextjs"
 
 interface SpotlightSectionProps {
     isAdmin?: boolean
@@ -18,16 +19,31 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
     const [isViewOpen, setIsViewOpen] = useState(false)
     const [selectedSpotlightId, setSelectedSpotlightId] = useState<number | null>(null)
     const [commentContent, setCommentContent] = useState("")
+    const [isLiking, setIsLiking] = useState(false)
+    const [isCommenting, setIsCommenting] = useState(false)
 
-    const { data: spotlight, refetch: refetchCurrent } = api.spotlight.getCurrent.useQuery()
-    const { data: previousSpotlights, refetch: refetchPrevious } = api.spotlight.getPrevious.useQuery()
+    const { data: spotlight, refetch: refetchCurrent } = api.spotlight.getCurrent.useQuery(undefined, {
+        retry: 3,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        staleTime: 30000, // 30 seconds
+    })
+    const { data: previousSpotlights, refetch: refetchPrevious } = api.spotlight.getPrevious.useQuery(undefined, {
+        retry: 3,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+        staleTime: 60000, // 1 minute
+    })
+    const { user } = useUser();
+    const currentUserId = user?.id || "";
+
+    // Get tRPC utils for invalidation
+    const utils = api.useUtils()
 
     // Mutations
     const createSpotlight = api.spotlight.create.useMutation({
         onSuccess: () => {
             // When creating a new spotlight, we need to refetch everything
             // because the current spotlight will be moved to previous
-            void refetchCurrent()
+
             void refetchPrevious()
         },
     })
@@ -35,9 +51,13 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
 
 
     const toggleLike = api.likes.toggleLike.useMutation({
-        onSuccess: () => {
-            // Refetch current spotlight to get updated like count
-            void refetchCurrent()
+        onSuccess: async () => {
+            // Invalidate queries to refetch updated data
+            await utils.spotlight.getCurrent.invalidate()
+            await utils.likes.checkUserLiked.invalidate({
+                clerkUserId: currentUserId,
+                spotlightId: spotlight?.id || 0,
+            })
         },
     })
 
@@ -55,18 +75,22 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
     )
 
     const createComment = api.comments.createComment.useMutation({
-        onSuccess: () => {
-            // Refetch comments for the current spotlight
-            void refetchCurrent()
+        onSuccess: async () => {
+            // Invalidate queries to refetch updated data
+            await utils.spotlight.getCurrent.invalidate()
+            await utils.comments.getComments.invalidate({
+                targetId: spotlight?.id || 0,
+                targetType: "spotlight",
+                limit: 10,
+            })
         },
     })
 
     // Check if current user has liked - only fetch when we have a spotlight
     const { data: userHasLiked = false } = api.likes.checkUserLiked.useQuery(
         {
-            userId: 1, // TODO: Get actual user ID from auth context
-            targetId: spotlight?.id || 0,
-            targetType: "spotlight",
+            clerkUserId: currentUserId,
+            spotlightId: spotlight?.id || 0,
         },
         {
             enabled: !!spotlight?.id,
@@ -74,22 +98,27 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
         }
     )
 
-    const handleLike = () => {
+    const handleLike = async () => {
         if (spotlight) {
-            // TODO: Get actual user ID from auth context
-            const userId = 1 // Placeholder
-            toggleLike.mutate({
-                userId,
-                targetId: spotlight.id,
-                targetType: "spotlight",
-            })
+            setIsLiking(true)
+            try {
+                // Use the new API directly with spotlightId
+                await toggleLike.mutateAsync({
+                    clerkUserId: currentUserId,
+                    spotlightId: spotlight.id,
+                })
+            } catch (error) {
+                console.error("Failed to toggle like:", error);
+            } finally {
+                setIsLiking(false)
+            }
         }
     }
 
     const handleUpdateSpotlight = (newSpotlight: SpotlightFormData) => {
         createSpotlight.mutate({
             ...newSpotlight,
-            createdByClerkUserId: "user_307X7xFUKdlDFM4ZP6EP19J6qsC",
+            createdByClerkUserId: currentUserId,
         })
         setIsManagementOpen(false)
     }
@@ -329,8 +358,13 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                         size="sm"
                                         onClick={handleLike}
                                         className={userHasLiked ? "text-red-600" : ""}
+                                        disabled={isLiking}
                                     >
-                                        <Heart className={`h-4 w-4 mr-1 ${userHasLiked ? "fill-current" : ""}`} />
+                                        {isLiking ? (
+                                            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                        ) : (
+                                            <Heart className={`h-4 w-4 mr-1 ${userHasLiked ? "fill-current" : ""}`} />
+                                        )}
                                         {spotlight.likes}
                                     </Button>
 
@@ -361,21 +395,34 @@ export function SpotlightSection({ isAdmin = false }: SpotlightSectionProps) {
                                     <div className="flex justify-end">
                                         <Button
                                             size="sm"
-                                            onClick={() => {
-                                                if (commentContent.trim() && spotlight) {
-                                                    createComment.mutate({
-                                                        userId: 1, // TODO: Get actual user ID from auth context
-                                                        targetId: spotlight.id,
-                                                        targetType: "spotlight",
-                                                        content: commentContent.trim(),
-                                                    })
-                                                    setCommentContent('')
+                                            onClick={async () => {
+                                                if (commentContent.trim() && spotlight && currentUserId) {
+                                                    setIsCommenting(true)
+                                                    try {
+                                                        await createComment.mutateAsync({
+                                                            clerkUserId: currentUserId,
+                                                            spotlightId: spotlight.id,
+                                                            content: commentContent.trim(),
+                                                        })
+                                                        setCommentContent('')
+                                                    } catch (error) {
+                                                        console.error("Failed to create comment:", error);
+                                                    } finally {
+                                                        setIsCommenting(false)
+                                                    }
                                                 }
                                             }}
-                                            disabled={!commentContent.trim()}
+                                            disabled={!commentContent.trim() || isCommenting}
                                             className="bg-accent hover:bg-accent/90 text-sm sm:text-base"
                                         >
-                                            Post Comment
+                                            {isCommenting ? (
+                                                <>
+                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                    Posting...
+                                                </>
+                                            ) : (
+                                                "Post Comment"
+                                            )}
                                         </Button>
                                     </div>
                                 </div>

@@ -22,10 +22,17 @@ export const spotlightRouter = createTRPCRouter({
     const links = spotlight.links;
     const stats = spotlight.stats;
 
-    // Note: Current schema doesn't support likes/comments on spotlights directly
-    // These would need to be implemented differently or the schema would need to be updated
-    const likesResult = { count: 0 };
-    const commentsResult = { count: 0 };
+    // Get likes count for this spotlight
+    const likesResult = await db
+      .select({ count: count() })
+      .from(likes)
+      .where(eq(likes.spotlightId, spotlight.id));
+
+    // Get comments count for this spotlight
+    const commentsResult = await db
+      .select({ count: count() })
+      .from(comments)
+      .where(eq(comments.spotlightId, spotlight.id));
 
     return {
       id: spotlight.id,
@@ -47,22 +54,27 @@ export const spotlightRouter = createTRPCRouter({
   }),
 
   getPrevious: publicProcedure.query(async () => {
-    const previousSpotlights = await db
-      .select()
-      .from(spotlights)
-      .where(eq(spotlights.isCurrent, false))
-      .orderBy(desc(spotlights.updatedAt))
-      .limit(10);
+    try {
+      const previousSpotlights = await db
+        .select()
+        .from(spotlights)
+        .where(eq(spotlights.isCurrent, false))
+        .orderBy(desc(spotlights.updatedAt))
+        .limit(10);
 
-    return previousSpotlights.map((spotlight) => ({
-      id: spotlight.id,
-      type: spotlight.type,
-      name: spotlight.name,
-      title: spotlight.title,
-      image: spotlight.image,
-      description: spotlight.description,
-      featuredDate: spotlight.updatedAt || spotlight.featuredSince,
-    }));
+      return previousSpotlights.map((spotlight) => ({
+        id: spotlight.id,
+        type: spotlight.type,
+        name: spotlight.name,
+        title: spotlight.title,
+        image: spotlight.image,
+        description: spotlight.description,
+        featuredDate: spotlight.updatedAt || spotlight.featuredSince,
+      }));
+    } catch (error) {
+      console.error("Error fetching previous spotlights:", error);
+      throw error;
+    }
   }),
 
   getById: publicProcedure
@@ -84,10 +96,17 @@ export const spotlightRouter = createTRPCRouter({
       const links = spotlightData.links;
       const stats = spotlightData.stats;
 
-      // Note: Current schema doesn't support likes/comments on spotlights directly
-      // These would need to be implemented differently or the schema would need to be updated
-      const likesResult = { count: 0 };
-      const commentsResult = { count: 0 };
+      // Get likes count for this spotlight
+      const likesResult = await db
+        .select({ count: count() })
+        .from(likes)
+        .where(eq(likes.spotlightId, spotlightData.id));
+
+      // Get comments count for this spotlight
+      const commentsResult = await db
+        .select({ count: count() })
+        .from(comments)
+        .where(eq(comments.spotlightId, spotlightData.id));
 
       return {
         id: spotlightData.id,

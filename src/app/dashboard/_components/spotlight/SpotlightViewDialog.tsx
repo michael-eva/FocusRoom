@@ -13,10 +13,12 @@ import {
   MessageCircle,
   Play,
   Users,
-  Globe
+  Globe,
+  Loader2
 } from "lucide-react"
 import { api } from "~/trpc/react"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { useUser } from "@clerk/nextjs"
 import type { SpotlightLink, SpotlightStats } from "~/db/types"
 
 interface SpotlightViewDialogProps {
@@ -32,6 +34,13 @@ export function SpotlightViewDialog({
 }: SpotlightViewDialogProps) {
   const isMobile = useIsMobile();
   const [commentContent, setCommentContent] = useState("")
+  const [isLiking, setIsLiking] = useState(false)
+  const [isCommenting, setIsCommenting] = useState(false)
+
+  // Get user info and tRPC utils
+  const { user } = useUser();
+  const currentUserId = user?.id || "";
+  const utils = api.useUtils()
 
   // Fetch spotlight data
   const { data: spotlight, isLoading } = api.spotlight.getById.useQuery(
@@ -53,40 +62,55 @@ export function SpotlightViewDialog({
   )
 
   const createComment = api.comments.createComment.useMutation({
-    onSuccess: () => {
-      // Refetch comments
+    onSuccess: async () => {
+      // Invalidate queries to refetch data
+      await utils.spotlight.getById.invalidate({ id: spotlightId || 0 })
+      await utils.comments.getComments.invalidate({
+        targetId: spotlightId || 0,
+        targetType: "spotlight",
+        limit: 10,
+      })
       setCommentContent("")
     },
   })
 
   const toggleLike = api.likes.toggleLike.useMutation({
-    onSuccess: () => {
-      // Refetch spotlight to get updated like count
+    onSuccess: async () => {
+      // Invalidate queries to refetch updated data
+      await utils.spotlight.getById.invalidate({ id: spotlightId || 0 })
+      await utils.likes.checkUserLiked.invalidate({
+        clerkUserId: currentUserId,
+        spotlightId: spotlightId || 0,
+      })
     },
   })
 
   // Check if current user has liked
   const { data: userHasLiked = false } = api.likes.checkUserLiked.useQuery(
     {
-      userId: 1, // TODO: Get actual user ID from auth context
-      targetId: spotlight?.id || 0,
-      targetType: "spotlight",
+      clerkUserId: currentUserId,
+      spotlightId: spotlight?.id || 0,
     },
     {
-      enabled: !!spotlight?.id && isOpen,
+      enabled: !!spotlight?.id && isOpen && !!currentUserId,
       refetchOnWindowFocus: false,
     }
   )
 
-  const handleLike = () => {
-    if (spotlight) {
-      // TODO: Get actual user ID from auth context
-      const userId = 1 // Placeholder
-      toggleLike.mutate({
-        userId,
-        targetId: spotlight.id,
-        targetType: "spotlight",
-      })
+  const handleLike = async () => {
+    if (spotlight && currentUserId) {
+      setIsLiking(true)
+      try {
+        // Use the new API directly with spotlightId
+        await toggleLike.mutateAsync({
+          clerkUserId: currentUserId,
+          spotlightId: spotlight.id,
+        })
+      } catch (error) {
+        console.error("Failed to toggle like:", error);
+      } finally {
+        setIsLiking(false)
+      }
     }
   }
 
@@ -308,8 +332,13 @@ export function SpotlightViewDialog({
                   size="sm"
                   onClick={handleLike}
                   className={userHasLiked ? "bg-accent hover:bg-accent/90" : ""}
+                  disabled={isLiking}
                 >
-                  <Heart className={`h-4 w-4 mr-2 ${userHasLiked ? "fill-current" : ""}`} />
+                  {isLiking ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Heart className={`h-4 w-4 mr-2 ${userHasLiked ? "fill-current" : ""}`} />
+                  )}
                   {userHasLiked ? "Liked" : "Like"}
                 </Button>
               </div>
@@ -330,20 +359,34 @@ export function SpotlightViewDialog({
                   <div className="flex justify-end">
                     <Button
                       size="sm"
-                      onClick={() => {
-                        if (commentContent.trim() && spotlight) {
-                          createComment.mutate({
-                            userId: 1, // TODO: Get actual user ID from auth context
-                            targetId: spotlight.id,
-                            targetType: "spotlight",
-                            content: commentContent.trim(),
-                          })
+                      onClick={async () => {
+                        if (commentContent.trim() && spotlight && currentUserId) {
+                          setIsCommenting(true)
+                          try {
+                            await createComment.mutateAsync({
+                              clerkUserId: currentUserId,
+                              spotlightId: spotlight.id,
+                              content: commentContent.trim(),
+                            })
+                            setCommentContent("")
+                          } catch (error) {
+                            console.error("Failed to create comment:", error);
+                          } finally {
+                            setIsCommenting(false)
+                          }
                         }
                       }}
-                      disabled={!commentContent.trim()}
+                      disabled={!commentContent.trim() || isCommenting}
                       className="bg-accent hover:bg-accent/90 text-sm sm:text-base"
                     >
-                      Post Comment
+                      {isCommenting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Posting...
+                        </>
+                      ) : (
+                        "Post Comment"
+                      )}
                     </Button>
                   </div>
                 </div>

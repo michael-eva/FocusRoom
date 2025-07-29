@@ -35,6 +35,8 @@ export default function CommunityPage() {
     const [selectedEventId, setSelectedEventId] = useState<number | null>(null)
     const [selectedEventTitle, setSelectedEventTitle] = useState<string>("")
     const [votingOption, setVotingOption] = useState<{ pollId: number, optionId: number } | null>(null)
+    const [likingPost, setLikingPost] = useState<{ postId: number, targetType: "event" | "poll" } | null>(null)
+    const [commentingPost, setCommentingPost] = useState<{ postId: number, targetType: "event" | "poll" } | null>(null)
 
     const { user } = useUser();
     const currentUserId = user?.id || "";
@@ -84,6 +86,9 @@ export default function CommunityPage() {
     const createComment = api.comments.createComment.useMutation();
 
     const handleLike = async (postId: number, targetType: "event" | "poll") => {
+        // Set loading state for this specific post
+        setLikingPost({ postId, targetType });
+
         try {
             await toggleLike.mutateAsync({
                 clerkUserId: currentUserId,
@@ -97,6 +102,9 @@ export default function CommunityPage() {
         } catch (error) {
             console.error("Failed to toggle like:", error);
             alert("Failed to update like. Please try again.");
+        } finally {
+            // Clear loading state
+            setLikingPost(null);
         }
     }
 
@@ -158,6 +166,9 @@ export default function CommunityPage() {
 
     const handleComment = async (postId: number, targetType: "event" | "poll") => {
         if (newComment.trim()) {
+            // Set loading state for this specific post
+            setCommentingPost({ postId, targetType });
+
             try {
                 await createComment.mutateAsync({
                     clerkUserId: currentUserId,
@@ -173,6 +184,9 @@ export default function CommunityPage() {
             } catch (error) {
                 console.error("Failed to create comment:", error);
                 alert("Failed to create comment. Please try again.");
+            } finally {
+                // Clear loading state
+                setCommentingPost(null);
             }
         }
     }
@@ -535,8 +549,13 @@ export default function CommunityPage() {
                                             size="sm"
                                             onClick={() => handleLike(post.id, post.type as "event" | "poll")}
                                             className={post.userHasLiked ? "text-accent" : ""}
+                                            disabled={likingPost?.postId === post.id}
                                         >
-                                            <ThumbsUp className="h-4 w-4 mr-1" />
+                                            {likingPost?.postId === post.id ? (
+                                                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                            ) : (
+                                                <ThumbsUp className="h-4 w-4 mr-1" />
+                                            )}
                                             {post.likes || 0}
                                         </Button>
 
@@ -619,9 +638,16 @@ export default function CommunityPage() {
                                                             size="sm"
                                                             variant="packPrimary"
                                                             onClick={() => handleComment(post.id, post.type as "event" | "poll")}
-                                                            disabled={!newComment.trim()}
+                                                            disabled={!newComment.trim() || commentingPost?.postId === post.id}
                                                         >
-                                                            Comment
+                                                            {commentingPost?.postId === post.id ? (
+                                                                <>
+                                                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                                                    Posting...
+                                                                </>
+                                                            ) : (
+                                                                "Comment"
+                                                            )}
                                                         </Button>
                                                     </div>
                                                 </div>
