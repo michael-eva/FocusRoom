@@ -10,6 +10,7 @@ import { api } from "~/trpc/react"
 import { CreateEventDialog, type EventFormData } from "./community/_components/CreateEventDialog"
 import { RSVPDialog } from "./community/_components/RSVPDialog"
 import { useUser } from "@clerk/nextjs"
+import { useCreatePoll } from "~/hooks/useCreatePoll"
 import CommonNavbar from "../_components/CommonNavbar"
 import ChatAndAI from "./_components/ChatAndAI"
 import React from "react"
@@ -31,11 +32,11 @@ export default function Dashboard() {
 
     const utils = api.useUtils();
 
-    // API mutation for creating polls
-    const createPoll = api.polls.create.useMutation({
-        onSuccess: async () => {
+    // Use the custom hook for poll creation
+    const { createPoll } = useCreatePoll({
+        onSuccess: () => {
             alert("Poll created successfully!");
-            await utils.activity.getRecentActivity.invalidate();
+            void utils.activity.getRecentActivity.invalidate();
         },
         onError: () => {
             alert("Failed to create poll. Please try again.");
@@ -200,13 +201,7 @@ export default function Dashboard() {
 
     const handleCreatePoll = async (pollData: any) => {
         console.log("Creating poll with data:", pollData);
-        await createPoll.mutateAsync({
-            title: pollData.title,
-            content: pollData.description,
-            options: pollData.options,
-            createdByClerkUserId: currentUserId,
-        });
-
+        await createPoll(pollData);
     }
 
     const handleRSVP = async (eventId: number, eventTitle: string) => {

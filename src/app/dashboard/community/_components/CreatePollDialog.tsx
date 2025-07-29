@@ -31,7 +31,7 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         const validOptions = formData.options.filter((option) => option.trim() !== "")
-        if (formData.title && formData.description && validOptions.length >= 2) {
+        if (formData.title && validOptions.length >= 2) {
             onCreatePoll({
                 ...formData,
                 options: validOptions,
@@ -151,21 +151,21 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
                                 Community members can vote once and see results immediately after voting.
                             </p>
                         </div>
+                        <div className="flex justify-end gap-2 py-4 border-t px-6 bg-white">
+                            <Button type="button" variant="packOutline" onClick={onClose} className="min-w-[80px]">
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={!formData.title || validOptions.length < 2}
+                                className="bg-accent hover:bg-accent/90 min-w-[120px]"
+                            >
+                                Create Poll
+                            </Button>
+                        </div>
                     </form>
                 </div>
 
-                <div className="flex justify-end gap-2 py-4 border-t px-6 bg-white">
-                    <Button type="button" variant="packOutline" onClick={onClose} className="min-w-[80px]">
-                        Cancel
-                    </Button>
-                    <Button
-                        type="submit"
-                        disabled={!formData.title || validOptions.length < 2}
-                        className="bg-accent hover:bg-accent/90 min-w-[120px]"
-                    >
-                        Create Poll
-                    </Button>
-                </div>
             </DialogContentWrapper>
         </DialogWrapper>
     )

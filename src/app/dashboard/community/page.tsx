@@ -14,6 +14,7 @@ import { CreateEventDialog, type EventFormData } from "./_components/CreateEvent
 import { RSVPDialog } from "./_components/RSVPDialog"
 import { api } from "~/trpc/react"
 import { useUser } from "@clerk/nextjs"
+import { useCreatePoll } from "~/hooks/useCreatePoll"
 import { DateTime } from "luxon";
 import CommonNavbar from "~/app/_components/CommonNavbar"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
@@ -77,13 +78,24 @@ export default function CommunityPage() {
 
     // API mutations
     const createLocalEvent = api.events.create.useMutation();
-    const createPoll = api.polls.create.useMutation();
     const deletePoll = api.polls.delete.useMutation();
     const deleteEvent = api.events.delete.useMutation();
     const votePoll = api.polls.vote.useMutation();
     const createRSVP = api.rsvp.create.useMutation();
     const toggleLike = api.likes.toggleLike.useMutation();
     const createComment = api.comments.createComment.useMutation();
+
+    // Use the custom hook for poll creation
+    const { createPoll } = useCreatePoll({
+        onSuccess: () => {
+            void refetchFeed();
+            alert("Poll created successfully!");
+        },
+        onError: (error) => {
+            console.error("Failed to create poll:", error);
+            alert("Failed to create poll. Please try again.");
+        }
+    });
 
     const handleLike = async (postId: number, targetType: "event" | "poll") => {
         // Set loading state for this specific post
@@ -225,21 +237,7 @@ export default function CommunityPage() {
     }, [createLocalEvent]);
 
     const handleCreatePoll = async (pollData: any) => {
-        try {
-            await createPoll.mutateAsync({
-                question: pollData.title,
-                options: pollData.options,
-                createdByClerkUserId: currentUserId,
-            });
-
-            // Refresh the feed
-            await refetchFeed();
-
-            alert("Poll created successfully!");
-        } catch (error) {
-            console.error("Failed to create poll:", error);
-            alert("Failed to create poll. Please try again.");
-        }
+        await createPoll(pollData);
     }
 
     const handleDeletePoll = async (pollId: number) => {
