@@ -59,6 +59,7 @@ export const feedRouter = createTRPCRouter({
             question: polls.question,
             createdAt: polls.createdAt,
             createdByClerkUserId: polls.createdByClerkUserId,
+            endsAt: polls.endsAt,
             options: pollOptions,
             userVote: pollVotes,
           })
@@ -71,7 +72,7 @@ export const feedRouter = createTRPCRouter({
               eq(pollVotes.clerkUserId, input.userId),
             ),
           )
-          .orderBy(desc(polls.createdAt))
+          .orderBy(desc(polls.createdAt), pollOptions.id)
           .limit(input.limit)
           .offset(input.offset);
       } else {
@@ -82,12 +83,13 @@ export const feedRouter = createTRPCRouter({
             question: polls.question,
             createdAt: polls.createdAt,
             createdByClerkUserId: polls.createdByClerkUserId,
+            endsAt: polls.endsAt,
             options: pollOptions,
             userVote: sql`null`.as("userVote"),
           })
           .from(polls)
           .leftJoin(pollOptions, eq(polls.id, pollOptions.pollId))
-          .orderBy(desc(polls.createdAt))
+          .orderBy(desc(polls.createdAt), pollOptions.id)
           .limit(input.limit)
           .offset(input.offset);
       }
@@ -115,6 +117,7 @@ export const feedRouter = createTRPCRouter({
             question: row.question,
             createdAt: row.createdAt,
             createdByClerkUserId: row.createdByClerkUserId,
+            endsAt: row.endsAt,
             options: row.options ? [row.options] : [],
             userVote:
               row.userVote &&
@@ -332,6 +335,7 @@ export const feedRouter = createTRPCRouter({
           createdAt: poll.createdAt,
           updatedAt: poll.createdAt, // Use createdAt since updatedAt doesn't exist
           createdByClerkUserId: poll.createdByClerkUserId,
+          endsAt: poll.endsAt,
           options: poll.options,
           userVote: poll.userVote,
           likes: likeCount,

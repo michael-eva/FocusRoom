@@ -6,6 +6,8 @@ interface PollData {
   title: string;
   description?: string;
   options: string[];
+  endDate: string;
+  endTime: string;
 }
 
 interface UseCreatePollOptions {
@@ -42,6 +44,10 @@ export function useCreatePoll(options?: UseCreatePollOptions) {
       throw new Error("Poll must have at least 2 options");
     }
 
+    if (!pollData.endDate || !pollData.endTime) {
+      throw new Error("Poll end date and time are required");
+    }
+
     const validOptions = pollData.options.filter(
       (option) => option.trim() !== "",
     );
@@ -51,11 +57,19 @@ export function useCreatePoll(options?: UseCreatePollOptions) {
 
     setIsCreating(true);
     console.log("pollData", pollData);
+    
+    // Create endsAt ISO string from required date and time
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const dateTimeString = `${pollData.endDate}T${pollData.endTime}:00`;
+    const dateObj = new Date(dateTimeString);
+    const endsAt = dateObj.toISOString();
+    
     try {
       await createPollMutation.mutateAsync({
         question: pollData.title,
         options: validOptions,
         createdByClerkUserId: user.id,
+        endsAt,
       });
     } finally {
       setIsCreating(false);

@@ -23,7 +23,7 @@ export const pollsRouter = createTRPCRouter({
         options: z.array(z.string().min(1).max(200)).min(2).max(10),
         createdByClerkUserId: z.string().optional(),
         createdById: z.number().optional(), // For backward compatibility
-        endsAt: z.string().optional(),
+        endsAt: z.string().min(1, "End date is required"),
       }),
     )
     .mutation(async ({ input }) => {
@@ -43,6 +43,10 @@ export const pollsRouter = createTRPCRouter({
 
         if (!createdByClerkUserId) {
           throw new Error("createdByClerkUserId/createdById is required");
+        }
+
+        if (!input.endsAt) {
+          throw new Error("endsAt is required");
         }
 
         // Create the poll
@@ -185,7 +189,8 @@ export const pollsRouter = createTRPCRouter({
           votes: pollOptions.votes,
         })
         .from(pollOptions)
-        .where(eq(pollOptions.pollId, input.id));
+        .where(eq(pollOptions.pollId, input.id))
+        .orderBy(pollOptions.id);
 
       // Get creator details from Clerk
       let creator: any = null;

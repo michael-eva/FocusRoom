@@ -471,6 +471,15 @@ export default function CommunityPage() {
                                         {/* Poll-specific details */}
                                         {post.type === "poll" && 'options' in post && post.options && Array.isArray(post.options) && (
                                             <div className="mt-3 space-y-2">
+                                                {/* Poll end time display */}
+                                                {'endsAt' in post && post.endsAt && (
+                                                    <div className="p-2 bg-blue-50 rounded-lg text-sm">
+                                                        <span className="font-medium">Poll ends:</span> {formatDistanceToNow(new Date(post.endsAt), { addSuffix: true })}
+                                                        {new Date(post.endsAt) < new Date() && (
+                                                            <span className="ml-2 text-red-600 font-medium">(Closed)</span>
+                                                        )}
+                                                    </div>
+                                                )}
                                                 {post.options.map((option: any) => {
                                                     const totalVotes = post.options?.reduce((sum: number, opt: any) => sum + (opt.votes || 0), 0) || 0;
                                                     const percentage = totalVotes > 0 ? Math.round((option.votes || 0) / totalVotes * 100) : 0;
@@ -478,29 +487,35 @@ export default function CommunityPage() {
                                                     const userHasVotedOnPoll = 'userVote' in post && post.userVote !== null;
                                                     const isThisOptionLoading = votingOption?.pollId === post.id && votingOption?.optionId === option.id;
                                                     const isAnyOptionLoading = votingOption?.pollId === post.id;
+                                                    const isPollExpired = 'endsAt' in post && post.endsAt && new Date(post.endsAt) < new Date();
 
                                                     return (
                                                         <div key={option.id} className="relative">
                                                             <button
                                                                 onClick={() => handleVote(post.id, option.id)}
-                                                                disabled={isAnyOptionLoading}
+                                                                disabled={isAnyOptionLoading || isPollExpired}
                                                                 title={
-                                                                    hasVoted
-                                                                        ? "Your current choice (click to change)"
-                                                                        : userHasVotedOnPoll
-                                                                            ? "Click to change your vote to this option"
-                                                                            : "Click to vote for this option"
-                                                                }
-                                                                className={`group w-full p-3 text-left rounded-lg border transition-all duration-200 ${hasVoted
-                                                                    ? 'bg-accent/20 border-accent/30 ring-2 ring-accent/20'
-                                                                    : isAnyOptionLoading && !isThisOptionLoading
-                                                                        ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
-                                                                        : isThisOptionLoading
-                                                                            ? 'bg-accent/10 border-accent/20 animate-pulse'
+                                                                    isPollExpired
+                                                                        ? "This poll has ended"
+                                                                        : hasVoted
+                                                                            ? "Your current choice (click to change)"
                                                                             : userHasVotedOnPoll
-                                                                                ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
-                                                                                : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
-                                                                    }`}
+                                                                                ? "Click to change your vote to this option"
+                                                                                : "Click to vote for this option"
+                                                                }
+                                                                className={`group w-full p-3 text-left rounded-lg border transition-all duration-200 ${
+                                                                    isPollExpired
+                                                                        ? 'bg-gray-100 border-gray-300 opacity-60 cursor-not-allowed'
+                                                                        : hasVoted
+                                                                            ? 'bg-accent/20 border-accent/30 ring-2 ring-accent/20'
+                                                                            : isAnyOptionLoading && !isThisOptionLoading
+                                                                                ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                                                                                : isThisOptionLoading
+                                                                                    ? 'bg-accent/10 border-accent/20 animate-pulse'
+                                                                                    : userHasVotedOnPoll
+                                                                                        ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
+                                                                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
+                                                                }`}
                                                             >
                                                                 <div className="flex justify-between items-center">
                                                                     <div className="flex items-center gap-2">
@@ -518,7 +533,7 @@ export default function CommunityPage() {
                                                                         <span className="text-sm text-muted-foreground">
                                                                             {option.votes || 0} votes ({percentage}%)
                                                                         </span>
-                                                                        {userHasVotedOnPoll && !hasVoted && !isAnyOptionLoading && (
+                                                                        {userHasVotedOnPoll && !hasVoted && !isAnyOptionLoading && !isPollExpired && (
                                                                             <span className="text-xs text-blue-600 hidden group-hover:inline">
                                                                                 Click to change
                                                                             </span>

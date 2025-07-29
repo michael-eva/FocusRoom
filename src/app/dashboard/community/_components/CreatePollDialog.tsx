@@ -23,6 +23,8 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
         title: "",
         description: "",
         options: ["", ""],
+        endDate: "",
+        endTime: "",
     })
 
     // Lock scroll when dialog is open
@@ -31,7 +33,7 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         const validOptions = formData.options.filter((option) => option.trim() !== "")
-        if (formData.title && validOptions.length >= 2) {
+        if (formData.title && formData.endDate && formData.endTime && validOptions.length >= 2) {
             onCreatePoll({
                 ...formData,
                 options: validOptions,
@@ -40,6 +42,8 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
                 title: "",
                 description: "",
                 options: ["", ""],
+                endDate: "",
+                endTime: "",
             })
             onClose()
         }
@@ -119,6 +123,29 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
                             />
                         </div>
 
+                        <div className="space-y-2">
+                            <Label htmlFor="endDate">Poll End Date *</Label>
+                            <Input
+                                id="endDate"
+                                type="date"
+                                value={formData.endDate}
+                                onChange={(e) => handleChange("endDate", e.target.value)}
+                                min={new Date().toISOString().split('T')[0]}
+                                required
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="endTime">Poll End Time *</Label>
+                            <Input
+                                id="endTime"
+                                type="time"
+                                value={formData.endTime}
+                                onChange={(e) => handleChange("endTime", e.target.value)}
+                                required
+                            />
+                        </div>
+
                         <div className="space-y-3">
                             <Label>Poll Options *</Label>
                             {formData.options.map((option, index) => (
@@ -157,7 +184,7 @@ export function CreatePollDialog({ isOpen, onClose, onCreatePoll }: CreatePollDi
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={!formData.title || validOptions.length < 2}
+                                disabled={!formData.title || !formData.endDate || !formData.endTime || validOptions.length < 2}
                                 className="bg-accent hover:bg-accent/90 min-w-[120px]"
                             >
                                 Create Poll
