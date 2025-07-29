@@ -1,11 +1,13 @@
-import { ArrowLeft, LogOut, User } from "lucide-react";
-import React from "react";
+import { ArrowLeft, LogOut, User, MessageSquare } from "lucide-react";
+import React, { useState } from "react";
 import { Button } from "~/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover";
 import { SidebarTrigger } from "~/components/ui/sidebar";
-import { SignOutButton } from "@clerk/nextjs";
+import { SignOutButton, useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { UATDialog } from "~/app/dashboard/_components/UATDialog";
+import { api } from "~/trpc/react";
 
 export interface NavbarButtonProps {
   label: string;
@@ -32,6 +34,34 @@ const CommonNavbar: React.FC<CommonNavbarProps> = ({
   showBackButton = false,
 }) => {
   const router = useRouter();
+  const { user } = useUser();
+  const [isUATDialogOpen, setIsUATDialogOpen] = useState(false);
+
+  // UAT mutations
+  const submitUATQuery = api.uat.submit.useMutation({
+    onSuccess: async () => {
+      alert("UAT query submitted successfully!");
+    },
+    onError: () => {
+      alert("Failed to submit UAT query. Please try again.");
+    }
+  });
+
+  const handleUATSubmit = async (query: string) => {
+    if (!user?.id) return;
+
+    try {
+      await submitUATQuery.mutateAsync({
+        query,
+        clerkUserId: user.id,
+        userName: user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : undefined,
+        userEmail: user?.emailAddresses?.[0]?.emailAddress,
+      });
+    } catch (error) {
+      console.error("Failed to submit UAT query:", error);
+      throw error; // Re-throw to let the dialog handle the error
+    }
+  };
   return (
     <nav
       className={`w-full flex items-center py-2 sm:py-4 bg-white border-b ${className}`}
@@ -55,6 +85,16 @@ const CommonNavbar: React.FC<CommonNavbarProps> = ({
 
       {/* Buttons/RightContent (right) */}
       <div className="flex flex-shrink-0 items-center justify-end gap-2 min-w-[40px]">
+        {/* UAT Button - responsive design following projects page pattern */}
+        <Button
+          variant="packOutline"
+          onClick={() => setIsUATDialogOpen(true)}
+          title="Submit UAT Query"
+        >
+          <MessageSquare className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">UAT Query</span>
+        </Button>
+
         {/* Mobile: Show popover trigger if mobilePopoverContent is provided */}
         {mobilePopoverContent && (
           <div className="sm:hidden">
@@ -98,6 +138,13 @@ const CommonNavbar: React.FC<CommonNavbarProps> = ({
           </div>
         </PopoverContent>
       </Popover>
+
+      {/* UAT Dialog */}
+      <UATDialog
+        isOpen={isUATDialogOpen}
+        onClose={() => setIsUATDialogOpen(false)}
+        onSubmit={handleUATSubmit}
+      />
     </nav>
   );
 };

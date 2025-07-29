@@ -29,7 +29,7 @@ export default function ChatAndAI({
   const previousMessageCountRef = useRef(chatMessages.length);
   const isLoadingMoreRef = useRef(false);
 
-  // Auto-scroll to bottom when NEW messages arrive (not when loading older ones)
+  // Auto-scroll to bottom to show most recent messages
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -37,19 +37,31 @@ export default function ChatAndAI({
     const currentCount = chatMessages.length;
     const previousCount = previousMessageCountRef.current;
 
-    // Only auto-scroll if:
-    // 1. We're not loading more messages, AND
-    // 2. Messages were added (not when initial load or loading older messages)
+    // Always scroll to bottom when:
+    // 1. We're not loading more messages (to avoid jumping during load more), AND
+    // 2. We have messages to show
     if (!isLoadingMoreRef.current && currentCount > 0) {
-      // If this is the first load or new messages were added to the end, scroll to bottom
-      if (previousCount === 0 || currentCount > previousCount) {
-        container.scrollTop = container.scrollHeight;
-      }
+      // Force scroll to bottom to always show most recent content
+      setTimeout(() => {
+        if (container) {
+          container.scrollTop = container.scrollHeight;
+        }
+      }, 0);
     }
 
     // Update the previous count
     previousMessageCountRef.current = currentCount;
   }, [chatMessages]);
+
+  // Initial scroll to bottom on mount
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (container && chatMessages.length > 0) {
+      setTimeout(() => {
+        container.scrollTop = container.scrollHeight;
+      }, 100);
+    }
+  }, []);
 
   // Scroll event listener to detect if user is at the top
   useEffect(() => {
