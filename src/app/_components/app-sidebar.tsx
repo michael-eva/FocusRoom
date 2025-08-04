@@ -4,6 +4,7 @@ import { Calendar, CheckSquare, FileText, Home, MessageSquare, Music, Settings }
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "~/components/ui/sidebar"
+import Image from "next/image"
 
 const menuItems = [
     {
@@ -44,12 +45,10 @@ export function AppSidebar() {
     return (
         <Sidebar className="border-r border-border bg-sidebar">
             <SidebarHeader className="p-4">
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-10 h-10 bg-foreground rounded-full flex-shrink-0">
-                        <span className="text-background font-bold text-sm">P</span>
-                    </div>
+                <div className="flex items-center gap-3 justify-center">
                     <div className="min-w-0">
-                        <h2 className="font-semibold text-sidebar-foreground truncate">pack music/</h2>
+                        {/* <h2 className="font-semibold text-sidebar-foreground truncate">pack music/</h2> */}
+                        <Image src="/pack-logo.svg" alt="Pack Music" width={100} height={100} />
                         <p className="text-sm text-muted-foreground truncate">Focus Room</p>
                     </div>
                 </div>
