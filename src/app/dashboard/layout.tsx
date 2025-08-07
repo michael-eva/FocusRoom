@@ -9,7 +9,7 @@ import { UATDialog } from "./_components/UATDialog"
 import { useUser } from "@clerk/nextjs"
 import { api } from "~/trpc/react"
 
-export default function layout({ children }: { children: React.ReactNode }) {
+export default function Layout({ children }: { children: React.ReactNode }) {
     const [isUATDialogOpen, setIsUATDialogOpen] = useState(false)
     const { user } = useUser()
 
