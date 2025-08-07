@@ -300,9 +300,6 @@ export default function ChatAndAI({
 
             <h3 className="text-lg font-semibold text-gray-800 mb-2">AI Assistant</h3>
             <p className="text-sm text-gray-600 mb-1">Coming Soon!</p>
-            <p className="text-xs text-gray-500 max-w-xs">
-              We&apos;re working on an AI assistant to help with songwriting, chord progressions, and creative inspiration.
-            </p>
 
             {/* Disabled Input Preview */}
             <div className="flex gap-2 mt-6 w-full max-w-sm opacity-50">

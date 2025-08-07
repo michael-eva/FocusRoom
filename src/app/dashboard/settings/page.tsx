@@ -17,6 +17,8 @@ import { useUser } from "@clerk/nextjs"
 import CommonNavbar from "~/app/_components/CommonNavbar"
 import { Popover, PopoverContent, PopoverTrigger } from "~/components/ui/popover"
 import { useIsMobile } from "~/hooks/use-mobile"
+import { useRouter } from "next/navigation"
+import { useEffect } from "react"
 
 export default function SettingsPage() {
   // All hooks at the top, unconditionally
@@ -25,9 +27,11 @@ export default function SettingsPage() {
   const [inviteRole, setInviteRole] = useState<"admin" | "member">("member")
   const [editingMember, setEditingMember] = useState<any>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<"admin" | "member">("member")
   const currentProjectId = 1
   const user = useUser()
   const isMobile = useIsMobile();
+  const router = useRouter();
   const { data: users, refetch: refetchUsers } = api.users.getAll.useQuery();
   const admins = users?.data.filter((user) => user.publicMetadata.role === "admin");
   const { data: pendingInvitations = [] } = api.users.getPendingInvitations.useQuery()
@@ -54,9 +58,57 @@ export default function SettingsPage() {
     },
   })
 
-  // Now you can do your early return
-  if (!user.user?.id) {
-    return <div>Loading...</div>
+  // Check if user is admin and redirect if not
+  useEffect(() => {
+    if (user.isLoaded && user.user && user.user.publicMetadata?.role !== "admin") {
+      router.push("/dashboard")
+    }
+  }, [user.isLoaded, user.user, router])
+
+  // Show loading state while user is loading
+  if (!user.isLoaded) {
+    return (
+      <main className="flex-1 space-y-6 p-6">
+        <CommonNavbar
+          title="Team Settings"
+          rightContent={
+            <Button disabled>
+              <Plus className="h-4 w-4 mr-2" />
+              Invite Member
+            </Button>
+          }
+        />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+            <span className="text-muted-foreground">Loading settings...</span>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // If user is not admin, show nothing while redirecting
+  if (user.user && user.user.publicMetadata?.role !== "admin") {
+    return (
+      <main className="flex-1 space-y-6 p-6">
+        <CommonNavbar
+          title="Team Settings"
+          rightContent={
+            <Button disabled>
+              <Plus className="h-4 w-4 mr-2" />
+              Invite Member
+            </Button>
+          }
+        />
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="flex items-center gap-2">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+            <span className="text-muted-foreground">Redirecting...</span>
+          </div>
+        </div>
+      </main>
+    );
   }
 
   const handleInvite = async () => {
@@ -67,7 +119,7 @@ export default function SettingsPage() {
         email: inviteEmail.trim(),
         projectId: currentProjectId,
         role: inviteRole,
-        invitedBy: user.user?.id,
+        invitedBy: user.user?.id || "",
       })
     } catch (error) {
       console.error("Failed to invite user:", error)
@@ -81,7 +133,7 @@ export default function SettingsPage() {
     try {
       await updateRoleMutation.mutateAsync({
         projectId: currentProjectId,
-        clerkUserId: editingMember.clerkUserId,
+        clerkUserId: editingMember.id,
         role: newRole,
       })
     } catch (error) {
@@ -89,16 +141,21 @@ export default function SettingsPage() {
     }
   }
 
-  const handleRemoveMember = async (teamMemberId: string) => {
-    if (!confirm("Are you sure you want to remove this member from the team?")) return
+  const handleRemoveMember = async (teamMemberId: string, memberName?: string) => {
+    const confirmMessage = `⚠️ DESTRUCTIVE ACTION ⚠️\n\nThis will permanently delete ${memberName || 'this user'} from the entire application.\n\nThey will:\n- Lose all access to FocusRoom\n- Be unable to sign in again\n- Have their account permanently deleted\n\nThis action CANNOT be undone.\n\nType "DELETE" to confirm:`
+
+    const confirmation = prompt(confirmMessage)
+    if (confirmation !== "DELETE") return
 
     try {
       await removeMemberMutation.mutateAsync({
         projectId: currentProjectId,
         clerkUserId: teamMemberId,
       })
+      alert("User has been permanently deleted from FocusRoom.")
     } catch (error) {
       console.error("Failed to remove member:", error)
+      alert("Failed to delete user. They may have already been deleted or you don't have permission.")
     }
   }
 
@@ -144,7 +201,7 @@ export default function SettingsPage() {
           mobilePopoverContent={
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="packOutline">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
               </PopoverTrigger>
@@ -161,19 +218,19 @@ export default function SettingsPage() {
         />
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Team Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             <Card>
-              <CardContent className="p-4 text-center">
-                <Users className="h-6 w-6 mx-auto mb-2 text-blue-500" />
-                <p className="text-2xl font-bold">{users?.totalCount}</p>
-                <p className="text-sm text-gray-600">Total Members</p>
+              <CardContent className="p-3 md:p-4 text-center">
+                <Users className="h-5 w-5 md:h-6 md:w-6 mx-auto mb-1 md:mb-2 text-blue-500" />
+                <p className="text-xl md:text-2xl font-bold">{users?.totalCount}</p>
+                <p className="text-xs md:text-sm text-gray-600">Total Members</p>
               </CardContent>
             </Card>
             <Card>
-              <CardContent className="p-4 text-center">
-                <Shield className="h-6 w-6 mx-auto mb-2 text-red-500" />
-                <p className="text-2xl font-bold">{admins?.length}</p>
-                <p className="text-sm text-gray-600">Admins</p>
+              <CardContent className="p-3 md:p-4 text-center">
+                <Shield className="h-5 w-5 md:h-6 md:w-6 mx-auto mb-1 md:mb-2 text-red-500" />
+                <p className="text-xl md:text-2xl font-bold">{admins?.length}</p>
+                <p className="text-xs md:text-sm text-gray-600">Admins</p>
               </CardContent>
             </Card>
             {/* <Card>
@@ -183,11 +240,11 @@ export default function SettingsPage() {
                 <p className="text-sm text-gray-600">Members</p>
               </CardContent>
             </Card> */}
-            <Card>
-              <CardContent className="p-4 text-center">
-                <Mail className="h-6 w-6 mx-auto mb-2 text-orange-500" />
-                <p className="text-2xl font-bold">{pendingInvitations?.length}</p>
-                <p className="text-sm text-gray-600">Pending Invites</p>
+            <Card className="col-span-2 md:col-span-1">
+              <CardContent className="p-3 md:p-4 text-center">
+                <Mail className="h-5 w-5 md:h-6 md:w-6 mx-auto mb-1 md:mb-2 text-orange-500" />
+                <p className="text-xl md:text-2xl font-bold">{pendingInvitations?.length}</p>
+                <p className="text-xs md:text-sm text-gray-600">Pending Invites</p>
               </CardContent>
             </Card>
           </div>
@@ -203,24 +260,24 @@ export default function SettingsPage() {
             <CardContent>
               <div className="space-y-4">
                 {users?.data.map((member) => (
-                  <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg bg-white">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
+                  <div key={member.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border rounded-lg bg-white gap-3">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Avatar className="flex-shrink-0">
                         <AvatarFallback className="bg-orange-500 text-white">
                           {member.firstName?.split(' ').map(n => n[0]).join('') || member?.emailAddresses?.[0]?.emailAddress?.charAt(0).toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-gray-800">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                          <h3 className="font-semibold text-gray-800 truncate">
                             {member.firstName || member.emailAddresses?.[0]?.emailAddress || 'Unknown'}
                           </h3>
-                          <Badge className={getRoleColor((member.publicMetadata?.role as string) || 'member')}>
+                          <Badge className={`${getRoleColor((member.publicMetadata?.role as string) || 'member')} w-fit`}>
                             {getRoleIcon((member.publicMetadata?.role as string) || 'member')}
                             <span className="ml-1 capitalize">{(member.publicMetadata?.role as string) || 'member'}</span>
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600">{member.emailAddresses?.[0]?.emailAddress || 'No email'}</p>
+                        <p className="text-sm text-gray-600 truncate">{member.emailAddresses?.[0]?.emailAddress || 'No email'}</p>
                         {member.createdAt && (
                           <p className="text-xs text-gray-500">
                             Joined {formatDistanceToNow(new Date(member.createdAt), { addSuffix: true })}
@@ -228,24 +285,28 @@ export default function SettingsPage() {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => {
                           setEditingMember(member)
+                          setSelectedRole((member.publicMetadata?.role as "admin" | "member") || "member")
                           setIsEditDialogOpen(true)
                         }}
+                        className="flex-1 sm:flex-none"
                       >
                         <Edit className="h-4 w-4" />
+                        <span className="ml-1 sm:hidden">Edit</span>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => member.id && handleRemoveMember(member.id)}
-                        className="text-red-600 hover:text-red-700"
+                        onClick={() => member.id && handleRemoveMember(member.id, member.firstName || member.emailAddresses?.[0]?.emailAddress || 'Unknown')}
+                        className="text-red-600 hover:text-red-700 flex-1 sm:flex-none"
                       >
                         <Trash2 className="h-4 w-4" />
+                        <span className="ml-1 sm:hidden">Delete</span>
                       </Button>
                     </div>
                   </div>
@@ -285,7 +346,7 @@ export default function SettingsPage() {
                 {editingMember && (
                   <div className="text-center mb-4">
                     <h3 className="font-semibold text-lg text-gray-800">
-                      {editingMember.name || editingMember.email || 'Unknown Member'}
+                      {editingMember.firstName || editingMember.emailAddresses?.[0]?.emailAddress || 'Unknown Member'}
                     </h3>
                   </div>
                 )}
@@ -316,13 +377,13 @@ export default function SettingsPage() {
                       selected: "ring-2 ring-red-400 border-red-400 bg-red-100",
                     },
                   ].map(option => {
-                    const isSelected = editingMember?.projectRole === option.value
+                    const isSelected = selectedRole === option.value
                     return (
                       <button
                         key={option.value}
                         type="button"
                         className={`w-full flex items-center gap-3 rounded-xl border transition-all px-4 py-3 text-left shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 ${isSelected ? option.selected : option.color}`}
-                        onClick={() => handleUpdateRole(option.value)}
+                        onClick={() => setSelectedRole(option.value)}
                         disabled={updateRoleMutation.isPending}
                       >
                         <span className="flex-shrink-0">{option.icon}</span>
@@ -330,8 +391,10 @@ export default function SettingsPage() {
                           <span className={`font-semibold text-base ${isSelected ? "text-gray-900" : "text-gray-700"}`}>{option.label}</span>
                           <span className="text-sm text-gray-500">{option.description}</span>
                         </span>
-                        {isSelected && (
-                          <Badge className="ml-2 bg-white text-green-600 border border-green-500">Current</Badge>
+                        {selectedRole === option.value && (
+                          <Badge className="ml-2 bg-white text-green-600 border border-green-500">
+                            {editingMember?.publicMetadata?.role === option.value ? "Current" : "Selected"}
+                          </Badge>
                         )}
                       </button>
                     )
@@ -347,10 +410,11 @@ export default function SettingsPage() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={() => setIsEditDialogOpen(false)}
-                  className="flex-1 py-2 text-base font-semibold shadow-md bg-orange-500 hover:bg-orange-600 text-white"
+                  onClick={() => handleUpdateRole(selectedRole)}
+                  disabled={updateRoleMutation.isPending || selectedRole === editingMember?.publicMetadata?.role}
+                  className="flex-1 py-2 text-base font-semibold shadow-md bg-orange-500 hover:bg-orange-600 text-white disabled:bg-gray-300 disabled:text-gray-500"
                 >
-                  Done
+                  {updateRoleMutation.isPending ? "Updating..." : "Confirm Changes"}
                 </Button>
               </div>
             </DialogContentWrapper>

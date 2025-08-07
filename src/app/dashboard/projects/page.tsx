@@ -41,7 +41,46 @@ export default function ProjectsPage() {
     const { data: projects, isLoading } = api.project.getProjects.useQuery();
 
     if (isLoading) {
-        return <div>Loading...</div>
+        return (
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title="Projects"
+                    rightContent={
+                        <Link href="/dashboard/projects/new">
+                            <Button variant="packPrimary" disabled>
+                                <Plus className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">New Project</span>
+                            </Button>
+                        </Link>
+                    }
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="packOutline" disabled>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Link href="/dashboard/projects/new">
+                                        <Button disabled variant="ghost" className="justify-start">
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            New Project
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                        <span className="text-muted-foreground">Loading projects...</span>
+                    </div>
+                </div>
+            </main>
+        );
     }
 
     if (!projects) {
@@ -53,7 +92,7 @@ export default function ProjectsPage() {
     const totalTasks = projects.reduce((sum, project) => sum + (project.totalTasks || 0), 0);
     const uniqueTeamMembers = new Set(
         projects.flatMap(project =>
-            project.teamMembers.map(member => member.teamMemberId)
+            project.teamMembers.map(member => member.clerkUserId)
         )
     ).size;
 
@@ -77,7 +116,7 @@ export default function ProjectsPage() {
                     title="Projects"
                     rightContent={
                         <Link href="/dashboard/projects/new">
-                            <Button variant="packPrimary" size="pack">
+                            <Button variant="packPrimary" >
                                 <Plus className="h-4 w-4 sm:mr-2" />
                                 <span className="hidden sm:inline">New Project</span>
                             </Button>
@@ -86,7 +125,7 @@ export default function ProjectsPage() {
                     mobilePopoverContent={
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="packOutline" size="sm">
+                                <Button variant="packOutline">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>
@@ -197,11 +236,11 @@ export default function ProjectsPage() {
                                             <div className="flex -space-x-2">
                                                 {project.teamMembers.slice(0, 3).map((member, index) => (
                                                     <div
-                                                        key={index}
+                                                        key={member.clerkUserId || index}
                                                         className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white"
-                                                        title={member.teamMember?.name ?? ""}
+                                                        title={member.teamMember?.name || 'Unknown User'}
                                                     >
-                                                        {member.teamMember?.name?.charAt(0)}
+                                                        {member.teamMember?.name?.charAt(0) || '?'}
                                                     </div>
                                                 ))}
                                                 {project.teamMembers.length > 3 && (

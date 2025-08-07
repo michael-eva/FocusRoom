@@ -3,7 +3,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
 import { eventRsvps, events, activityLog } from "~/db/schema";
 import { eq, and } from "drizzle-orm";
-import { client } from "~/lib/clerk";
+import { safeGetUser } from "~/lib/clerk-utils";
 import type { User } from "@clerk/nextjs/server";
 
 export const rsvpRouter = createTRPCRouter({
@@ -88,14 +88,7 @@ export const rsvpRouter = createTRPCRouter({
       // Fetch user details from Clerk for each RSVP
       const rsvpsWithUsers = await Promise.all(
         rsvps.map(async (rsvp) => {
-          let user: User | null = null;
-          if (rsvp.clerkUserId) {
-            try {
-              user = await client.users.getUser(rsvp.clerkUserId);
-            } catch (error) {
-              console.error(`Failed to fetch user ${rsvp.clerkUserId}:`, error);
-            }
-          }
+          const user = await safeGetUser(rsvp.clerkUserId || "");
 
           return {
             ...rsvp,

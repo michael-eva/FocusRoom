@@ -3,7 +3,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
 import { chatMessages, activityLog } from "~/db/schema";
 import { eq, desc, and } from "drizzle-orm";
-import { client } from "~/lib/clerk";
+import { safeGetUser, createFallbackUser } from "~/lib/clerk-utils";
 import type { User } from "@clerk/nextjs/server";
 
 export const chatRouter = createTRPCRouter({
@@ -26,34 +26,20 @@ export const chatRouter = createTRPCRouter({
       // Get user information from Clerk for each message
       const messagesWithUsers = await Promise.all(
         messages.map(async (message) => {
-          try {
-            const user = await client.users.getUser(message.clerkUserId);
-            return {
-              ...message,
-              user: {
-                id: user.id,
-                firstName: user.firstName,
-                lastName: user.lastName,
-                imageUrl: user.imageUrl,
-                emailAddresses: user.emailAddresses,
-              },
-            };
-          } catch (error) {
-            console.error(
-              `Failed to get user data for ${message.clerkUserId}:`,
-              error,
-            );
-            return {
-              ...message,
-              user: {
-                id: message.clerkUserId,
-                firstName: "Unknown",
-                lastName: "User",
-                imageUrl: null,
-                emailAddresses: [],
-              },
-            };
-          }
+          const user = await safeGetUser(message.clerkUserId);
+
+          return {
+            ...message,
+            user: user
+              ? {
+                  id: user.id,
+                  firstName: user.firstName,
+                  lastName: user.lastName,
+                  imageUrl: user.imageUrl,
+                  emailAddresses: user.emailAddresses,
+                }
+              : createFallbackUser(message.clerkUserId),
+          };
         }),
       );
 

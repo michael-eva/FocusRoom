@@ -3,8 +3,9 @@
 import { Calendar, CheckSquare, FileText, Home, MessageSquare, Music, Settings } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "~/components/ui/sidebar"
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "~/components/ui/sidebar"
 import Image from "next/image"
+import { useUserRole } from "~/hooks/useUserRole"
 
 const menuItems = [
     {
@@ -41,6 +42,23 @@ const menuItems = [
 
 export function AppSidebar() {
     const pathname = usePathname()
+    const userRole = useUserRole()
+    const { setOpenMobile, isMobile } = useSidebar()
+
+    // Filter menu items based on user role
+    const filteredMenuItems = menuItems.filter(item => {
+        if (item.title === "Settings") {
+            return userRole === "admin"
+        }
+        return true
+    })
+
+    // Function to handle menu item clicks and close sidebar on mobile
+    const handleMenuItemClick = () => {
+        if (isMobile) {
+            setOpenMobile(false)
+        }
+    }
 
     return (
         <Sidebar className="border-r border-border bg-sidebar">
@@ -57,7 +75,7 @@ export function AppSidebar() {
                 <SidebarGroup>
                     <SidebarGroupContent>
                         <SidebarMenu>
-                            {menuItems.map((item) => {
+                            {filteredMenuItems.map((item) => {
                                 // Determine if this item is active based on the current pathname
                                 const isActive = item.url === "#"
                                     ? false
@@ -68,12 +86,12 @@ export function AppSidebar() {
                                     <SidebarMenuItem key={item.title}>
                                         <SidebarMenuButton asChild isActive={isActive}>
                                             {item.url === "#" ? (
-                                                <a href={item.url} className="flex items-center gap-3 w-full touch-target">
+                                                <a href={item.url} className="flex items-center gap-3 w-full touch-target" onClick={handleMenuItemClick}>
                                                     <item.icon className="h-5 w-5 flex-shrink-0" />
                                                     <span className="truncate">{item.title}</span>
                                                 </a>
                                             ) : (
-                                                <Link href={item.url} className="flex items-center gap-3 w-full touch-target">
+                                                <Link href={item.url} className="flex items-center gap-3 w-full touch-target" onClick={handleMenuItemClick}>
                                                     <item.icon className="h-5 w-5 flex-shrink-0" />
                                                     <span className="truncate">{item.title}</span>
                                                 </Link>

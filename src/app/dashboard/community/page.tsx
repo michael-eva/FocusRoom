@@ -39,7 +39,7 @@ export default function CommunityPage() {
     const [likingPost, setLikingPost] = useState<{ postId: number, targetType: "event" | "poll" } | null>(null)
     const [commentingPost, setCommentingPost] = useState<{ postId: number, targetType: "event" | "poll" } | null>(null)
 
-    const { user } = useUser();
+    const { user, isLoaded: isUserLoaded } = useUser();
     const currentUserId = user?.id || "";
     const isAdmin = user?.publicMetadata?.role === "admin";
 
@@ -280,6 +280,56 @@ export default function CommunityPage() {
         }
     }
 
+    // Show loading state while user is loading
+    if (!isUserLoaded) {
+        return (
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title="Community"
+                    rightContent={
+                        <>
+                            <Button variant="packPrimary" disabled>
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Event
+                            </Button>
+                            <Button variant="packSecondary" disabled>
+                                <BarChart3 className="h-4 w-4 mr-2" />
+                                Create Poll
+                            </Button>
+                        </>
+                    }
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="packOutline" disabled>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Button disabled variant="ghost" className="justify-start">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Event
+                                    </Button>
+                                    <Button disabled variant="ghost" className="justify-start">
+                                        <BarChart3 className="h-4 w-4 mr-2" />
+                                        Create Poll
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                        <span className="text-muted-foreground">Loading community...</span>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
     return (
         <>
             <main className="flex-1 space-y-6 p-6">
@@ -320,7 +370,7 @@ export default function CommunityPage() {
                     mobilePopoverContent={
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="packOutline" size="sm">
+                                <Button variant="packOutline">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>
@@ -341,50 +391,50 @@ export default function CommunityPage() {
                 />
 
                 {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-                            <Users className="h-4 w-4 text-muted-foreground" />
+                <div className="grid gap-3 grid-cols-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <Card className="p-3 sm:p-0">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+                            <CardTitle className="text-xs sm:text-sm font-medium">Total Members</CardTitle>
+                            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{userCount}</div>
+                        <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                            <div className="text-lg sm:text-2xl font-bold">{userCount}</div>
                             <p className="text-xs text-muted-foreground">
                                 Active community members
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Active Polls</CardTitle>
-                            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                    <Card className="p-3 sm:p-0">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+                            <CardTitle className="text-xs sm:text-sm font-medium">Active Polls</CardTitle>
+                            <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{pollCount}</div>
+                        <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                            <div className="text-lg sm:text-2xl font-bold">{pollCount}</div>
                             <p className="text-xs text-muted-foreground">
                                 Ongoing discussions
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Comments</CardTitle>
-                            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <Card className="p-3 sm:p-0">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+                            <CardTitle className="text-xs sm:text-sm font-medium">Comments</CardTitle>
+                            <MessageSquare className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{commentCount}</div>
+                        <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                            <div className="text-lg sm:text-2xl font-bold">{commentCount}</div>
                             <p className="text-xs text-muted-foreground">
                                 Community engagement
                             </p>
                         </CardContent>
                     </Card>
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
-                            <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <Card className="p-3 sm:p-0">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 pt-3 sm:px-6 sm:pt-6">
+                            <CardTitle className="text-xs sm:text-sm font-medium">Upcoming Events</CardTitle>
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
                         </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">
+                        <CardContent className="px-3 pb-3 sm:px-6 sm:pb-6">
+                            <div className="text-lg sm:text-2xl font-bold">
                                 {feedPosts.filter(post => post.type === "event").length}
                             </div>
                             <p className="text-xs text-muted-foreground">
@@ -503,16 +553,16 @@ export default function CommunityPage() {
                                                                                 : "Click to vote for this option"
                                                                 }
                                                                 className={`group w-full p-3 text-left rounded-lg border transition-all duration-200 ${isPollExpired
-                                                                        ? 'bg-gray-100 border-gray-300 opacity-60 cursor-not-allowed'
-                                                                        : hasVoted
-                                                                            ? 'bg-accent/20 border-accent/30 ring-2 ring-accent/20'
-                                                                            : isAnyOptionLoading && !isThisOptionLoading
-                                                                                ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
-                                                                                : isThisOptionLoading
-                                                                                    ? 'bg-accent/10 border-accent/20 animate-pulse'
-                                                                                    : userHasVotedOnPoll
-                                                                                        ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
-                                                                                        : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
+                                                                    ? 'bg-gray-100 border-gray-300 opacity-60 cursor-not-allowed'
+                                                                    : hasVoted
+                                                                        ? 'bg-accent/20 border-accent/30 ring-2 ring-accent/20'
+                                                                        : isAnyOptionLoading && !isThisOptionLoading
+                                                                            ? 'bg-gray-50 border-gray-200 opacity-50 cursor-not-allowed'
+                                                                            : isThisOptionLoading
+                                                                                ? 'bg-accent/10 border-accent/20 animate-pulse'
+                                                                                : userHasVotedOnPoll
+                                                                                    ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
+                                                                                    : 'bg-gray-50 border-gray-200 hover:bg-gray-100 cursor-pointer'
                                                                     }`}
                                                             >
                                                                 <div className="flex justify-between items-center">

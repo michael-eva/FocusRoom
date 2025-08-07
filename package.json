@@ -26,7 +26,8 @@
     "db:check-tables": "tsx check-tables.ts",
     "db:test-drizzle": "tsx test-drizzle-seed.ts",
     "db:debug": "tsx debug-seed.ts",
-    "db:simple-full-seed": "tsx simple-full-seed.ts"
+    "db:simple-full-seed": "tsx simple-full-seed.ts",
+    "db:cleanup-orphaned": "tsx scripts/cleanup-orphaned-users-simple.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.25.4",
@@ -56,6 +57,7 @@
     "luxon": "^3.7.1",
     "next": "^15.2.3",
     "pg": "^8.16.3",
+    "postgres": "^3.4.7",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "resend": "^4.7.0",

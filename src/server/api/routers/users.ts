@@ -10,6 +10,7 @@ import { eq, and, isNull, desc } from "drizzle-orm";
 import { sql } from "drizzle-orm";
 import { createInvitation } from "~/services/clerk";
 import { client } from "~/lib/clerk";
+import { safeGetUser } from "~/lib/clerk-utils";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { User } from "@clerk/nextjs/server";
@@ -57,12 +58,7 @@ export const usersRouter = createTRPCRouter({
       // Fetch user details from Clerk for each team member
       const teamMembersWithDetails = await Promise.all(
         projectTeamMembersData.map(async (member) => {
-          let user: User | null = null;
-          try {
-            user = await client.users.getUser(member?.clerkUserId || "");
-          } catch (error) {
-            console.error(`Failed to fetch user ${member.clerkUserId}:`, error);
-          }
+          const user = await safeGetUser(member?.clerkUserId || "");
 
           return {
             clerkUserId: member.clerkUserId,
@@ -104,17 +100,7 @@ export const usersRouter = createTRPCRouter({
       // Fetch user details from Clerk for each team member
       const teamMembersWithDetails = await Promise.all(
         projectTeamMembersData.map(async (member) => {
-          let user: User | null = null;
-          if (member.clerkUserId) {
-            try {
-              user = await client.users.getUser(member.clerkUserId);
-            } catch (error) {
-              console.error(
-                `Failed to fetch user ${member.clerkUserId}:`,
-                error,
-              );
-            }
-          }
+          const user = await safeGetUser(member.clerkUserId || "");
 
           return {
             clerkUserId: member.clerkUserId,
@@ -172,12 +158,7 @@ export const usersRouter = createTRPCRouter({
       // Fetch user details from Clerk
       const usersWithDetails = await Promise.all(
         usersByRole.map(async (member) => {
-          let user: User | null = null;
-          try {
-            user = await client.users.getUser(member.clerkUserId || "");
-          } catch (error) {
-            console.error(`Failed to fetch user ${member.clerkUserId}:`, error);
-          }
+          const user = await safeGetUser(member.clerkUserId || "");
 
           return {
             clerkUserId: member.clerkUserId,
@@ -285,26 +266,64 @@ export const usersRouter = createTRPCRouter({
           ),
         );
 
+      // Also update the user's global role in Clerk's publicMetadata
+      await client.users.updateUserMetadata(input.clerkUserId, {
+        publicMetadata: {
+          role: input.role,
+        },
+      });
+
       return { success: true };
     }),
 
-  // Remove user from a specific project
-  removeFromProject: publicProcedure
+  // Remove user from a specific project and delete from Clerk
+  removeFromProject: protectedProcedure
     .input(
       z.object({
         projectId: z.number(),
         clerkUserId: z.string(),
       }),
     )
-    .mutation(async ({ input }) => {
-      await db
-        .delete(projectTeamMembers)
-        .where(
-          and(
-            eq(projectTeamMembers.projectId, input.projectId),
-            eq(projectTeamMembers.clerkUserId, input.clerkUserId),
-          ),
+    .mutation(async ({ input, ctx }) => {
+      const currentUser = await client.users.getUser(ctx.userId);
+
+      if (currentUser.publicMetadata?.role !== "admin") {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "Only admins can remove users",
+        });
+      }
+
+      try {
+        // First remove from project team members
+        await db
+          .delete(projectTeamMembers)
+          .where(
+            and(
+              eq(projectTeamMembers.projectId, input.projectId),
+              eq(projectTeamMembers.clerkUserId, input.clerkUserId),
+            ),
+          );
+
+        // Then delete the user from Clerk entirely
+        await client.users.deleteUser(input.clerkUserId);
+
+        console.log(
+          "Successfully removed user from project and deleted from Clerk:",
+          {
+            projectId: input.projectId,
+            clerkUserId: input.clerkUserId,
+            deletedBy: ctx.userId,
+          },
         );
-      return { success: true };
+
+        return { success: true };
+      } catch (error) {
+        console.error("Failed to remove user:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to remove user. They may have already been deleted.",
+        });
+      }
     }),
 });

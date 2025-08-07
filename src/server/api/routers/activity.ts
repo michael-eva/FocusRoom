@@ -3,7 +3,7 @@ import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
 import { activityLog, polls, events } from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
-import { client } from "~/lib/clerk";
+import { safeGetUser } from "~/lib/clerk-utils";
 import type { User } from "@clerk/nextjs/server";
 
 export const activityRouter = createTRPCRouter({
@@ -55,27 +55,7 @@ export const activityRouter = createTRPCRouter({
       // Fetch user data from Clerk for each activity
       const activitiesWithUsers = await Promise.all(
         activities.map(async (activity) => {
-          let user: User | null = null;
-          if (activity.clerkUserId) {
-            try {
-              // Skip test user IDs that don't exist in Clerk
-              if (
-                activity.clerkUserId === "1" ||
-                activity.clerkUserId === "67"
-              ) {
-                console.log(`Skipping test user ID: ${activity.clerkUserId}`);
-                user = null;
-              } else {
-                user = await client.users.getUser(activity.clerkUserId);
-              }
-            } catch (error) {
-              console.error(
-                `Failed to fetch user ${activity.clerkUserId}:`,
-                error,
-              );
-              user = null;
-            }
-          }
+          const user = await safeGetUser(activity.clerkUserId || "");
 
           return {
             id: activity.id,
@@ -125,12 +105,7 @@ export const activityRouter = createTRPCRouter({
         .offset(input.offset);
 
       // Fetch user data from Clerk
-      let user: User | null = null;
-      try {
-        user = await client.users.getUser(input.clerkUserId);
-      } catch (error) {
-        console.error(`Failed to fetch user ${input.clerkUserId}:`, error);
-      }
+      const user = await safeGetUser(input.clerkUserId);
 
       const activitiesWithUser = activities.map((activity) => ({
         ...activity,

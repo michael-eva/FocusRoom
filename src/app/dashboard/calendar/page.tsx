@@ -66,7 +66,7 @@ export default function CalendarPage() {
     const deleteLocalEvent = api.events.delete.useMutation();
 
     // Get current user info from Clerk
-    const { user } = useUser();
+    const { user, isLoaded: isUserLoaded } = useUser();
     const currentUserId = user?.id;
     const canEdit = useCanEdit({ userId: currentUserId, eventId: selectedEvent?.id });
 
@@ -216,6 +216,47 @@ export default function CalendarPage() {
         }
     };
 
+    // Show loading state while user is loading
+    if (!isUserLoaded) {
+        return (
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title="Calendar"
+                    rightContent={
+                        <Button variant="packPrimary" disabled>
+                            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+                            <span className="hidden sm:inline">Create Event</span>
+                            <span className="sm:hidden">Add</span>
+                        </Button>
+                    }
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="packOutline" disabled>
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Button disabled variant="ghost" className="justify-start">
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Create Event
+                                    </Button>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent"></div>
+                        <span className="text-muted-foreground">Loading calendar...</span>
+                    </div>
+                </div>
+            </main>
+        );
+    }
+
     return (
         <>
             {/* <header className="flex items-center justify-between p-4 border-b bg-white">
@@ -263,7 +304,7 @@ export default function CalendarPage() {
                     mobilePopoverContent={
                         <Popover>
                             <PopoverTrigger asChild>
-                                <Button variant="packOutline" size="sm">
+                                <Button variant="packOutline">
                                     <MoreHorizontal className="h-4 w-4" />
                                 </Button>
                             </PopoverTrigger>

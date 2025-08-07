@@ -602,10 +602,10 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                 {(() => {
                                                                     // Get assignees from the parsed field
                                                                     const assigneeIds = (task.assigneeClerkUserIds as string[]) || [];
-                                                                    
+
                                                                     if (assigneeIds.length > 0) {
                                                                         const assignees = assigneeIds.map(id => allUsers?.data?.find(user => user.id === id)).filter(Boolean);
-                                                                        
+
                                                                         return (
                                                                             <div className="flex items-center gap-2">
                                                                                 <div className="flex -space-x-1">
@@ -626,30 +626,42 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                                     )}
                                                                                 </div>
                                                                                 <span className="text-xs sm:text-sm text-gray-600 truncate">
-                                                                                    {assignees.length === 1 
+                                                                                    {assignees.length === 1
                                                                                         ? (assignees[0]?.fullName || `${assignees[0]?.firstName || ''} ${assignees[0]?.lastName || ''}`.trim() || assignees[0]?.primaryEmailAddress?.emailAddress)
                                                                                         : `${assignees.length} assignees`
                                                                                     }
                                                                                 </span>
+                                                                                <Button
+                                                                                    variant="outline"
+                                                                                    size="sm"
+                                                                                    onClick={() => {
+                                                                                        setSelectedTask(task)
+                                                                                        setIsAssignDialogOpen(true)
+                                                                                    }}
+                                                                                    className="gap-2 h-8 px-2 sm:px-3 text-xs"
+                                                                                >
+                                                                                    <Users className="h-3 w-3" />
+                                                                                    Edit
+                                                                                </Button>
                                                                             </div>
                                                                         );
                                                                     }
-                                                                    
+
                                                                     return null;
                                                                 })() || (
-                                                                    <Button
-                                                                        variant="outline"
-                                                                        size="sm"
-                                                                        onClick={() => {
-                                                                            setSelectedTask(task)
-                                                                            setIsAssignDialogOpen(true)
-                                                                        }}
-                                                                        className="gap-2 h-8 px-2 sm:px-3 text-xs"
-                                                                    >
-                                                                        <Users className="h-3 w-3" />
-                                                                        Assign
-                                                                    </Button>
-                                                                )}
+                                                                        <Button
+                                                                            variant="outline"
+                                                                            size="sm"
+                                                                            onClick={() => {
+                                                                                setSelectedTask(task)
+                                                                                setIsAssignDialogOpen(true)
+                                                                            }}
+                                                                            className="gap-2 h-8 px-2 sm:px-3 text-xs"
+                                                                        >
+                                                                            <Users className="h-3 w-3" />
+                                                                            Assign
+                                                                        </Button>
+                                                                    )}
 
                                                                 {task.deadline && (
                                                                     <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -689,10 +701,6 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                                                 >
                                                                     <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
                                                                     <span className="hidden sm:inline">Delete</span>
-                                                                </Button>
-                                                                <Button variant="ghost" size="sm" className="gap-1 sm:gap-2 h-8 px-2 sm:px-3 text-xs hidden sm:flex">
-                                                                    <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
-                                                                    <span className="hidden sm:inline">Notify</span>
                                                                 </Button>
                                                             </div>
                                                         </div>

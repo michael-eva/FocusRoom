@@ -30,16 +30,20 @@
 // }
 //
 // This webhook handles the following events:
-// - organization.invitation.accepted (when a user accepts an invitation)
-// - organization.invitation.created (when a new invitation is created)
-// - organization.invitation.revoked (when an invitation is revoked)
-// - user.created (when a new user is created)
+// - invitation.accepted (when a user accepts a standard invitation)
+// - user.created (when a new user is created - links user to project teams)
 // - user.updated (when a user profile is updated)
+// - organization.invitation.accepted (when a user accepts an organization invitation)
+// - organization.invitation.created (when a new organization invitation is created)
+// - organization.invitation.revoked (when an organization invitation is revoked)
 
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { Webhook } from "svix";
 import type { WebhookEvent } from "@clerk/nextjs/server";
+import { db } from "~/db";
+import { projectTeamMembers } from "~/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(req: Request) {
   // Get the headers
@@ -106,8 +110,76 @@ export async function POST(req: Request) {
     }
   };
 
-  // Handle organization invitation events (both formats)
+  // Handle standard invitation events
   if (
+    eventType === "invitation.accepted"
+  ) {
+    const invitationData = evt.data as any;
+
+    console.log("Invitation accepted:", {
+      invitationId: invitationData.id,
+      emailAddress: invitationData.email_address,
+      publicMetadata: invitationData.public_metadata,
+      acceptedAt: safeParseDate(invitationData.updated_at),
+    });
+
+    try {
+      // Get the project ID and role from the invitation metadata
+      const projectId = invitationData.public_metadata?.projectId;
+      const role = invitationData.public_metadata?.role;
+
+      if (projectId && invitationData.email_address) {
+        // Find the user who accepted the invitation by email
+        // Note: We need to get the user ID from a separate user.created event
+        // For now, we'll update the record when we have the actual user ID
+        console.log("Updating project team member record for accepted invitation", {
+          projectId,
+          email: invitationData.email_address,
+          role
+        });
+      }
+    } catch (error) {
+      console.error("Error updating project team member on invitation acceptance:", error);
+    }
+  } 
+  // Handle user creation (when invitation is fully completed)
+  else if (eventType === "user.created") {
+    const userData = evt.data as any;
+    console.log("User created:", {
+      userId: userData.id,
+      emailAddress: userData.email_addresses?.[0]?.email_address,
+      firstName: userData.first_name,
+      lastName: userData.last_name,
+      createdAt: safeParseDate(userData.created_at),
+    });
+
+    try {
+      // Update any pending project team member records with the new user ID
+      const userEmail = userData.email_addresses?.[0]?.email_address;
+      if (userEmail && userData.id) {
+        const updateResult = await db
+          .update(projectTeamMembers)
+          .set({ 
+            clerkUserId: userData.id,
+            joinedAt: new Date().toISOString()
+          })
+          .where(eq(projectTeamMembers.clerkUserId, userEmail))
+          .returning();
+
+        if (updateResult.length > 0) {
+          console.log("Successfully linked user to project team:", {
+            userId: userData.id,
+            email: userEmail,
+            projectsLinked: updateResult.length
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Error linking user to project teams:", error);
+    }
+  }
+  // Handle organization invitation events (both formats)
+  else if (
     eventType === "organization.invitation.accepted" ||
     eventType === "organizationInvitation.accepted"
   ) {
@@ -125,16 +197,8 @@ export async function POST(req: Request) {
       url: invitationData.url,
     });
 
-    // TODO: Add database update logic here
-    // Update user table with invitation status
-    // Example: await db.user.update({
-    //   where: { email: invitationData.email_address },
-    //   data: {
-    //     organizationId: invitationData.organization_id,
-    //     role: invitationData.role,
-    //     invitationStatus: 'accepted'
-    //   }
-    // });
+    // Organization invitations are handled differently - they don't use our project system
+    console.log("Organization invitation handling not implemented for project teams");
   } else if (
     eventType === "organization.invitation.created" ||
     eventType === "organizationInvitation.created"
@@ -164,15 +228,6 @@ export async function POST(req: Request) {
       roleName: invitationData.role_name,
       status: invitationData.status,
       revokedAt: safeParseDate(invitationData.updated_at),
-    });
-  } else if (eventType === "user.created") {
-    const userData = evt.data as any;
-    console.log("User created:", {
-      userId: userData.id,
-      emailAddress: userData.email_addresses?.[0]?.email_address,
-      firstName: userData.first_name,
-      lastName: userData.last_name,
-      createdAt: safeParseDate(userData.created_at),
     });
   } else if (eventType === "user.updated") {
     const userData = evt.data as any;
