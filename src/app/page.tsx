@@ -1,16 +1,27 @@
 'use client'
 
 import Link from "next/link";
-import { useUserRole } from "~/hooks/useUserRole";
+import Image from "next/image";
+import { Button } from "~/components/ui/button";
 
 export default function Home() {
-  const role = useUserRole();
-  console.log(role);
   return (
-    <main className="flex min-h-screen flex-col items-center text-2xl justify-center bg-gradient-to-b from-white to-[#15162c] text-white">
-      <p>You are here for a reason</p>
-      <p>I&apos;m not sure what that reason is</p>
-      <p>but if you were invited <Link href="/sign-in" className="text-orange-500 font-bold cursor-pointer">click here</Link></p>
+    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-white to-[#15162c] text-white">
+      <div className="text-center space-y-8">
+        <div className="flex justify-center mb-6">
+          <Image src="/pack-logo.svg" alt="Pack Music" width={150} height={150} />
+        </div>
+        
+        <h1 className="text-4xl md:text-6xl font-bold">
+          Welcome to the Pack Focus Room
+        </h1>
+        
+        <Link href="/sign-in">
+          <Button variant="packPrimary" size="lg" className="text-lg px-8 py-3">
+            Sign In
+          </Button>
+        </Link>
+      </div>
     </main>
   );
 }

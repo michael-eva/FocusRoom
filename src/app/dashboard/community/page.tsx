@@ -455,7 +455,32 @@ export default function CommunityPage() {
                     </div>
 
                     <div className="space-y-4">
-                        {feedPosts.map((post) => (
+                        {feedPosts.length === 0 ? (
+                            <div className="flex items-center justify-center min-h-[400px]">
+                                <div className="text-center space-y-4 max-w-md mx-auto">
+                                    <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                                        <MessageSquare className="h-8 w-8 text-gray-400" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900">No community activity yet</h3>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            Be the first to start the conversation! Create an event or poll to engage with your community.
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                                        <Button variant="packPrimary" onClick={() => setIsCreateEventOpen(true)}>
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            Create Event
+                                        </Button>
+                                        <Button variant="packSecondary" onClick={() => setIsCreatePollOpen(true)}>
+                                            <BarChart3 className="h-4 w-4 mr-2" />
+                                            Create Poll
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ) : (
+                            feedPosts.map((post) => (
                             <Card key={post.id} className="overflow-hidden">
                                 <CardContent className="p-6">
                                     {/* Post Header */}
@@ -717,7 +742,8 @@ export default function CommunityPage() {
                                     )}
                                 </CardContent>
                             </Card>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
             </main>

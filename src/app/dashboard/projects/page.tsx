@@ -83,8 +83,60 @@ export default function ProjectsPage() {
         );
     }
 
-    if (!projects) {
-        return <div>No projects found.</div>
+    if (!projects || projects.length === 0) {
+        return (
+            <main className="flex-1 space-y-6 p-6">
+                <CommonNavbar
+                    title="Projects"
+                    rightContent={
+                        <Link href="/dashboard/projects/new">
+                            <Button variant="packPrimary" >
+                                <Plus className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">New Project</span>
+                            </Button>
+                        </Link>
+                    }
+                    mobilePopoverContent={
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button variant="packOutline">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-48">
+                                <div className="flex flex-col gap-2">
+                                    <Link href="/dashboard/projects/new">
+                                        <Button variant="ghost" className="justify-start">
+                                            <Plus className="h-4 w-4 mr-2" />
+                                            New Project
+                                        </Button>
+                                    </Link>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+                    }
+                />
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center space-y-4 max-w-md mx-auto">
+                        <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center">
+                            <Users className="h-8 w-8 text-gray-400" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900">No projects yet</h3>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Get started by creating your first project to collaborate with your team.
+                            </p>
+                        </div>
+                        <Link href="/dashboard/projects/new">
+                            <Button variant="packPrimary" className="mt-4">
+                                <Plus className="h-4 w-4 mr-2" />
+                                Create Your First Project
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </main>
+        );
     }
 
     // Calculate dynamic statistics
