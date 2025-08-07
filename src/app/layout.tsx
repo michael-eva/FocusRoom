@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   description: "A cooperative music platform owned by musicians, business partners, and listeners—united by a shared dream to reclaim value for creators.",
   keywords: ["music", "cooperative", "independent artists", "streaming", "community"],
   authors: [{ name: "Pack Music Cooperative" }],
-  icons: [{ rel: "icon", url: "/favicon.ico" }],
+  icons: [{ rel: "icon", url: "/pack-logo.svg", type: "image/svg+xml" }],
   openGraph: {
     title: "Pack Music - Focus Room",
     description: "A cooperative music platform owned by musicians, business partners, and listeners.",
