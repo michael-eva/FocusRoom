@@ -239,21 +239,22 @@ export default function ProjectDetailPage({ params }: PageProps) {
     const isProjectCreator = project.createdBy === currentUserId
     const canEditProject = isAdmin || isProjectCreator
 
-    const handleTaskAssign = (taskId: number, assignee: any, deadline: string) => {
+    const handleTaskAssign = (taskId: number, assignees: any[], deadline: string) => {
         const task = project.tasks.find(t => t.id === taskId)
 
         updateTaskAssignmentMutation.mutate({
             taskId,
-            assigneeId: assignee.id,
+            assigneeIds: assignees.map(a => a.id),
             deadline: deadline ? new Date(deadline) : undefined,
         }, {
             onSuccess: () => {
                 // Log activity
                 if (task) {
+                    const assigneeNames = assignees.map(a => a.fullName || a.firstName || a.primaryEmailAddress?.emailAddress).join(', ')
                     logActivityMutation.mutate({
                         projectId: parseInt(id),
                         type: "task_assigned",
-                        description: `Task "${task.title}" was assigned to ${assignee.name}`,
+                        description: `Task "${task.title}" was assigned to ${assigneeNames}`,
                         taskId: taskId,
                     })
                 }
@@ -342,7 +343,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
             status: formData.status,
             priority: formData.priority,
             deadline: formData.deadline ? new Date(formData.deadline) : undefined,
-            assigneeId: formData.assigneeId,
+            assigneeId: formData.assigneeId !== "none" ? parseInt(formData.assigneeId) : undefined,
         })
     }
 
@@ -598,16 +599,44 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
                                                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-2 border-t border-gray-100 gap-3 sm:gap-6">
                                                             <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-                                                                {task.assigneeClerkUserId ? (
-                                                                    <div className="flex items-center gap-2">
-                                                                        <Avatar className="w-5 h-5 sm:w-6 sm:h-6">
-                                                                            <AvatarFallback className="bg-orange-500 text-white text-xs">
-                                                                                {task.assigneeClerkUserId?.charAt(0)}
-                                                                            </AvatarFallback>
-                                                                        </Avatar>
-                                                                        <span className="text-xs sm:text-sm text-gray-600 truncate">{task.assigneeClerkUserId}</span>
-                                                                    </div>
-                                                                ) : (
+                                                                {(() => {
+                                                                    // Get assignees from the parsed field
+                                                                    const assigneeIds = (task.assigneeClerkUserIds as string[]) || [];
+                                                                    
+                                                                    if (assigneeIds.length > 0) {
+                                                                        const assignees = assigneeIds.map(id => allUsers?.data?.find(user => user.id === id)).filter(Boolean);
+                                                                        
+                                                                        return (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <div className="flex -space-x-1">
+                                                                                    {assignees.slice(0, 3).map((assignee, index) => {
+                                                                                        const avatarInitial = assignee?.firstName?.charAt(0) || assignee?.primaryEmailAddress?.emailAddress?.charAt(0) || "?";
+                                                                                        return (
+                                                                                            <Avatar key={index} className="w-5 h-5 sm:w-6 sm:h-6 border-2 border-white">
+                                                                                                <AvatarFallback className="bg-orange-500 text-white text-xs">
+                                                                                                    {avatarInitial}
+                                                                                                </AvatarFallback>
+                                                                                            </Avatar>
+                                                                                        );
+                                                                                    })}
+                                                                                    {assignees.length > 3 && (
+                                                                                        <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-400 rounded-full flex items-center justify-center text-white text-xs font-medium border-2 border-white">
+                                                                                            +{assignees.length - 3}
+                                                                                        </div>
+                                                                                    )}
+                                                                                </div>
+                                                                                <span className="text-xs sm:text-sm text-gray-600 truncate">
+                                                                                    {assignees.length === 1 
+                                                                                        ? (assignees[0]?.fullName || `${assignees[0]?.firstName || ''} ${assignees[0]?.lastName || ''}`.trim() || assignees[0]?.primaryEmailAddress?.emailAddress)
+                                                                                        : `${assignees.length} assignees`
+                                                                                    }
+                                                                                </span>
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                    
+                                                                    return null;
+                                                                })() || (
                                                                     <Button
                                                                         variant="outline"
                                                                         size="sm"
@@ -697,7 +726,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 isOpen={isAssignDialogOpen}
                 onClose={() => setIsAssignDialogOpen(false)}
                 task={selectedTask}
-                teamMembers={project.teamMembers}
+                teamMembers={allUsers?.data || []}
                 onAssign={handleTaskAssign}
             />
 
@@ -708,7 +737,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                     setTaskToEdit(null)
                 }}
                 task={taskToEdit}
-                teamMembers={project.teamMembers}
+                teamMembers={allUsers?.data || []}
                 onUpdate={handleUpdateTask}
             />
 

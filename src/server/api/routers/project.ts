@@ -1,4 +1,4 @@
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { z } from "zod";
 import { getProjectById, getProjects, getResources } from "~/db/query";
 import { db } from "~/db";
@@ -10,6 +10,7 @@ import {
   projectActivities,
 } from "~/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { requireProjectEditAccess, requireTaskEditAccess, requireResourceEditAccess } from "~/server/auth-helpers";
 
 export const projectRouter = createTRPCRouter({
   getResources: publicProcedure.query(async () => {
@@ -28,7 +29,7 @@ export const projectRouter = createTRPCRouter({
     .query(async ({ input }) => {
       return await getProjectById(input.id);
     }),
-  createProject: publicProcedure
+  createProject: protectedProcedure
     .input(
       z.object({
         name: z.string().min(1, "Project name is required"),
@@ -38,7 +39,6 @@ export const projectRouter = createTRPCRouter({
           .default("planning"),
         priority: z.enum(["low", "medium", "high"]).default("medium"),
         deadline: z.date().optional(),
-        createdBy: z.number(),
         teamMemberIds: z.array(z.string()).default([]),
         tasks: z
           .array(
@@ -66,7 +66,7 @@ export const projectRouter = createTRPCRouter({
           .default([]),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // Create the project
       const newProject = await db
         .insert(projects)
@@ -76,7 +76,7 @@ export const projectRouter = createTRPCRouter({
           status: input.status,
           priority: input.priority,
           deadline: input.deadline?.toISOString(),
-          createdBy: String(input.createdBy),
+          createdBy: ctx.userId,
           progress: 0,
           totalTasks: input.tasks.length,
           completedTasks: 0,
@@ -129,7 +129,7 @@ export const projectRouter = createTRPCRouter({
 
       return newProject[0];
     }),
-  saveDraft: publicProcedure
+  saveDraft: protectedProcedure
     .input(
       z.object({
         name: z.string().optional(),
@@ -139,7 +139,6 @@ export const projectRouter = createTRPCRouter({
           .default("draft"),
         priority: z.enum(["low", "medium", "high"]).default("medium"),
         deadline: z.date().optional(),
-        createdBy: z.number(),
         teamMemberIds: z.array(z.string()).default([]),
         tasks: z
           .array(
@@ -167,7 +166,7 @@ export const projectRouter = createTRPCRouter({
           .default([]),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       // Create the draft project
       const newProject = await db
         .insert(projects)
@@ -177,7 +176,7 @@ export const projectRouter = createTRPCRouter({
           status: "draft",
           priority: input.priority,
           deadline: input.deadline?.toISOString(),
-          createdBy: String(input.createdBy),
+          createdBy: ctx.userId,
           progress: 0,
           totalTasks: input.tasks.length,
           completedTasks: 0,
@@ -230,7 +229,7 @@ export const projectRouter = createTRPCRouter({
 
       return newProject[0];
     }),
-  createTask: publicProcedure
+  createTask: protectedProcedure
     .input(
       z.object({
         projectId: z.number(),
@@ -244,7 +243,10 @@ export const projectRouter = createTRPCRouter({
         assigneeId: z.number().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireProjectEditAccess(ctx.userId, input.projectId);
+      
       const newTask = await db
         .insert(tasks)
         .values({
@@ -283,7 +285,7 @@ export const projectRouter = createTRPCRouter({
 
       return newTask[0];
     }),
-  createResource: publicProcedure
+  createResource: protectedProcedure
     .input(
       z.object({
         projectId: z.number(),
@@ -293,7 +295,10 @@ export const projectRouter = createTRPCRouter({
         description: z.string().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireProjectEditAccess(ctx.userId, input.projectId);
+      
       const newResource = await db
         .insert(resources)
         .values({
@@ -308,21 +313,24 @@ export const projectRouter = createTRPCRouter({
 
       return newResource[0];
     }),
-  updateTaskAssignment: publicProcedure
+  updateTaskAssignment: protectedProcedure
     .input(
       z.object({
         taskId: z.number(),
-        assigneeId: z.number().optional(),
+        assigneeIds: z.array(z.string()).optional(),
         deadline: z.date().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireTaskEditAccess(ctx.userId, input.taskId);
+      
       const updatedTask = await db
         .update(tasks)
         .set({
-          assigneeClerkUserId: input.assigneeId
-            ? String(input.assigneeId)
-            : undefined,
+          assigneeClerkUserId: input.assigneeIds && input.assigneeIds.length > 1 
+            ? JSON.stringify(input.assigneeIds) 
+            : input.assigneeIds?.[0] || undefined,
           deadline: input.deadline?.toISOString(),
         })
         .where(eq(tasks.id, input.taskId))
@@ -330,7 +338,7 @@ export const projectRouter = createTRPCRouter({
 
       return updatedTask[0];
     }),
-  updateTaskStatus: publicProcedure
+  updateTaskStatus: protectedProcedure
     .input(
       z.object({
         taskId: z.number(),
@@ -338,7 +346,10 @@ export const projectRouter = createTRPCRouter({
         completedAt: z.date().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireTaskEditAccess(ctx.userId, input.taskId);
+      
       // Get the task to find the project ID
       const task = await db
         .select()
@@ -397,7 +408,7 @@ export const projectRouter = createTRPCRouter({
 
       return updatedTask[0];
     }),
-  updateTask: publicProcedure
+  updateTask: protectedProcedure
     .input(
       z.object({
         taskId: z.number(),
@@ -409,7 +420,10 @@ export const projectRouter = createTRPCRouter({
         assigneeId: z.number().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireTaskEditAccess(ctx.userId, input.taskId);
+      
       // Get the task to find the project ID
       const task = await db
         .select()
@@ -475,7 +489,7 @@ export const projectRouter = createTRPCRouter({
 
       return updatedTask[0];
     }),
-  logActivity: publicProcedure
+  logActivity: protectedProcedure
     .input(
       z.object({
         projectId: z.number(),
@@ -493,7 +507,9 @@ export const projectRouter = createTRPCRouter({
         userId: z.number().optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireProjectEditAccess(ctx.userId, input.projectId);
       const newActivity = await db
         .insert(projectActivities)
         .values({
@@ -521,9 +537,12 @@ export const projectRouter = createTRPCRouter({
 
       return activities;
     }),
-  deleteTask: publicProcedure
+  deleteTask: protectedProcedure
     .input(z.object({ taskId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireTaskEditAccess(ctx.userId, input.taskId);
+      
       // Get task info before deletion for activity logging
       const task = await db
         .select()
@@ -568,9 +587,12 @@ export const projectRouter = createTRPCRouter({
 
       return { success: true, deletedTask: taskInfo };
     }),
-  deleteResource: publicProcedure
+  deleteResource: protectedProcedure
     .input(z.object({ resourceId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireResourceEditAccess(ctx.userId, input.resourceId);
+      
       // Get resource info before deletion for activity logging
       const resource = await db
         .select()
@@ -599,9 +621,12 @@ export const projectRouter = createTRPCRouter({
         throw new Error("Failed to delete resource. Please try again.");
       }
     }),
-  deleteProject: publicProcedure
+  deleteProject: protectedProcedure
     .input(z.object({ projectId: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireProjectEditAccess(ctx.userId, input.projectId);
+      
       // Get project info before deletion
       const project = await db
         .select()
@@ -669,7 +694,7 @@ export const projectRouter = createTRPCRouter({
         throw new Error("Failed to delete project. Please try again.");
       }
     }),
-  updateProject: publicProcedure
+  updateProject: protectedProcedure
     .input(
       z.object({
         projectId: z.number(),
@@ -707,7 +732,10 @@ export const projectRouter = createTRPCRouter({
           .optional(),
       }),
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check permissions
+      await requireProjectEditAccess(ctx.userId, input.projectId);
+      
       const {
         projectId,
         teamMemberIds: newTeamMemberIds,

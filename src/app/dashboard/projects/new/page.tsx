@@ -173,7 +173,6 @@ export default function NewProjectPage() {
           status: formData.status,
           priority: formData.priority,
           deadline: formData.deadline ? new Date(formData.deadline) : undefined,
-          createdBy: currentUserId,
           teamMemberIds: formData.teamMemberIds,
           tasks: formData.tasks.map(task => ({
             title: task.title,
@@ -230,7 +229,6 @@ export default function NewProjectPage() {
         status: "draft",
         priority: formData.priority,
         deadline: formData.deadline ? new Date(formData.deadline) : undefined,
-        createdBy: currentUserId,
         teamMemberIds: formData.teamMemberIds,
         tasks: formData.tasks.map(task => ({
           title: task.title || "Untitled Task",

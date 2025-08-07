@@ -128,7 +128,7 @@ export const tasks = pgTable("tasks", {
     withTimezone: true,
   }),
   projectId: integer("project_id"),
-  assigneeClerkUserId: text("assignee_clerk_user_id"),
+  assigneeClerkUserId: text("assignee_clerk_user_id"), // Will store JSON array for multiple assignees
 });
 
 export const pollVotes = pgTable("poll_votes", {

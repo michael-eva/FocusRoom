@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/u
 import { Button } from "~/components/ui/button"
 import { Label } from "~/components/ui/label"
 import { Input } from "~/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "~/components/ui/select"
+import { Checkbox } from "~/components/ui/checkbox"
 import { Avatar, AvatarFallback } from "~/components/ui/avatar"
 import { Mail, Calendar, User } from "lucide-react"
 
@@ -18,16 +18,27 @@ interface TaskAssignmentDialogProps {
 }
 
 export function TaskAssignmentDialog({ isOpen, onClose, task, teamMembers, onAssign }: TaskAssignmentDialogProps) {
-    const [selectedAssignee, setSelectedAssignee] = useState<any>(null)
+    const [selectedAssignees, setSelectedAssignees] = useState<any[]>([])
     const [deadline, setDeadline] = useState("")
 
     const handleAssign = () => {
-        if (selectedAssignee && deadline && task) {
-            onAssign(task.id, selectedAssignee, deadline)
+        if (selectedAssignees.length > 0 && deadline && task) {
+            onAssign(task.id, selectedAssignees, deadline)
             onClose()
-            setSelectedAssignee(null)
+            setSelectedAssignees([])
             setDeadline("")
         }
+    }
+
+    const toggleAssignee = (member: any) => {
+        setSelectedAssignees(prev => {
+            const isSelected = prev.some(a => a.id === member.id)
+            if (isSelected) {
+                return prev.filter(a => a.id !== member.id)
+            } else {
+                return [...prev, member]
+            }
+        })
     }
 
     if (!task) return null
@@ -51,31 +62,36 @@ export function TaskAssignmentDialog({ isOpen, onClose, task, teamMembers, onAss
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="assignee" className="text-sm font-medium text-gray-700">Assign to</Label>
-                        <Select
-                            onValueChange={(value) => {
-                                const member = teamMembers.find((m) => m.id?.toString() === value)
-                                setSelectedAssignee(member)
-                            }}
-                        >
-                            <SelectTrigger className="h-10">
-                                <SelectValue placeholder="Select team member" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {teamMembers.map((member) => (
-                                    <SelectItem key={member.id} value={member.id?.toString() || ""}>
-                                        <div className="flex items-center gap-2">
+                        <Label className="text-sm font-medium text-gray-700">Assign to (select multiple)</Label>
+                        <div className="max-h-48 overflow-y-auto border rounded-md p-2 space-y-2">
+                            {teamMembers
+                                .filter((member) => member.id != null)
+                                .map((member, index) => {
+                                    const displayName = member.fullName || `${member.firstName || ''} ${member.lastName || ''}`.trim() || member.primaryEmailAddress?.emailAddress || member.emailAddresses?.[0]?.emailAddress;
+                                    const avatarInitial = member.firstName?.charAt(0) || member.primaryEmailAddress?.emailAddress?.charAt(0) || "?";
+                                    const isSelected = selectedAssignees.some(a => a.id === member.id);
+                                    
+                                    return (
+                                        <div key={`${member.id}-${index}`} className="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 cursor-pointer" onClick={() => toggleAssignee(member)}>
+                                            <Checkbox 
+                                                checked={isSelected}
+                                                onChange={() => {}}
+                                            />
                                             <Avatar className="w-6 h-6">
                                                 <AvatarFallback className="bg-orange-500 text-white text-xs font-medium">
-                                                    {member.avatar || (member.name?.charAt(0) || "?")}
+                                                    {avatarInitial}
                                                 </AvatarFallback>
                                             </Avatar>
-                                            <span>{member.name || member.email}</span>
+                                            <span className="text-sm">{displayName}</span>
                                         </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                                    );
+                                })}
+                        </div>
+                        {selectedAssignees.length > 0 && (
+                            <div className="text-xs text-gray-600">
+                                Selected: {selectedAssignees.map(a => a.fullName || a.firstName || a.primaryEmailAddress?.emailAddress).join(', ')}
+                            </div>
+                        )}
                     </div>
 
                     <div className="space-y-2">
@@ -106,7 +122,7 @@ export function TaskAssignmentDialog({ isOpen, onClose, task, teamMembers, onAss
                         </Button>
                         <Button
                             onClick={handleAssign}
-                            disabled={!selectedAssignee || !deadline}
+                            disabled={selectedAssignees.length === 0 || !deadline}
                             className="bg-orange-500 hover:bg-orange-600 h-10 px-6"
                         >
                             Assign Task

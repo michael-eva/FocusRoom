@@ -133,6 +133,15 @@ export async function getProjectById(id: number) {
       completedAt: task.completedAt,
       projectId: task.projectId,
       assigneeClerkUserId: task.assigneeClerkUserId,
+      assigneeClerkUserIds: task.assigneeClerkUserId ? (() => {
+        try {
+          // Try to parse as JSON array (multiple assignees)
+          return JSON.parse(task.assigneeClerkUserId);
+        } catch {
+          // If not JSON, it's a single assignee
+          return [task.assigneeClerkUserId];
+        }
+      })() : null,
     })),
     resources: projectResources,
   };

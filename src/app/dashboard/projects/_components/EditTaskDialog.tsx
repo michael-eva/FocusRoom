@@ -22,6 +22,7 @@ interface EditTaskDialogProps {
 
 export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, isLoading = false }: EditTaskDialogProps) {
   const isMobile = useIsMobile();
+  const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -30,6 +31,11 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
     deadline: "",
     assigneeId: "none",
   })
+
+  // Prevent hydration errors by only mounting on client side
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Update form data when task changes
   useEffect(() => {
@@ -47,10 +53,8 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onUpdate(task.id, {
-      ...formData,
-      assigneeId: formData.assigneeId ? parseInt(formData.assigneeId) : undefined,
-    })
+    e.stopPropagation()
+    onUpdate(task.id, formData)
   }
 
   const getPriorityIcon = (priority: string) => {
@@ -81,12 +85,12 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
 
   const contentProps = isMobile ? {
     side: "bottom" as const,
-    className: "max-h-[95vh] overflow-hidden flex flex-col"
+    className: "max-h-[95vh] overflow-y-auto flex flex-col"
   } : {
-    className: "overflow-hidden flex flex-col sm:max-w-md"
+    className: "max-h-[90vh] overflow-y-auto flex flex-col sm:max-w-md"
   };
 
-  if (!task) return null
+  if (!task || !mounted) return null
 
   return (
     <DialogWrapper {...dialogProps}>
@@ -98,7 +102,7 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
           </DialogTitleWrapper>
         </DialogHeaderWrapper>
 
-        <div className="flex-1 overflow-y-auto px-6">
+        <div className="flex-1 px-6 py-4">
           <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title" className="text-sm font-medium text-gray-700">Title *</Label>
@@ -136,7 +140,7 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
                   <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" align="start" sideOffset={4} position="popper">
                     <SelectItem value="pending">Pending</SelectItem>
                     <SelectItem value="in-progress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
@@ -155,7 +159,7 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
                   <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent side="bottom" align="start" sideOffset={4} position="popper">
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
@@ -167,7 +171,7 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
             <div className="space-y-2">
               <Label htmlFor="deadline" className="text-sm font-medium text-gray-700">Deadline</Label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
                 <Input
                   id="deadline"
                   type="date"
@@ -182,20 +186,34 @@ export function EditTaskDialog({ isOpen, onClose, task, teamMembers, onUpdate, i
               <Label htmlFor="assignee" className="text-sm font-medium text-gray-700">Assignee</Label>
               <Select
                 value={formData.assigneeId || "none"}
-                onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value === "none" ? "" : value }))}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, assigneeId: value }))}
               >
                 <SelectTrigger className="h-10 sm:h-11 text-sm sm:text-base">
                   <SelectValue placeholder="Select assignee" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent side="bottom" align="start" sideOffset={4}>
                   <SelectItem value="none">No assignee</SelectItem>
-                  {teamMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id?.toString() || ""}>
-                      <div className="flex items-center gap-2">
-                        <span>{member.name || member.email}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {teamMembers?.map((member, index) => {
+                    // Use stable ID - try member ID first, then clerki ID as fallback
+                    const memberId = member.id?.toString() || member.clerkUserId || `member-${index}`;
+                    const memberName = member.user?.firstName && member.user?.lastName 
+                      ? `${member.user.firstName} ${member.user.lastName}`
+                      : member.user?.emailAddresses?.[0]?.emailAddress 
+                      || member.name 
+                      || member.email 
+                      || 'Unknown User';
+                    
+                    // Skip if no valid ID (prevents empty string values)
+                    if (!memberId || memberId === '' || memberId === 'undefined') return null;
+                    
+                    return (
+                      <SelectItem key={`member-${member.id || member.clerkUserId || index}`} value={memberId}>
+                        <div className="flex items-center gap-2">
+                          <span>{memberName}</span>
+                        </div>
+                      </SelectItem>
+                    );
+                  }) || []}
                 </SelectContent>
               </Select>
             </div>
