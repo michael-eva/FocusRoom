@@ -247,8 +247,7 @@ export default function CommunityPage() {
 
         try {
             await deletePoll.mutateAsync({
-                id: pollId,
-                clerkUserId: currentUserId
+                id: pollId
             });
 
             // Refresh the feed to show updated data

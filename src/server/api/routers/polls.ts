@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
 import {
   polls,
@@ -12,6 +12,8 @@ import {
 import { eq, desc, and, sql, inArray } from "drizzle-orm";
 import { client } from "~/lib/clerk";
 import type { User } from "@clerk/nextjs/server";
+import { checkCanDeleteContent } from "~/server/auth-helpers";
+import { TRPCError } from "@trpc/server";
 
 export const pollsRouter = createTRPCRouter({
   create: publicProcedure
@@ -312,36 +314,38 @@ export const pollsRouter = createTRPCRouter({
       };
     }),
 
-  delete: publicProcedure
-    .input(
-      z.object({
-        id: z.number(),
-        clerkUserId: z.string().optional(), // Changed to string for Clerk user ID
-      }),
-    )
-    .mutation(async ({ input }) => {
+  delete: protectedProcedure
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input, ctx }) => {
       try {
         // Check if poll exists and get its creator
         const poll = await db
-          .select({ createdByClerkUserId: polls.createdByClerkUserId })
+          .select({ 
+            createdByClerkUserId: polls.createdByClerkUserId,
+            question: polls.question 
+          })
           .from(polls)
           .where(eq(polls.id, input.id))
           .limit(1);
 
         if (poll.length === 0) {
-          throw new Error("Poll not found");
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "Poll not found",
+          });
         }
 
-        // Check ownership and admin status
-        if (input.clerkUserId) {
-          // For now, allow deletion if user ID matches the creator
-          // In a real app, you'd check Clerk user roles
-          const isOwner = poll[0]!.createdByClerkUserId === input.clerkUserId;
+        // Use Clerk-based authorization helper
+        const { canDelete, isAdmin, isOwner } = await checkCanDeleteContent(
+          ctx.userId,
+          poll[0]!.createdByClerkUserId
+        );
 
-          // Allow deletion if user is the owner
-          if (!isOwner) {
-            throw new Error("You can only delete polls that you created");
-          }
+        if (!canDelete) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "You can only delete polls you created or be an admin",
+          });
         }
 
         // --- Robust deletion: ---
@@ -381,6 +385,14 @@ export const pollsRouter = createTRPCRouter({
 
         // 7. Finally delete the poll
         await db.delete(polls).where(eq(polls.id, input.id));
+
+        // 8. Log the activity
+        await db.insert(activityLog).values({
+          clerkUserId: ctx.userId,
+          action: "poll_deleted",
+          details: `Deleted poll: ${poll[0]!.question}${isAdmin && !isOwner ? " (admin action)" : ""}`,
+          metadata: { pollId: input.id, wasAdminAction: isAdmin && !isOwner },
+        });
 
         return { success: true };
       } catch (error) {

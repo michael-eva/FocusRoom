@@ -1,8 +1,10 @@
 import { z } from "zod";
-import { createTRPCRouter, publicProcedure } from "~/server/api/trpc";
+import { createTRPCRouter, publicProcedure, protectedProcedure } from "~/server/api/trpc";
 import { db } from "~/db";
 import { events, activityLog } from "~/db/schema";
 import { eq, gte, lte, and, desc } from "drizzle-orm";
+import { checkCanDeleteContent } from "~/server/auth-helpers";
+import { TRPCError } from "@trpc/server";
 
 export const eventsRouter = createTRPCRouter({
   create: publicProcedure
@@ -266,10 +268,51 @@ export const eventsRouter = createTRPCRouter({
       return updatedEvent[0];
     }),
 
-  delete: publicProcedure
+  delete: protectedProcedure
     .input(z.object({ id: z.number() }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
+      // Check if event exists and get its owner
+      const event = await db
+        .select({
+          id: events.id,
+          title: events.title,
+          createdByClerkUserId: events.createdByClerkUserId,
+        })
+        .from(events)
+        .where(eq(events.id, input.id))
+        .limit(1);
+
+      if (event.length === 0) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Event not found",
+        });
+      }
+
+      // Use Clerk-based authorization helper
+      const { canDelete, isAdmin, isOwner } = await checkCanDeleteContent(
+        ctx.userId,
+        event[0]!.createdByClerkUserId
+      );
+
+      if (!canDelete) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "You can only delete events you created or be an admin",
+        });
+      }
+
+      // Delete the event
       await db.delete(events).where(eq(events.id, input.id));
+
+      // Log the activity
+      await db.insert(activityLog).values({
+        clerkUserId: ctx.userId,
+        action: "event_deleted",
+        details: `Deleted event: ${event[0]!.title}${isAdmin && !isOwner ? " (admin action)" : ""}`,
+        metadata: { eventId: input.id, wasAdminAction: isAdmin && !isOwner },
+      });
+
       return { success: true };
     }),
 
