@@ -12,6 +12,7 @@ import { commentsRouter } from "~/server/api/routers/comments";
 import { usersRouter } from "~/server/api/routers/users";
 import { chatRouter } from "~/server/api/routers/chat";
 import { uatRouter } from "~/server/api/routers/uat";
+import { notificationsRouter } from "~/server/api/routers/notifications";
 import { createCallerFactory, createTRPCRouter } from "~/server/api/trpc";
 
 /**
@@ -34,6 +35,7 @@ export const appRouter = createTRPCRouter({
   users: usersRouter,
   chat: chatRouter,
   uat: uatRouter,
+  notifications: notificationsRouter,
 });
 
 // export type definition of API

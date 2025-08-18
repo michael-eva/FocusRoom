@@ -19,7 +19,7 @@ export const userRole = pgEnum("user_role", ["admin", "member", "moderator"]);
 export const drizzleMigrations = pgTable("__drizzle_migrations", {
   id: serial().primaryKey().notNull(),
   hash: text().notNull(),
-  createdAt: timestamp("created_at", { mode: "string" }),
+  createdAt: timestamp("created_at", { mode: "string", withTimezone: true }),
 });
 
 export const chatMessages = pgTable("chat_messages", {
@@ -253,4 +253,23 @@ export const uatQueries = pgTable("uat_queries", {
     withTimezone: true,
   }).defaultNow(),
   notes: text(), // For admin notes
+});
+
+export const notifications = pgTable("notifications", {
+  id: serial().primaryKey().notNull(),
+  sentAt: timestamp("sent_at", {
+    mode: "string",
+    withTimezone: true,
+  }).defaultNow(),
+  sentByClerkUserId: text("sent_by_clerk_user_id").notNull(),
+  recipientCount: integer("recipient_count").notNull(),
+  contentSummary: text("content_summary"), // Brief summary of what was included
+  emailsSent: integer("emails_sent").default(0), // Track how many emails were actually sent
+  emailsFailed: integer("emails_failed").default(0), // Track any failures
+});
+
+export const settings = pgTable("settings", {
+  id: serial().primaryKey().notNull(),
+  key: text().notNull(),
+  value: text().notNull(),
 });

@@ -10,7 +10,7 @@ import { Input } from "~/components/ui/input"
 import { Label } from "~/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "~/components/ui/dialog"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "~/components/ui/sheet"
-import { Bell, User, Plus, Mail, Shield, Users, Settings, Trash2, Edit, MoreHorizontal } from "lucide-react"
+import { Bell, User, Plus, Mail, Shield, Users, Settings, Trash2, Edit, MoreHorizontal, Send } from "lucide-react"
 import { api } from "~/trpc/react"
 import { formatDistanceToNow } from "date-fns"
 import { useUser } from "@clerk/nextjs"
@@ -35,6 +35,7 @@ export default function SettingsPage() {
   const { data: users, refetch: refetchUsers } = api.users.getAll.useQuery();
   const admins = users?.data.filter((user) => user.publicMetadata.role === "admin");
   const { data: pendingInvitations = [] } = api.users.getPendingInvitations.useQuery()
+  const { data: lastNotification } = api.notifications.getLastNotification.useQuery();
   const inviteMutation = api.users.inviteToProject.useMutation({
     onSuccess: () => {
       setIsInviteDialogOpen(false)
@@ -55,6 +56,15 @@ export default function SettingsPage() {
   const removeMemberMutation = api.users.removeFromProject.useMutation({
     onSuccess: () => {
       void refetchUsers()
+    },
+  })
+
+  const sendNotificationMutation = api.notifications.sendWeeklyDigest.useMutation({
+    onSuccess: () => {
+      alert("Weekly digest sent successfully to all members!")
+    },
+    onError: (error) => {
+      alert(`Failed to send notification: ${error.message}`)
     },
   })
 
@@ -185,6 +195,20 @@ export default function SettingsPage() {
     }
   }
 
+  const handleSendNotification = async () => {
+    if (!confirm("This will send a weekly digest email to all members. Continue?")) {
+      return;
+    }
+
+    try {
+      await sendNotificationMutation.mutateAsync({
+        adminOnly: false
+      })
+    } catch (error) {
+      // Error is handled by onError callback
+    }
+  }
+
 
 
   return (
@@ -248,6 +272,44 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Notifications Management */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bell className="h-5 w-5" />
+                Member Notifications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-gray-800 mb-2">Weekly Activity Digest</h3>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Send a summary of recent activity to all members including new projects, events, polls and spotlight updates.
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Automatically sends every 7 days. Manual sends will reset the 7-day timer.
+                    </p>
+                  </div>
+                  <div className="flex flex-col gap-2 sm:w-auto">
+                    <Button
+                      className="bg-orange-500 hover:bg-orange-600 text-white"
+                      onClick={handleSendNotification}
+                      disabled={sendNotificationMutation.isPending}
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {sendNotificationMutation.isPending ? "Sending..." : "Send Now"}
+                    </Button>
+                    <p className="text-xs text-gray-500 text-center">
+                      Last sent: {lastNotification?.sentAt ? formatDistanceToNow(new Date(lastNotification.sentAt), { addSuffix: true }) : "Never"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Team Members List */}
           <Card>
