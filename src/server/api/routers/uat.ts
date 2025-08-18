@@ -32,12 +32,12 @@ export const uatRouter = createTRPCRouter({
           })
           .returning();
 
-        // Send email notification to michael@extensa.studio
+        // Send email notification
         if (env.RESEND_API_KEY) {
           try {
             await resend.emails.send({
               from: "Extensa Studio <michael@notifications.extensa.studio>",
-              to: "michael@extensa.studio",
+              to: "mike@kamunityconsulting.com",
               subject: "New UAT Query Submitted - Focus Room",
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

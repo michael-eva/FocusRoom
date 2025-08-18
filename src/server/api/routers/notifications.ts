@@ -105,13 +105,10 @@ export const notificationsRouter = createTRPCRouter({
       // Send emails
       if (env.RESEND_API_KEY && !input.adminOnly) {
         try {
-          console.log("Sending emails to", emailList);
-          console.log("Email content:", emailContent);
-
           await resend.emails.send({
             from: "FocusRoom <michael@notifications.extensa.studio>",
-            to: "michael@extensa.studio",
-            // to: emailList,
+            // to: "michael@extensa.studio",
+            to: emailList,
             subject: `FocusRoom Weekly Update - ${hasActivity ? "New Activity" : "Staying Connected"}`,
             html: emailContent,
           });
