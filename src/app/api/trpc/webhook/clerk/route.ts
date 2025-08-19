@@ -44,6 +44,7 @@ import type { WebhookEvent } from "@clerk/nextjs/server";
 import { db } from "~/db";
 import { projectTeamMembers } from "~/db/schema";
 import { eq } from "drizzle-orm";
+import { env } from "~/env";
 
 export async function POST(req: Request) {
   // Get the headers
@@ -64,7 +65,7 @@ export async function POST(req: Request) {
   const body = JSON.stringify(payload);
 
   // Check if webhook secret is configured
-  const webhookSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
+  const webhookSecret = env.CLERK_WEBHOOK_SIGNING_SECRET;
   if (!webhookSecret) {
     console.error(
       "CLERK_WEBHOOK_SIGNING_SECRET environment variable is not set",
@@ -111,9 +112,7 @@ export async function POST(req: Request) {
   };
 
   // Handle standard invitation events
-  if (
-    eventType === "invitation.accepted"
-  ) {
+  if (eventType === "invitation.accepted") {
     const invitationData = evt.data as any;
 
     console.log("Invitation accepted:", {
@@ -132,16 +131,22 @@ export async function POST(req: Request) {
         // Find the user who accepted the invitation by email
         // Note: We need to get the user ID from a separate user.created event
         // For now, we'll update the record when we have the actual user ID
-        console.log("Updating project team member record for accepted invitation", {
-          projectId,
-          email: invitationData.email_address,
-          role
-        });
+        console.log(
+          "Updating project team member record for accepted invitation",
+          {
+            projectId,
+            email: invitationData.email_address,
+            role,
+          },
+        );
       }
     } catch (error) {
-      console.error("Error updating project team member on invitation acceptance:", error);
+      console.error(
+        "Error updating project team member on invitation acceptance:",
+        error,
+      );
     }
-  } 
+  }
   // Handle user creation (when invitation is fully completed)
   else if (eventType === "user.created") {
     const userData = evt.data as any;
@@ -159,9 +164,9 @@ export async function POST(req: Request) {
       if (userEmail && userData.id) {
         const updateResult = await db
           .update(projectTeamMembers)
-          .set({ 
+          .set({
             clerkUserId: userData.id,
-            joinedAt: new Date().toISOString()
+            joinedAt: new Date().toISOString(),
           })
           .where(eq(projectTeamMembers.clerkUserId, userEmail))
           .returning();
@@ -170,7 +175,7 @@ export async function POST(req: Request) {
           console.log("Successfully linked user to project team:", {
             userId: userData.id,
             email: userEmail,
-            projectsLinked: updateResult.length
+            projectsLinked: updateResult.length,
           });
         }
       }
@@ -198,7 +203,9 @@ export async function POST(req: Request) {
     });
 
     // Organization invitations are handled differently - they don't use our project system
-    console.log("Organization invitation handling not implemented for project teams");
+    console.log(
+      "Organization invitation handling not implemented for project teams",
+    );
   } else if (
     eventType === "organization.invitation.created" ||
     eventType === "organizationInvitation.created"

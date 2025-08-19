@@ -8,6 +8,7 @@ import {
   projectTeamMembers,
 } from "../src/db/schema";
 import { inArray } from "drizzle-orm";
+import { env } from "~/env";
 
 // Load environment variables
 config();
@@ -19,7 +20,7 @@ async function cleanupOrphanedUsers() {
   console.log("Starting cleanup of orphaned user records...");
 
   // Check if DATABASE_URL is available
-  const databaseUrl = process.env.DATABASE_URL;
+  const databaseUrl = env.DATABASE_URL;
   if (!databaseUrl) {
     console.error("DATABASE_URL environment variable is required");
     process.exit(1);

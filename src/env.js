@@ -15,6 +15,7 @@ export const env = createEnv({
     CLERK_WEBHOOK_SIGNING_SECRET: z.string(),
     RESEND_API_KEY: z.string().optional(),
     CRON_SECRET: z.string().optional(),
+    VERCEL_URL: z.string().optional(),
   },
   
   /**
@@ -43,6 +44,7 @@ export const env = createEnv({
     CRON_SECRET: process.env.CRON_SECRET,
     NEXT_PUBLIC_FRONTEND_URL: process.env.NEXT_PUBLIC_FRONTEND_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+    VERCEL_URL: process.env.VERCEL_URL,
     // NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
   },
   /**

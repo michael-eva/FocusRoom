@@ -14,6 +14,7 @@ import { safeGetUser } from "~/lib/clerk-utils";
 import { clerkClient } from "@clerk/nextjs/server";
 import { TRPCError } from "@trpc/server";
 import type { User } from "@clerk/nextjs/server";
+import { env } from "~/env";
 
 export const usersRouter = createTRPCRouter({
   // Get current user's profile
@@ -209,7 +210,7 @@ export const usersRouter = createTRPCRouter({
         // Check if user already exists
         const invitation = await createInvitation({
           emailAddress: input.email,
-          redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/accept-invitation`,
+          redirectUrl: `${env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000"}/accept-invitation`,
           notify: true,
           ignoreExisting: true,
           publicMetadata: {
